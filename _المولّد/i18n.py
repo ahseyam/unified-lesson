@@ -555,6 +555,25 @@ EN.update({
     "هذه الحصةُ خارجَ نطاقك.": "This lesson is outside your scope.",
     "⛔ هذه الحصةُ خارجَ نطاقك.": "⛔ This lesson is outside your scope.",
     "محوٌ نهائي": "Permanent purge",
+    "للاطّلاع": "View only",
+    "⛔ المحوُ النهائيُّ ليس من صلاحيتك هنا.": "⛔ Permanent purge is not within your permissions here.",
+    "فريقُ متابعة التقويم الداخلي: متابعةٌ لا حذف.":
+        "Internal evaluation follow-up team: follow-up, not deletion.",
+    "عليكِ — لا مشرفةَ لتخصصها": "Yours — its subject has no supervisor",
+    "عليكِ — مشرفتُها قد لا تحضر": "Yours — its supervisor may not attend",
+    "لا مشرفةَ مختصةً لهذا التخصص في هذه المدرسة، فالرصدُ على الفريق المعاون — وأنتِ منه.":
+        "No subject supervisor for this subject in this school, so observing falls to the "
+        "supporting team — and you are part of it.",
+    "لهذه الحصة مشرفٌ مختصٌّ لا يحضر كلَّ حصة، فالرصدُ على مدير المدرسة ووكيله بذات المدرسة.":
+        "This lesson has a subject supervisor who does not attend every lesson, so observing "
+        "falls to the principal and the deputy of the same school.",
+    "لهذه الحصة مشرفةٌ مختصةٌ لا تحضر كلَّ حصة، فالرصدُ على مديرة المدرسة ووكيلتها بذات المدرسة.":
+        "This lesson has a subject supervisor who does not attend every lesson, so observing "
+        "falls to the principal and the deputy of the same school.",
+    "عليك — مشرفُها قد لا يحضر": "Yours — its supervisor may not attend",
+    "لهذه الحصة مشرفٌ مختصٌّ لا يحضر كلَّ حصة، فالرصدُ على مدير المدرسة ووكيلها بذات المدرسة.":
+        "This lesson has a subject supervisor who does not attend every lesson, so observing "
+        "falls to the principal and the deputy of the same school.",
     "عليك — لا مشرفَ لتخصصها": "Yours — its subject has no supervisor",
     "لا مشرفَ مختصٌّ لهذا التخصص في هذه المدرسة، فالرصدُ على الفريق المعاون — وأنت منه.":
         "No subject supervisor for this subject in this school, so observing falls to the "
@@ -575,6 +594,29 @@ EN.update({
         " — and anyone with no taught subject on the roster is not expected to register a lesson.",
     " بلا حصةٍ مسجَّلةٍ بعد — ": " with no lesson registered yet — ",
     "حسناً": "OK",   # زرُّ النافذة الموحَّدة — بديلِ alert الأصلية
+    # ⛔ أزرارُ النوافذ الموحَّدة — كلُّ فعلٍ باسمه لا «موافق» (١ أكتوبر ٢٠٢٦)
+    "إلغاء": "Cancel",
+    "متابعة": "Continue",
+    "القيمة": "Value",
+    "اعتمدها": "Approve it",
+    "فُكَّ الاعتماد": "Lift the approval",
+    "ارفعه": "Upload it",
+    "سجّلها باسمي": "Register it in my name",
+    "احذفها": "Delete it",
+    "امحُها نهائياً": "Purge it permanently",
+    "امسحها": "Clear it",
+    "أعِد الضخّ": "Re-inject",
+    "وزّعها": "Distribute them",
+    "استبدِله": "Replace it",
+    "أفهم — تابِع": "I understand — continue",
+    "حذفُ هذه الحصة وكلِّ ما عُلِّق بها؟\n\n":
+        "Delete this lesson and everything attached to it?\n\n",
+    "تُنقل إلى سلّة المحذوفات وتُستردُّ منها ثلاثين يوماً.":
+        "It moves to the recycle bin and can be restored from it for thirty days.",
+    "محوٌ نهائيٌّ لا يُستردُّ بعده. أتُتابع؟":
+        "A permanent purge with no recovery afterwards. Continue?",
+    "⛔ رقمٌ غير صحيح.": "⛔ Not a valid number.",
+    "✓ أُدخل ": "✓ Entered ",
     "اسم المادة (": "Subject name (",
     "تعديل المادة": "Subject edited",
     "اختر دورك": "Choose your role",   # تسميةُ مجموعة الاختيار لقارئ الشاشة

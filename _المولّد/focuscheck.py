@@ -37,6 +37,62 @@ setTimeout(async function(){
     var fin = document.querySelector('[data-refocus="q"]');
     R.push(["النصُّ النهائيُّ صحيح", fin && fin.value === word, fin ? fin.value : "—"]);
   }
+
+  /* ── منطقةُ الإعلان: الحفظُ والخطأُ كانا صامتَين على القارئ الآلي ──
+     ⚠️ ويُقاس على العنصر المحقون في الصفحة لا على نصِّ الشفرة. */
+  R.push(["لا منطقةَ إعلانٍ قبل أول رسالة", !document.getElementById("toast")]);
+  toast("حُفظ للجميع ✓", "ok");
+  var tz = document.getElementById("toast");
+  R.push(["نشأت منطقةُ الإعلان", !!tz]);
+  if(tz){
+    R.push(["وهي منطقةٌ حيّةٌ معلَنة", tz.getAttribute("role")==="status"
+      && tz.getAttribute("aria-live")==="polite"
+      && tz.getAttribute("aria-atomic")==="true",
+      tz.getAttribute("role")+"|"+tz.getAttribute("aria-live")]);
+    await wait(90);
+    R.push(["ونصُّ النتيجةِ وصل إليها", (tz.textContent||"").indexOf("حُفظ")>=0, tz.textContent]);
+    /* ⛔ منطقةٌ مخفيّةٌ بـdisplay:none لا يُعلنها قارئٌ — فتُقاس وهي ساكنة */
+    tz.className = "toast ok";
+    var cs = getComputedStyle(tz);
+    R.push(["ولا تُخفى بـdisplay/visibility وهي ساكنة",
+      cs.display !== "none" && cs.visibility !== "hidden", cs.display+"|"+cs.visibility]);
+    toast("تعذَّر الإرسال", "warn");
+    R.push(["والنتيجةُ الرادعةُ تُعلَن حازمة", tz.getAttribute("aria-live")==="assertive",
+      tz.getAttribute("aria-live")]);
+    toast("يُحفظ…", "wait");
+    R.push(["ورسالةُ الطريقِ مؤدَّبةٌ لا تقطع", tz.getAttribute("aria-live")==="polite",
+      tz.getAttribute("aria-live")]);
+    await wait(90);
+    toast("حُفظ للجميع ✓", "ok"); await wait(90);
+    var once = tz.textContent;
+    tz.__probe = 1;
+    toast("حُفظ للجميع ✓", "ok");
+    R.push(["ونصٌّ مكرَّرٌ يُفرَّغ ثم يُعاد فيُعلَن", tz.textContent === "", "«"+tz.textContent+"»"]);
+    await wait(90);
+    R.push(["ثم يعود", tz.textContent === once, tz.textContent]);
+  }
+
+  /* ── النافذةُ الموحَّدةُ تُشير إلى نصِّها ── */
+  var btn = document.createElement("button"); btn.id="pv"; document.body.appendChild(btn); btn.focus();
+  uiDialog("رسالةُ تجربةٍ للقارئ", "bad");
+  var bx = document.querySelector("#udlg .udlgbox");
+  R.push(["نافذةٌ موحَّدةٌ مفتوحة", !!bx]);
+  if(bx){
+    var dsc = bx.getAttribute("aria-describedby");
+    var tgt = dsc && document.getElementById(dsc);
+    R.push(["تُشير إلى نصِّها بـaria-describedby", !!tgt, dsc]);
+    R.push(["والنصُّ المُشارُ إليه غيرُ فارغ",
+      !!tgt && (tgt.textContent||"").indexOf("رسالةُ تجربة")>=0, tgt && tgt.textContent]);
+    R.push(["وهي حاجزةٌ معلَنة", bx.getAttribute("role")==="alertdialog"
+      && bx.getAttribute("aria-modal")==="true"]);
+    document.getElementById("udlg").dispatchEvent(
+      new KeyboardEvent("keydown",{key:"Escape",bubbles:true}));
+    await wait(60);
+    R.push(["وEscape يُغلقها", !document.getElementById("udlg")]);
+    R.push(["ويعود التركيزُ إلى موضعه", document.activeElement === btn,
+      document.activeElement && document.activeElement.id]);
+  }
+
   document.title="DONE"; window.__OUT=JSON.stringify(R);
  }catch(e){ document.title="ERR|"+e.message; window.__OUT=JSON.stringify(R); }
 }, 400);
@@ -57,5 +113,9 @@ for r in rows:
     print("  %s %s%s" % ("✓" if g else "⛔", r[0], ("   ["+str(r[2])+"]") if len(r)>2 and not g else ""))
 if t and H.unescape(t.group(1)).startswith("ERR"):
     print("  ⛔", H.unescape(t.group(1))); ok=False
-print("\n  %s" % ("✓ الكتابةُ متّصلة" if ok and rows else "⛔ ما زال يخرج"))
+# ⛔ أرضيّةُ شواهد: فحصٌ لم يقس شيئاً فاشلٌ لا ناجح
+FLOOR = 17
+if len(rows) < FLOOR:
+    print("  ⛔ %d شاهداً فقط — والأرضيّةُ %d" % (len(rows), FLOOR)); ok = False
+print("\n  %s" % ("✓ الكتابةُ متّصلةٌ والإعلانُ مسموع" if ok and rows else "⛔ ما زال يخرج"))
 sys.exit(0 if (ok and rows) else 1)

@@ -178,6 +178,29 @@ def main(paths, extra=()):
         if miss:
             bad[p] = miss
         dup.update(dupes(p, tuple(others)))
+    # ⛔ **النوافذُ الأصليةُ ممنوعةٌ بقاعدةِ المستشار** — وكانت ثمانيةً وخمسين
+    #    موضعاً: تخرج بخطِّ النظام وبلغته، ولا تُميَّز رسالةُ المنع من الإشعار،
+    #    وتُجمّد الصفحةَ على الجوال — **وتوقف كروم بلا رأسٍ وقوفاً تامّاً**،
+    #    فضاع بها قياسٌ ثلاثَ مراتٍ في يومٍ واحد. (١ أكتوبر ٢٠٢٦)
+    #    ⚠️ و`alert` **مسموحةٌ في النداء** لأنها أُعيد تعريفُها إلى النافذة
+    #       الموحَّدة — والممنوعُ `confirm` و`prompt`، فهما تُعيدان قيمةً
+    #       تزامنيةً لا تُحاكى، ولا بدَّ من إعادة كتابة منطقِ من يستعملهما.
+    native = []
+    for f in (paths[0],) + tuple(extra):
+        src2 = open(f, encoding="utf-8").read()
+        for mm in re.finditer(r'(?<![\w.$])(confirm|prompt)\s*\(', src2):
+            ln = src2[:mm.start()].count("\n") + 1
+            seg = src2[max(0, mm.start() - 120):mm.start()]
+            if "ui" + mm.group(1).capitalize() in seg:      # uiPrompt / uiConfirm
+                continue
+            native.append((os.path.basename(f), ln, mm.group(1)))
+    if native:
+        raise SystemExit(
+            "⛔ نوافذُ متصفّحٍ أصليةٌ — ممنوعةٌ بقاعدة المنصة:\n"
+            + "\n".join("      %s:%d  %s( … )" % x for x in native)
+            + "\n\n  استعمل `uiAsk(…).then(ok => …)` بدل `confirm`،"
+              "\n  و`uiPrompt(…).then(v => …)` بدل `prompt` — وكلتاهما غيرُ تزامنية،"
+              "\n  فيُعاد كتابةُ منطقِ الموضع لا استبدالُ الاسم.")
     if dup:
         raise SystemExit(
             "⛔ دوالُّ معرَّفةٌ أكثرَ من مرة — آخرُ تعريفٍ يُلغي ما قبله صامتاً." + "\n"

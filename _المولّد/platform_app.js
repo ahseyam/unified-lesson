@@ -214,7 +214,10 @@ function uiDialog(msg, kind){
   const box = el("div","udlgbox" + (kind ? " " + kind : ""));
   box.setAttribute("role", "alertdialog");
   box.setAttribute("aria-modal", "true");
-  const body = el("div","udlgtx");
+  box.setAttribute("aria-describedby", "udlgtx");
+  /* ⚠️ والنافذةُ تُشير إلى نصِّها: `role` و`aria-modal` بلا `describedby`
+     تُعلن «نافذة» ولا تقرأ ما فيها على بعض القارئات. */
+  const body = el("div","udlgtx"); body.id = "udlgtx";
   String(msg == null ? "" : msg).split("\n").forEach(line=>{
     body.appendChild(el("div", null, line || " "));
   });
@@ -236,6 +239,95 @@ function uiDialog(msg, kind){
   ok.focus();
   return back;
 }
+/* ═══ سؤالٌ موحَّدٌ بنعم/لا — بديلُ `confirm` ═══
+   ⚠️ **غيرُ تزامنيٍّ بالضرورة**: نافذةُ المتصفّح توقف الشفرةَ حتى يُجاب،
+      ولا سبيلَ إلى ذلك في نافذةٍ من صنعنا. فيُعاد كتابةُ كلِّ موضعٍ على
+      صيغة `uiAsk(...).then(ok => { if(!ok) return; … })` — اثنا عشرَ موضعاً،
+      كلٌّ منها قُرئ وأُعيدت كتابتُه. ولا يُدَّعى أن الاستبدالَ آليّ. */
+function uiAsk(msg, okText, kind){
+  return new Promise(res=>{
+    const old = document.getElementById("udlg");
+    if(old) old.remove();
+    const back = el("div","udlg"); back.id = "udlg";
+    const box = el("div","udlgbox" + (kind ? " " + kind : " warn"));
+    box.setAttribute("role", "alertdialog");
+    box.setAttribute("aria-modal", "true");
+  box.setAttribute("aria-describedby", "udlgtx");
+    /* ⚠️ والنافذةُ تُشير إلى نصِّها: `role` و`aria-modal` بلا `describedby`
+     تُعلن «نافذة» ولا تقرأ ما فيها على بعض القارئات. */
+  const body = el("div","udlgtx"); body.id = "udlgtx";
+    String(msg == null ? "" : msg).split("\n").forEach(line=>{
+      body.appendChild(el("div", null, line || " "));
+    });
+    box.appendChild(body);
+    const bar = el("div","udlgbar");
+    let done = false;
+    const end = (v)=>{ if(done) return; done = true; back.remove();
+      try{ if(back.__prev) back.__prev.focus(); }catch(e){}
+      res(v); };
+    const yes = el("button","b" + (kind === "bad" ? " warn" : ""), okText || "متابعة");
+    const no  = el("button","b ghost","إلغاء");
+    yes.addEventListener("click", ()=>end(true));
+    no.addEventListener("click", ()=>end(false));
+    bar.appendChild(yes); bar.appendChild(no);
+    box.appendChild(bar); back.appendChild(box);
+    back.addEventListener("click", e=>{ if(e.target === back) end(false); });
+    back.addEventListener("keydown", e=>{
+      if(e.key === "Escape"){ e.preventDefault(); end(false); }
+      if(e.key === "Tab"){ e.preventDefault();
+        (document.activeElement === yes ? no : yes).focus(); }
+    });
+    back.__prev = document.activeElement;
+    document.body.appendChild(back);
+    /* ⚠️ التركيزُ على «إلغاء» لا على «متابعة»: فعلٌ لا يُستردُّ لا يُبدأ بضغطة */
+    no.focus();
+  });
+}
+/* ═══ سؤالٌ موحَّدٌ بكتابة — بديلُ `prompt` ═══ */
+function uiPrompt(msg, def, placeholder){
+  return new Promise(res=>{
+    const old = document.getElementById("udlg");
+    if(old) old.remove();
+    const back = el("div","udlg"); back.id = "udlg";
+    const box = el("div","udlgbox");
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+  box.setAttribute("aria-describedby", "udlgtx");
+    /* ⚠️ والنافذةُ تُشير إلى نصِّها: `role` و`aria-modal` بلا `describedby`
+     تُعلن «نافذة» ولا تقرأ ما فيها على بعض القارئات. */
+  const body = el("div","udlgtx"); body.id = "udlgtx";
+    String(msg == null ? "" : msg).split("\n").forEach(line=>{
+      body.appendChild(el("div", null, line || " "));
+    });
+    const inp = el("input"); inp.type = "text";
+    inp.value = def == null ? "" : String(def);
+    if(placeholder) inp.placeholder = placeholder;
+    inp.className = "udlgin";
+    inp.setAttribute("aria-label", TR("القيمة"));
+    body.appendChild(inp);
+    box.appendChild(body);
+    const bar = el("div","udlgbar");
+    let done = false;
+    const end = (v)=>{ if(done) return; done = true; back.remove();
+      try{ if(back.__prev) back.__prev.focus(); }catch(e){}
+      res(v); };
+    const yes = el("button","b","حسناً"), no = el("button","b ghost","إلغاء");
+    yes.addEventListener("click", ()=>end(inp.value));
+    no.addEventListener("click", ()=>end(null));
+    bar.appendChild(yes); bar.appendChild(no);
+    box.appendChild(bar); back.appendChild(box);
+    back.addEventListener("click", e=>{ if(e.target === back) end(null); });
+    back.addEventListener("keydown", e=>{
+      if(e.key === "Escape"){ e.preventDefault(); end(null); }
+      if(e.key === "Enter" && document.activeElement === inp){
+        e.preventDefault(); end(inp.value); }
+    });
+    back.__prev = document.activeElement;
+    document.body.appendChild(back);
+    inp.focus(); inp.select();
+  });
+}
+
 /* ⛔ تُعاد الكتابةُ على `alert` نفسِها — فيُغطّى كلُّ نداءٍ قائمٍ وقادم */
 window.alert = function(msg){
   const t = String(msg == null ? "" : msg);
@@ -244,9 +336,27 @@ window.alert = function(msg){
 
 function toast(msg, cls){
   let t = document.getElementById("toast");
-  if(!t){ t = el("div"); t.id = "toast"; document.body.appendChild(t); }
+  if(!t){
+    t = el("div"); t.id = "toast";
+    /* ⛔ **الحفظُ والخطأُ كانا صامتَين على القارئ الآلي**: الرسالةُ تظهر ثلاثَ
+       ثوانٍ وتذهب، ولا منطقةَ إعلانٍ واحدةً في المنصة كلِّها — فمن لا يرى
+       الشاشةَ يضغط «حفظ» ولا يعلم أحُفظ أم رُدَّ. والمعلمُ يُدخل عشرينَ حقلاً.
+       فتصير المنطقةُ حيّةً: المطمئنُّ «مؤدَّب» ينتظر صمتَ القارئ، والخطأُ
+       «حازمٌ» يقطع. (١ أكتوبر ٢٠٢٦) */
+    t.setAttribute("role", "status");
+    t.setAttribute("aria-live", "polite");
+    t.setAttribute("aria-atomic", "true");
+    document.body.appendChild(t);
+  }
+  /* ⚠️ والنتيجةُ تُعلَن حازمةً، والانتظارُ «مؤدَّبٌ» لا يقطع: «يُحفظ…» رسالةُ
+     طريقٍ لا نتيجة، فلها صنفُ `wait` كي لا تُقاطِع ما قبلها. */
+  t.setAttribute("aria-live", (cls === "bad" || cls === "warn") ? "assertive" : "polite");
   t.className = "toast " + (cls || "ok") + " on";
-  t.textContent = TR(msg);
+  /* ⚠️ والنصُّ يُفرَّغ قبل ملئه: القارئُ لا يُعلن نصّاً لم يتغيّر، فتكرارُ
+     الرسالة نفسِها (حفظٌ ثانٍ) كان يمرّ بلا إعلان. */
+  t.textContent = "";
+  const say = TR(msg);
+  setTimeout(()=>{ t.textContent = say; }, 30);
   clearTimeout(t.__h);
   t.__h = setTimeout(()=>{ t.className = "toast " + (cls || "ok"); }, 3200);
 }
@@ -300,7 +410,7 @@ function actionBar(host, title, opts){
     if(o.before) o.before();
     save();
     if(!api()){ toast("حُفظ على هذا الجهاز — ولا مخزنَ مشتركاً مربوطاً", "warn"); return; }
-    toast("يُحفظ…", "warn");
+    toast("يُحفظ…", "wait");
     syncFlush().then(ok=>toast(ok ? "حُفظ للجميع ✓" : "حُفظ على جهازك — وسيُرسَل عند عودة الشبكة",
                                ok ? "ok" : "warn"));
   });
@@ -478,9 +588,32 @@ function logList(){
 }
 function trashKey(id){ return TRASH + id; }
 function trashList(){
-  return Object.keys(DB.prep || {}).filter(k=>k.indexOf(TRASH) === 0)
+  const all = Object.keys(DB.prep || {}).filter(k=>k.indexOf(TRASH) === 0)
     .map(k=>DB.prep[k]).filter(x=>x && x.L)
     .sort((a,b)=>(b.at||"").localeCompare(a.at||""));
+  /* ⛔ **كان للسلّة حقيقتان**: عدّادُ التبويب يُرشِّح بـ`isEval() || t.by===ME.name`
+     والعرضُ يُرشِّح بالنطاق — فيقول التبويبُ «٧» ثم لا يجد الفاتحُ إلا اثنتين،
+     ويعدُّ فريقُ المتابعة محذوفاتِ المنظومة كلِّها. فالترشيحُ هنا وحدَه،
+     وكلُّ قارئٍ يقرأ المرشَّح. (١ أكتوبر ٢٠٢٦) */
+  if(isAdmin()) return all;
+  /* ⚠️ وفريقُ المتابعة يتابع ولا يحذف — فلا يرى إلا ما حذفه قبلَ المنع */
+  if(!isEval() || ME.role === "intqa") return all.filter(t=>t.by === ME.name);
+  if(isScopeBound()) return all.filter(t=>t.L && inMyScope(t.L));
+  return all;
+}
+/* ⛔ والاستردادُ والمحوُ حارسُهما واحدٌ مع الحذف: من لا يحذف لا يمحو ولا يستردّ */
+function canPurge(L){
+  if(!ME) return false;
+  if(ME.role === "admin") return true;
+  if(ME.role === "intqa") return false;
+  return isEval() && inMyScope(L);
+}
+function canRestore(L){
+  if(!ME) return false;
+  if(ME.role === "admin") return true;
+  if(ME.role === "intqa") return false;
+  if(ME.role === "teacher") return isMine(L);
+  return isEval() && inMyScope(L);
 }
 /* ⛔ **الحذفُ كان بلا حارسٍ البتّة.** `myList` يبني قائمتَه من **المجمع
    كلِّه** (ستةُ أعمدةٍ في ثلاث مدارس) لا من مدرسة الوكيل، وزرُّ «حذف» يظهر
@@ -494,6 +627,12 @@ function canDrop(L){
   if(ME.role === "admin") return true;        /* المستشارُ مالكُ المنظومة */
   if(L.approved) return false;                /* معتمدةٌ فمقفولةٌ على الجميع */
   if(ME.role === "teacher") return isMine(L);
+  /* ⛔ **فريقُ متابعة التقويم الداخلي يتابع ولا يرصد — فلا يحذف ولا يمحو.**
+     كان داخلاً في `isEval` فنال زرَّ الحذف وزرَّ المحو النهائيّ: فالدورُ
+     الوحيدُ الممنوعُ من الرصد كان **أقدرَ الأدوار على الإتلاف**. وضياعُ حصةٍ
+     معتمدةٍ قبل التقويم خسارةٌ لا تُستردّ. (أمسكه وكيلُ الدَّورَين الجديدَين؛
+     عولج ١ أكتوبر ٢٠٢٦) */
+  if(ME.role === "intqa") return false;
   if(!isEval()) return false;
   return inMyScope(L);                        /* ولا يتجاوز أحدٌ نطاقَه */
 }
@@ -502,6 +641,7 @@ function dropWhy(L){
   if(ME && ME.role === "admin") return "";
   if(L.approved) return "هذه الحصةُ معتمدةٌ ومقفولة — يُفكّ اعتمادُها أولاً.";
   if(ME && ME.role === "teacher" && !isMine(L)) return "هذه الحصةُ ليست باسمك.";
+  if(ME && ME.role === "intqa") return TR(D.intqanodel);
   if(!isEval()) return "الحذفُ ليس من صلاحيتك.";
   if(!inMyScope(L)) return "هذه الحصةُ خارجَ نطاقك.";
   return "";
@@ -777,6 +917,17 @@ function supsForCell(sector, complex, stage, spec){
 function supsFor(L){ return L ? supsForCell(L.sector, L.complex, L.stage, L.spec) : []; }
 /* ⛔ التخصصُ بلا مشرفٍ لا يبقى بلا تقييم — قرارُ المستشار ٣٠ سبتمبر ٢٠٢٦ */
 function isGap(L){ return !!L && supsFor(L).length === 0; }
+/* ⛔ **حصةٌ لها مشرفٌ قد لا يحضر**: قرارُ المستشار في مشرفة رياض الأطفال
+   العالمي — «حيثُ لا تحضر تساعدها **مديرةُ المدرسة والوكيلةُ التعليمية بذات
+   المدرسة** — لا فريقُ المتابعة الرباعي». وهذه الحصةُ ليست «بلا مشرف»،
+   فكان الرصدُ محجوزاً على المشرفة وحدَها: إن لم تحضر فلا تقييمَ أبداً.
+   و«بذات المدرسة» تُخرج مديرَ المجمع كما تُخرج الفريقَ الرباعي. */
+function isAssisted(L){
+  const r = supsFor(L);
+  return r.length > 0 && r.every(x=>!!x.schoolhelp);
+}
+/* ومن يَرصد المعان: المدرسةُ وحدَها — لا المجمعُ ولا المتابعة */
+function assistRoles(){ return ["principal", "deputy"]; }
 /* ⛔ **حارسُ التعارض** (موافقةُ المستشار ٣٠ سبتمبر ٢٠٢٦): المشرفُ في مجمعٍ
    واحدٍ في اليوم. فإن كانت لمشرف هذه الحصة حصةٌ أخرى مسجَّلةٌ في اليوم نفسِه
    من الأسبوع نفسِه في مجمعٍ آخر، فلن يحضر الاثنتين — ويُقال ذلك عند الإدخال
@@ -807,8 +958,11 @@ function gapTeam(){ return TR("الفريق المعاون"); }
    ولا أحدَ يعلم أيُّها، فتبقى بلا رصدٍ حتى يمرّ الأسبوع.
    (أمسكه وكيلُ رحلة الوكيل التعليمي؛ عولج ١ أكتوبر ٢٠٢٦) */
 function isMyGap(L){
-  return !!L && (D.gapscore || []).indexOf(ME && ME.role) >= 0
-         && isGap(L) && inMyScope(L);
+  if(!L || !ME) return false;
+  if(!inMyScope(L)) return false;
+  if((D.gapscore || []).indexOf(ME.role) >= 0 && isGap(L)) return true;
+  /* ⚠️ والمعانُ يُعدّ مع ما عليه: وإلا بقي بلا شارةٍ ولا عدٍّ كما كان الفراغ */
+  return assistRoles().indexOf(ME.role) >= 0 && isAssisted(L);
 }
 /* عددُ ما عليه من حصصٍ لم تُرصد بعد — يُعرض في الشريط ولا يُبحث عنه */
 function myGapCount(){
@@ -821,8 +975,15 @@ function myGapCount(){
 /* شارةٌ تُلصق حيث تُعرض الحصة */
 function gapTag(L){
   if(!isMyGap(L)) return null;
-  const t = el("span","tag no","عليك — لا مشرفَ لتخصصها");
-  t.title = TR("لا مشرفَ مختصٌّ لهذا التخصص في هذه المدرسة، فالرصدُ على الفريق المعاون — وأنت منه.");
+  /* ⚠️ والشارةُ تقول علّتَها بعينها: «لا مشرفَ لتخصصها» كذبٌ على حصةٍ **لها**
+     مشرفٌ قد لا يحضر — فللمعانِ نصُّه. */
+  if(isGap(L)){
+    const t = el("span","tag no", TR(D.gaptag));
+    t.title = TR(D.gaptip);
+    return t;
+  }
+  const t = el("span","tag no", TR(D.asstag));
+  t.title = TR(D.asstip);
   return t;
 }
 
@@ -846,7 +1007,9 @@ function canScore(L){
     if(!L) return !!supByEmp(ME.emp);
     return supsFor(L).some(r=>r.emp === latnum(ME.emp));
   }
-  if((D.gapscore || []).indexOf(ME.role) >= 0) return isGap(L) && inMyScope(L);
+  if((D.gapscore || []).indexOf(ME.role) >= 0 && isGap(L) && inMyScope(L)) return true;
+  /* والمعانُ لمدرسته هو — بشرط النطاق كغيره */
+  if(assistRoles().indexOf(ME.role) >= 0 && isAssisted(L) && inMyScope(L)) return true;
   return false;
 }
 function isEval(){ return !!ME && (EVAL_ROLES_K.indexOf(ME.role) >= 0 || ME.role === "admin"); }
@@ -1015,8 +1178,9 @@ function login(){
                         + (sp ? "" : " — تخصصُه «أخرى»، فاختره بنفسك.");
     } else {
       nm.readOnly = false;
-      /* ⚠️ الرسالةُ تُقال أثناء الكتابة لا عند الضغط، وتُسمّي العلّةَ بعينها */
-      const e = k ? empError(k) : "";
+      /* ⚠️ الرسالةُ تُقال أثناء الكتابة لا عند الضغط، وتُسمّي العلّةَ بعينها
+         — وتُقال **بالدور المختار**: بغيره تُطالِب قائداً بعضوية كشف المعلمين. */
+      const e = k ? empError(k, pick) : "";
       found.className = "whois" + (e ? " no" : "");
       found.textContent = TR(e); }
   });
@@ -1341,10 +1505,33 @@ function shell(){
     tx.appendChild(el("b",null,p.t));
     tx.appendChild(el("small",null,p.s));
     b.appendChild(tx);
+    /* ⛔ **على الجوال كانت تُرى مرحلةٌ واحدةٌ من ستّ**: كلُّ زرٍّ بعرض نصِّه
+       كاملاً في سطر (`flex:0 0 auto`) فمجموعُها ١٠٤٨ بكسلاً في شريطٍ عرضُه
+       ٣٦٠ — أوّلُها وحدَه ٣٠٤. فلا يعلم فاتحُ المنصة على جواله أنّ خلفَه
+       خمسَ مراحل، ولا أنّ الشريطَ يُسحب. فصار شريطَ خُطواتٍ: الحاليةُ باسمها
+       والبواقي بأرقامها (قاعدةُ CSS، فلا تنكسر عند تدوير الجهاز)، ولكلٍّ
+       اسمُها الكاملُ في `aria-label` و`title` فلا يضيع على قارئ الشاشة ولا
+       على من يَمسّ مطوَّلاً. (قِيس على ٣٩٠ و٤٣٠ و٧٦٨ — ١ أكتوبر ٢٠٢٦) */
+    const full = TR(p.t) + (p.s ? " — " + TR(p.s) : "");
+    b.setAttribute("aria-label", arn(items.indexOf(p) + 1) + " · " + full);
+    b.title = full;
+    if(p.id === PH) b.setAttribute("aria-current", "step");
     b.addEventListener("click", ()=>{ PH=p.id; shell(); });
+    if(p.id === PH) nav.__cur = b;
     nav.appendChild(b);
   });
   side.appendChild(nav);
+  /* ⛔ **والشريطُ يسحب نفسَه إلى خطوتك**: ستُّ خطواتٍ في ٣٦٠ بكسلاً تُرى منها
+     أربعٌ، فمن كان في الخامسة أو السادسة رأى أرقاماً ليست خطوتَه ولم يرَ
+     اسمَها — وهو موضعُه الحالي. يُنادى بعد الإلحاق فيكون للعنصر قياسٌ.
+     (١ أكتوبر ٢٠٢٦) */
+  if(nav.__cur) setTimeout(()=>{
+    try{
+      const b = nav.__cur, nr = nav.getBoundingClientRect(), br = b.getBoundingClientRect();
+      if(br.left < nr.left || br.right > nr.right)
+        b.scrollIntoView({block:"nearest", inline:"center"});
+    }catch(e){}
+  }, 0);
   /* الحصة المفتوحة، ونقلةٌ سريعة بين مراحلها */
   const L0 = DB.sched.find(x=>x.id===CUR);
   if(L0){
@@ -1701,7 +1888,7 @@ function phTools(m){
 
 function srv(){
   const cur = api();
-  const v = prompt(
+  uiPrompt(
     "الصق رابط المخزن المشترك ليرى كلُّ أفراد المنظومة البيانات نفسها،\n" +
     "أو اتركه فارغاً للعمل على هذا الجهاز وحده:\n\n" +
     /* ⛔ النصُّ يختلف باختلاف من يقرؤه: المستشارُ هو من يُنشئ الخادمَ ويوزّع
@@ -1710,16 +1897,17 @@ function srv(){
       ? "وهو رابطُ الخادم الذي نشرتَه — ينتهي بـ.workers.dev أو بنطاقك.\n"
         + "وبعد الربط انسخ «رابط الدعوة» وأرسله للمدارس."
       : "والرابطُ يُطلب من مدير التخطيط والاعتماد المدرسي — ولا يُنشأ من الصفحة."),
-    cur);
-  if(v === null) return;
-  const u = v.trim();
-  localStorage.setItem(API, u);
-  if(!u){ shell(); return; }
-  testSrv(u).then(r=>{
-    if(!r.ok){ alert("⛔ الرابط لا يستجيب كما ينبغي:\n" + r.why +
-      (isAdmin() ? "\n\nتأكّد أنه رابطُ الخادم الذي نشرتَه، بلا مسافةٍ ولا شَرطةٍ في آخره."
-                 : "\n\nتأكّد أنه الرابطُ الذي سلَّمه مديرُ التخطيط والاعتماد المدرسي.")); shell(); return; }
-    pull().then(()=>{ alert("✓ رُبط المخزن المشترك.\n" + r.note); shell(); });
+    cur, "https://…").then(v=>{
+    if(v === null) return;
+    const u = v.trim();
+    localStorage.setItem(API, u);
+    if(!u){ shell(); return; }
+    testSrv(u).then(r=>{
+      if(!r.ok){ alert("⛔ الرابط لا يستجيب كما ينبغي:\n" + r.why +
+        (isAdmin() ? "\n\nتأكّد أنه رابطُ الخادم الذي نشرتَه، بلا مسافةٍ ولا شَرطةٍ في آخره."
+                   : "\n\nتأكّد أنه الرابطُ الذي سلَّمه مديرُ التخطيط والاعتماد المدرسي.")); shell(); return; }
+      pull().then(()=>{ alert("✓ رُبط المخزن المشترك.\n" + r.note); shell(); });
+    });
   });
 }
 /* اختبارُ الرابط قبل اعتماده.
@@ -2284,17 +2472,23 @@ function ph4(m){
           return alert("⛔ لا تُعتمد النتيجةُ بعد:\n\n"
             + nab.map(x=>"• " + ((x[0].role || x[0].__by || "مقيّم") + ": " + x[1])).join("\n")
             + "\n\nيفتح كلُّ مقيّمٍ استمارتَه ويكتب السبب.");
-        if(!confirm("بعد الاعتماد تُقفل الحصة: لا يُعدَّل جدولُها ولا تحضيرُها ولا رصدُها.\n\nأتُتابع؟")) return;
-        L.approved = {by: ME.name, no: ME.emp || "", at: new Date().toISOString()};
-        logAct("اعتماد", lessonTitle(L), L); save(); shell(); syncFlush();
+        uiAsk("بعد الاعتماد تُقفل الحصة: لا يُعدَّل جدولُها ولا تحضيرُها ولا رصدُها.\n\nأتُتابع؟",
+              "اعتمدها").then(ok=>{
+          if(!ok) return;
+          L.approved = {by: ME.name, no: ME.emp || "", at: new Date().toISOString()};
+          logAct("اعتماد", lessonTitle(L), L); save(); shell(); syncFlush();
+        });
       });
       bar.appendChild(ap);
     } else {
       const un = el("button","b warn","فكُّ الاعتماد");
       un.addEventListener("click", ()=>{
-        if(!confirm("فكُّ الاعتماد يُعيد فتحَ الحصة للتعديل — ويُسجَّل باسمك.\n\nأتُتابع؟")) return;
-        logAct("فكُّ اعتماد", lessonTitle(L) + " — كان اعتمدها " + (L.approved.by||"—"), L);
-        delete L.approved; save(); shell();
+        uiAsk("فكُّ الاعتماد يُعيد فتحَ الحصة للتعديل — ويُسجَّل باسمك.\n\nأتُتابع؟",
+              "فُكَّ الاعتماد", "bad").then(ok=>{
+          if(!ok) return;
+          logAct("فكُّ اعتماد", lessonTitle(L) + " — كان اعتمدها " + (L.approved.by||"—"), L);
+          delete L.approved; save(); shell();
+        });
       });
       bar.appendChild(un);
     }
@@ -2419,10 +2613,11 @@ function prevBridge(L){
 }
 
 function sendWA(L, rows){
-  const ph = prompt("رقم جوال المعلم (مثال 05xxxxxxxx):", "");
+  uiPrompt("رقم جوال المعلم (مثال 05xxxxxxxx):", "", "05xxxxxxxx").then(ph=>{
   if(!ph) return;
-  const num = ph.replace(/\D/g,"").replace(/^0/,"966");
-  if(num.length < 11) return alert("رقم غير صحيح.");
+  /* ⚠️ والأرقامُ الهنديةُ تُقبل هنا أيضاً */
+  const num = latnum(ph).replace(/^0/,"966");
+  if(num.length < 11) return alert("⛔ رقمٌ غير صحيح.");
   const R = (rows[0]||[null,{}])[1].res || {};
   const br = (rows.find(([k,v])=>(v.bridge||"").trim())||[null,{}])[1].bridge || "";
   const t = ["تقرير زيارة صفية — " + D.school,
@@ -2432,6 +2627,7 @@ function sendWA(L, rows){
     br ? ("إجراء بطاقة الجسر: " + br) : "",
     "المقيّم: " + ME.name].filter(Boolean).join("\n");
   window.open("https://wa.me/" + num + "?text=" + encodeURIComponent(t), "_blank");
+  });
 }
 
 /* ═════════ المرحلة ٥: التقارير ═════════ */
@@ -2994,9 +3190,10 @@ function rosterUp(){
       const why = rosterCheck(d);
       if(why){ alert("⛔ لم يُرفع الكشف.\n\n" + why); return; }
       const n = Object.keys(d).length;
-      if(!confirm("رفعُ كشفِ " + arn(n) + " معلماً إلى المخزن المشترك.\n\n"
+      uiAsk("رفعُ كشفِ " + arn(n) + " معلماً إلى المخزن المشترك.\n\n"
         + "يحلُّ محلَّ الكشف القائم، ويراه كلُّ من فتح المنصةَ بعد ربطِ الخادم.\n\n"
-        + "أتُتابع؟")) return;
+        + "أتُتابع؟", "ارفعه").then(ok=>{
+      if(!ok) return;
       fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
           body: apiBody({kind:"platform", id:NS+"_roster", data:d, __replace:true})})
         .then(r=>r.json())
@@ -3010,6 +3207,7 @@ function rosterUp(){
           shell();
         })
         .catch(e=>alert("تعذّر الاتصال بالخادم: " + e.message));
+      });
     };
     fr.readAsText(f, "utf-8");
   });
@@ -3231,12 +3429,15 @@ function ph2(m){
       const fx = el("button","b sm","هذه حصتي — صحِّح الاسمَ إلى اسمي");
       fx.style.marginTop = "7px";
       fx.addEventListener("click", ()=>{
-        if(!confirm("ستُسجَّل هذه الحصةُ باسمك: " + (ME.name||"") + "\n\n"
-          + "ويُسجَّل التغييرُ في سجلّ العمليات باسمك وتاريخه. أتُتابع؟")) return;
-        const was = L.teacher || "—";
-        L.teacher = ME.name; if(ME.emp) L.teacherNo = ME.emp;
-        logAct("تصحيح اسم المعلم", "كانت باسم " + was + " وصارت باسم " + ME.name, L);
-        save(); shell();
+        uiAsk("ستُسجَّل هذه الحصةُ باسمك: " + (ME.name||"") + "\n\n"
+          + "ويُسجَّل التغييرُ في سجلّ العمليات باسمك وتاريخه. أتُتابع؟",
+          "سجّلها باسمي").then(ok=>{
+          if(!ok) return;
+          const was = L.teacher || "—";
+          L.teacher = ME.name; if(ME.emp) L.teacherNo = ME.emp;
+          logAct("تصحيح اسم المعلم", "كانت باسم " + was + " وصارت باسم " + ME.name, L);
+          save(); shell();
+        });
       });
       w.appendChild(fx);
       hp.appendChild(w);
@@ -3256,9 +3457,11 @@ function ph2(m){
     const will = [["الاسم", P.i_teacher], ["المادة", P.i_subject], ["الفصل", P.i_klass],
                   ["الحصة", P.i_period], ["التاريخ", P.i_date], ["الإستراتيجية", P.f_strat]]
                  .filter(x=>(x[1]||"").trim()).map(x=>x[0]);
-    if(will.length && !confirm("سيُكتب فوق ما أدخلتَه في: " + will.join(" · ")
-        + "\nوتُستبدل قيمُها بما في الجدول.\n\nأتُتابع؟")) return;
-    inject(L, P, true); save(); shell();
+    const go = ()=>{ inject(L, P, true); save(); shell(); };
+    if(!will.length){ go(); return; }
+    uiAsk("سيُكتب فوق ما أدخلتَه في: " + will.join(" · ")
+      + "\nوتُستبدل قيمُها بما في الجدول.\n\nأتُتابع؟", "أعِد الضخّ")
+      .then(ok=>{ if(ok) go(); });
   });
   if(ME.role === "teacher") src.appendChild(rb);
   c0.appendChild(src);
@@ -3414,9 +3617,10 @@ function pfield(r, P, ro){
       rb.addEventListener("click", ()=>{
         const mine = D.stages.filter(([k])=>(P["st_"+k+"_time"]||"").trim() && !P["st_"+k+"_time_auto"])
                              .map(([,n])=>n);
-        if(mine.length && !confirm("سيُكتب فوق الأزمنة التي كتبتَها بنفسك في: "
-            + mine.join(" · ") + "\n\nأتُتابع؟")) return;
-        fillStageTimes(P, true); save(); shell();
+        const go2 = ()=>{ fillStageTimes(P, true); save(); shell(); };
+        if(!mine.length){ go2(); return; }
+        uiAsk("سيُكتب فوق الأزمنة التي كتبتَها بنفسك في: "
+          + mine.join(" · ") + "\n\nأتُتابع؟", "وزّعها").then(ok=>{ if(ok) go2(); });
       });
       w.appendChild(rb);
     }
@@ -3714,7 +3918,22 @@ function empError(raw, role){
   if(role === "supervisor")
     return supByEmp(k) ? "" : "هذا الرقمُ ليس في سجلّ الإشراف التربوي — راجع "
          + (D.adminref || "إدارة التخطيط والاعتماد المدرسي") + ".";
+  /* ⛔ **كشفُ المنسوبين كشفُ معلمين** — ٤٦٠ رقماً تخصصاتُها موادٌّ دراسية، وليس
+     فيه مديرٌ ولا وكيلٌ ولا مديرُ مجمعٍ ولا فريقُ متابعة. وكان التحقّقُ يطالب
+     كلَّ دورٍ بالوجود فيه، فكانت القياداتُ الأربعُ **تُحجب عن الدخول** متى
+     حُمِّل الكشفُ من المخزن — ونجت التجربةُ المحليةُ لأن الكشفَ كان فارغاً
+     فيها، فالفارغُ يُسقط التحقّقَ كلَّه. فصار لكل دورٍ مَرجعُه:
+       · المشرفُ ← سجلُّ الإشراف التربوي (أعلاه).
+       · المعلمُ والزائرُ ← كشفُ المنسوبين، فهما منه.
+       · القياداتُ ← لا سجلَّ لها، فتُفحص القاعدةُ ولا يُطالَب بعضويةٍ لا تُوجد.
+     (قِيس بـ`empprobe.py` ١ أكتوبر ٢٠٢٦) */
+  const ROSTERED = ["teacher", "peer"];
   const R = D.roster || {}, lens = empLens();
+  if(role && ROSTERED.indexOf(role) < 0){
+    if(D.emplen && k.length !== D.emplen)
+      return "الرقمُ الوظيفي " + arn(D.emplen) + " منازل — وهذا " + arn(k.length) + ".";
+    return "";
+  }
   /* ⛔ **الكشفُ أولاً ثم الطول**: قاعدةُ المدرسة خمسُ منازل، وفي كشفها ٣٨
      رقماً من أربعٍ (١١٤١–٩٧٣٩) لأصحابٍ قائمين. فلو قُدّم الطولُ على الكشف
      حُرم هؤلاء من الدخول بأرقامهم الحقيقية. فمن كان في الكشف دخل بطوله
@@ -3899,7 +4118,7 @@ function ph1(m){
             : (R === "peer" ? "جدول المجمع (للاطّلاع)"
             : (isSchoolBound() ? "جدول مدرستي" : "جدول التعبئة")));
   if(R !== "peer"){
-    const n = trashList().filter(t=>isEval() || t.by === ME.name).length;
+    const n = trashList().length;
     if(n) tab("trash", "سلّة المحذوفات (" + arn(n) + ")");
   }
   if(isAdmin()) tab("log", "سجلّ العمليات");        /* ⛔ سجلُّ من فعل ماذا — للمستشار وحده */
@@ -4412,7 +4631,7 @@ function myList(m, c){
   /* ⛔ **القائمةُ كانت تعرض المجمعَ كلَّه لمن نطاقُه مدرسة.** ستةُ أعمدةٍ في
      ثلاث مدارس أمام وكيلِ مدرسةٍ واحدة — ومعها زرُّ حذف. فيرى حصصَ غيره
      ويحذفها. و`inMyScope` كانت معرَّفةً ولا تُستعمل هنا. (١ أكتوبر ٢٠٢٦) */
-  else if(isSchoolBound() || ME.role === "cxmgr") here = here.filter(inMyScope);
+  else if(isScopeBound()) here = here.filter(inMyScope);
   const s2 = el("div","card"), sh = el("h3");
   sh.appendChild(el("span",null, ME.role === "teacher" ? "حصصك المسجَّلة" : "الحصص المسجَّلة في المجمع"));
   /* ⚠️ والعدُّ يقول ما يقع عليه لا مجرّدَ العدد */
@@ -4481,8 +4700,9 @@ function myList(m, c){
       if(canDrop(L)){
         const x = el("button","b warn","حذف"); x.style.cssText="padding:4px 10px;font-size:14px;margin-inline-start:6px";
         x.addEventListener("click", ()=>{
-          if(!confirm("حذف هذه الحصة وكل ما عُلِّق بها؟")) return;
-          dropLesson(L.id); shell();
+          uiAsk("حذفُ هذه الحصة وكلِّ ما عُلِّق بها؟\n\n"
+            + "تُنقل إلى سلّة المحذوفات وتُستردُّ منها ثلاثين يوماً.",
+            "احذفها", "bad").then(ok=>{ if(!ok) return; dropLesson(L.id); shell(); });
         });
         ac.appendChild(x);
       }
@@ -4540,25 +4760,26 @@ function rekeySchool(c, oldName, newName){
 function setKey(){
   if(!isAdmin()) return;
   const cur = skey();
-  const v = prompt("مفتاحُ المخزن المشترك — يُرسَل مع كل طلبٍ إلى الخادم.\n\n"
+  uiPrompt("مفتاحُ المخزن المشترك — يُرسَل مع كل طلبٍ إلى الخادم.\n\n"
     + "اكتب مفتاحاً طويلاً (٢٤ حرفاً فأكثر) لا يُخمَّن، أو اتركه فارغاً لتوليد واحد.\n"
     + (cur ? "\n⚠️ وتدويرُه يقطع الأجهزةَ التي تحمل القديمَ حتى يصلها رابطُ دعوةٍ جديد.\n" : "")
-    + "\n⚠️ ولا يعمل حتى يفحصه الخادمُ — راجع دليلَ الاستضافة.", cur);
-  if(v === null) return;
-  let k = String(v).trim();
-  if(!k){
-    /* مولَّدٌ من مصدرٍ عشوائيٍّ معمّى لا من الوقت */
-    const a = new Uint8Array(24);
-    (crypto && crypto.getRandomValues) ? crypto.getRandomValues(a)
-      : a.forEach((_, i)=>{ a[i] = Math.floor(Math.random() * 256); });
-    k = Array.prototype.map.call(a, x=>("0" + x.toString(16)).slice(-2)).join("");
-  }
-  if(k.length < 24){ alert("⛔ المفتاحُ قصير: " + arn(k.length) + " حرفاً، والأدنى ٢٤."); return; }
-  try{ localStorage.setItem(SKEY, k); }catch(e){}
-  logAct("ضبط مفتاح المخزن", cur ? "تدويرٌ" : "ضبطٌ أول", null);
-  save();
-  alert("✓ ضُبط المفتاح.\n\nانسخ رابطَ الدعوة وأرسله من جديدٍ ليحمله إلى الأجهزة.");
-  shell();
+    + "\n⚠️ ولا يعمل حتى يفحصه الخادمُ — راجع دليلَ الاستضافة.", cur, "").then(v=>{
+    if(v === null) return;
+    let k = String(v).trim();
+    if(!k){
+      /* مولَّدٌ من مصدرٍ عشوائيٍّ معمّى لا من الوقت */
+      const a = new Uint8Array(24);
+      (crypto && crypto.getRandomValues) ? crypto.getRandomValues(a)
+        : a.forEach((_, i)=>{ a[i] = Math.floor(Math.random() * 256); });
+      k = Array.prototype.map.call(a, x=>("0" + x.toString(16)).slice(-2)).join("");
+    }
+    if(k.length < 24){ alert("⛔ المفتاحُ قصير: " + arn(k.length) + " حرفاً، والأدنى ٢٤."); return; }
+    try{ localStorage.setItem(SKEY, k); }catch(e){}
+    logAct("ضبط مفتاح المخزن", cur ? "تدويرٌ" : "ضبطٌ أول", null);
+    save();
+    alert("✓ ضُبط المفتاح.\n\nانسخ رابطَ الدعوة وأرسله من جديدٍ ليحمله إلى الأجهزة.");
+    shell();
+  });
 }
 function invite(){
   /* ⚠️ المفتاحُ في `#` لا في `?`: جزءُ التجزئة لا يُرسَل في ترويسة الإحالة
@@ -4569,8 +4790,8 @@ function invite(){
   const done = ()=>alert("نُسخ رابط الدعوة.\n\nأرسله لمن يعنيه — يفتحه فيُربط جهازه تلقائياً،\n"
     + "ولا يُطلب منه لصقُ شيء.\n\n" + u);
   if(navigator.clipboard && navigator.clipboard.writeText)
-    navigator.clipboard.writeText(u).then(done).catch(()=>prompt("انسخ رابط الدعوة:", u));
-  else prompt("انسخ رابط الدعوة:", u);
+    navigator.clipboard.writeText(u).then(done).catch(()=>uiPrompt("انسخ رابط الدعوة:", u));
+  else uiPrompt("انسخ رابط الدعوة:", u);
 }
 
 /* ══ التراجع: يحفظ حال الحصة قبل كل تغيير، ويعيدها بنقرة ══ */
@@ -4611,14 +4832,12 @@ function clearCell(gk){
   const L = DB.sched.find(x=>x.gk === gk);
   if(!L) return;
   const p = prog(L);
-  if(p.issued || p.obs || p.pr){
-    if(!confirm("هذه الحصة فيها " +
-      [p.issued ? "تحضيرٌ مُصدَر" : "", p.obs ? "رصدٌ " + arn(p.obs) : "", p.pr ? "أقران " + arn(p.pr) : ""]
-        .filter(Boolean).join(" و") + ".\nالمسحُ يحذفها وما عُلِّق بها. أتُتابع؟")) return;
-  }
-  snap(gk, "مسحُ خانة");
-  dropLesson(L.id);
-  shell();
+  const go = ()=>{ snap(gk, "مسحُ خانة"); dropLesson(L.id); shell(); };
+  if(!(p.issued || p.obs || p.pr)){ go(); return; }
+  uiAsk("هذه الحصة فيها " +
+    [p.issued ? "تحضيرٌ مُصدَر" : "", p.obs ? "رصدٌ " + arn(p.obs) : "", p.pr ? "أقران " + arn(p.pr) : ""]
+      .filter(Boolean).join(" و") + ".\nالمسحُ يحذفها وما عُلِّق بها. أتُتابع؟",
+    "امسحها", "bad").then(ok=>{ if(ok) go(); });
 }
 
 /* ═════════ المرحلة ٦: تنفيذ الحصة — ورقةُ التنفيذ ═════════
@@ -5009,13 +5228,10 @@ function syncStageInputs(P){
 
 /* ═════════ عرضُ سلّة المحذوفات ═════════ */
 function trashView(m, c){
-  let list = trashList();
   /* ⛔ **السلّةُ كانت تعرض للمقيّم محذوفاتِ المنظومة كلِّها** — ومعها «محوٌ
      نهائيٌّ» بلا استرداد. فوكيلُ مدرسةٍ يمحو إلى الأبد ما حذفته مدرسةٌ أخرى.
-     فتُقيَّد بالنطاق كما تُقيَّد القائمةُ والحذف. (١ أكتوبر ٢٠٢٦) */
-  if(!isEval()) list = list.filter(t=>t.by === ME.name);
-  else if(isSchoolBound() || ME.role === "cxmgr")
-    list = list.filter(t=>t && t.L && inMyScope(t.L));
+     فصار الترشيحُ في `trashList()` وحدَها، وهذه تقرأ المرشَّح. */
+  const list = trashList();
   const card = el("div","card"), h = el("h3");
   h.appendChild(el("span",null,"سلّة المحذوفات"));
   h.appendChild(el("small",null,"يُحفظ المحذوفُ ثلاثين يوماً ثم يُمحى نهائياً"));
@@ -5045,24 +5261,26 @@ function trashView(m, c){
       const days = Math.floor((Date.now() - d.getTime())/86400000);
       r.appendChild(el("td",null, days <= 0 ? "اليوم" : "قبل " + arn(days) + " يوماً"));
       const ac = el("td","nowrap");
-      const rb = el("button","b alt","استرداد");
-      rb.style.cssText = "padding:5px 14px;font-size:14px";
-      rb.addEventListener("click", ()=>{ if(restoreLesson(L.id)){ setctx("tab","fill"); shell(); } });
-      ac.appendChild(rb);
-      if(isEval()){
+      if(canRestore(L)){
+        const rb = el("button","b alt","استرداد");
+        rb.style.cssText = "padding:5px 14px;font-size:14px";
+        rb.addEventListener("click", ()=>{ if(restoreLesson(L.id)){ setctx("tab","fill"); shell(); } });
+        ac.appendChild(rb);
+      } else ac.appendChild(el("span","tag","للاطّلاع"));
+      if(canPurge(L)){
         const xb = el("button","b warn","محوٌ نهائي");
         xb.style.cssText = "padding:5px 10px;font-size:14px;margin-inline-start:6px";
         xb.addEventListener("click", ()=>{
           /* ⛔ **المحوُ النهائيُّ كان بلا حارس** — ونطاقُ السلّة وحدَه لا يكفي:
              من بلغه مفتاحُ حصةٍ خارجَ نطاقه محاها بلا رجعة. فيُفحص هنا أيضاً.
              (١ أكتوبر ٢٠٢٦) */
-          if(!isAdmin() && !inMyScope(L)){
-            alert("⛔ هذه الحصةُ خارجَ نطاقك."); return;
-          }
-          if(!confirm("محوٌ نهائيٌّ لا يُستردّ بعده. أتُتابع؟")) return;
-          delete DB.prep[trashKey(L.id)];
-          logAct("محوٌ نهائي", [L.teacher, L.stage, L.period].filter(Boolean).join(" · "), L);
-          save(); shell();
+          if(!canPurge(L)){ uiDialog("⛔ المحوُ النهائيُّ ليس من صلاحيتك هنا.", "bad"); return; }
+          uiAsk("محوٌ نهائيٌّ لا يُستردُّ بعده. أتُتابع؟", "امحُها نهائياً", "bad").then(ok=>{
+            if(!ok) return;
+            delete DB.prep[trashKey(L.id)];
+            logAct("محوٌ نهائي", [L.teacher, L.stage, L.period].filter(Boolean).join(" · "), L);
+            save(); shell();
+          });
         });
         ac.appendChild(xb);
       }
@@ -5445,12 +5663,22 @@ function myPeerReport(m){
 function wipeAll(){
   if(!isAdmin()) return;          /* ⛔ بوّابةٌ رابعة: الدورُ نفسُه */
   const n = DB.sched.length, p = Object.keys(DB.prep).filter(k=>k.indexOf(TRASH)&&k.indexOf(LOG)).length;
-  if(!confirm("تفريغٌ كاملٌ لبيانات المنظومة على كل الأجهزة:\n\n"
+  /* ⛔ ثلاثُ بوّاباتٍ متسلسلةٌ — ولا تُدمج: الأولى تُعلم بما يضيع، والثانية
+     تطلب كلمةً تُكتب بيدٍ فلا تُضغط سهواً. (وغيرُ تزامنيةٍ الآن) */
+  uiAsk("تفريغٌ كاملٌ لبيانات المنظومة على كل الأجهزة:\n\n"
     + "• " + arn(n) + " حصة\n• التحضيراتُ والرصدُ وبطاقاتُ الأقران\n"
-    + "• سلّةُ المحذوفات وسجلُّ العمليات\n\nلا يُستردُّ شيءٌ بعده. أتُتابع؟")) return;
-  const w = prompt("ستُحفظ نسخةٌ احتياطيةٌ على جهازك أولاً.\n\n"
-    + "للتأكيد اكتب كلمة:  تفريغ");
-  if((w||"").trim() !== "تفريغ"){ alert("أُلغي التفريغ."); return; }
+    + "• سلّةُ المحذوفات وسجلُّ العمليات\n\nلا يُستردُّ شيءٌ بعده. أتُتابع؟",
+    "أفهم — تابِع", "bad").then(ok=>{
+    if(!ok) return;
+    return uiPrompt("ستُحفظ نسخةٌ احتياطيةٌ على جهازك أولاً.\n\n"
+      + "للتأكيد اكتب كلمة:  تفريغ", "", "تفريغ").then(w=>{
+      if((w||"").trim() !== "تفريغ"){ alert("أُلغي التفريغ."); return; }
+      wipeGo();
+    });
+  });
+}
+/* ⚠️ فُصل جسمُ التفريغ في دالّةٍ لأن التأكيدَ صار غيرَ تزامنيّ */
+function wipeGo(){
   backup();                                    /* نسخةٌ قبل المحو */
   const empty = {sched:[], prep:{}, obs:{}, peer:{}, rot:{}};
   DB = empty; lastSent = ""; UNDO = [];

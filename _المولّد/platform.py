@@ -655,6 +655,13 @@ td.nowrap{white-space:nowrap}
  .side nav{display:flex;gap:5px;overflow-x:auto;padding:7px}
  .side nav button{flex:0 0 auto;width:auto}
  .side nav button small{display:none}
+ /* ⛔ شريطُ خُطواتٍ لا قائمةَ أسماءٍ مسحوبة: الحاليةُ باسمها والبواقي بأرقامها.
+    (كانت تُرى واحدةٌ من ستٍّ على ٣٩٠ بكسلاً — ١ أكتوبر ٢٠٢٦) */
+ .side nav button:not(.on) span{display:none}
+ .side nav button:not(.on){padding:8px 11px;justify-content:center}
+ .side nav button:not(.on) i{margin:0}
+ .side nav button.on{max-width:44vw}
+ .side nav button.on b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  table.mx th{width:150px}
  table.mx td.cd,table.mx td.cs{position:static}
 }
@@ -864,7 +871,10 @@ tbody tr:hover td{background:#f4f8fc}
 .udlgbox.ok{border-top-color:var(--ok)}
 .udlgtx{padding:20px 22px 6px;font-family:JZL,SK;font-size:16px;line-height:1.85;color:var(--ink)}
 .udlgtx div:first-child{font-family:JZ,SK;font-size:17.5px;font-weight:700;color:var(--navy2);margin-bottom:5px}
-.udlgbar{display:flex;justify-content:flex-start;padding:10px 22px 18px}
+.udlgin{width:100%;margin-top:12px;padding:10px 12px;font:inherit;font-size:16px;
+ font-family:JZL,SK;border:1.5px solid var(--line);border-radius:9px;background:#fff}
+.udlgin:focus{outline:none;border-color:var(--teal2);box-shadow:0 0 0 3px rgba(23,122,138,.16)}
+.udlgbar{display:flex;justify-content:flex-start;gap:9px;padding:10px 22px 18px}
 .udlgbar .b{min-height:44px;padding:9px 30px;font-size:16px}
 @media(max-width:760px){
  .udlg{align-items:flex-end;padding:0}
@@ -880,7 +890,8 @@ tbody tr:hover td{background:#f4f8fc}
  box-shadow:0 -4px 18px rgba(0,0,0,.18)}
 .toast.on{transform:translateY(0)}
 .toast.ok{background:#1d6f4f;color:#fff}
-.toast.warn{background:#7a4e00;color:#fff}
+.toast.warn,.toast.wait,.toast.bad{background:#7a4e00;color:#fff}
+.toast.bad{background:#8a1f1f}
 @media print{.abar,.toast{display:none!important}}
 /* توأمةُ الاستمارة والتحضير: ما كتبه المعلمُ تحت المؤشر — أصغرَ وأخفتَ منه */
 .twin{margin-top:5px;font-size:13.5px;line-height:1.65;color:#4a5560;
@@ -1074,9 +1085,33 @@ import supdb as _SUP
 DATA["sups"] = [{"emp": r["emp"], "name": r["name"],
                  "subjects": r["subjects"], "complexes": [_cx(c) for c in r["complexes"]],
                  "stages": r["stages"], "sectors": r["sectors"],
-                 "allsubj": bool(r["flags"].get("allsubj"))}
+                 "allsubj": bool(r["flags"].get("allsubj")),
+                 # ⛔ **علمٌ ميتٌ أُحيي**: `schoolhelp` كُتب في `supdb.py` بقرار
+                 #    المستشار («حيثُ لا تحضر تساعدها مديرةُ المدرسة والوكيلةُ
+                 #    التعليمية بذات المدرسة — لا فريقُ المتابعة الرباعي») ثم
+                 #    لم يقرأه شيء. وأثرُه أن حصةَ الروضة العالمية **لها
+                 #    مشرفةٌ فليست «بلا مشرف»**، فلا يملك أحدٌ غيرُها رصدَها:
+                 #    فإن لم تحضر بقيت بلا تقييمٍ إلى الأبد. (١ أكتوبر ٢٠٢٦)
+                 "schoolhelp": bool(r["flags"].get("schoolhelp"))}
                 for r in _SUP.recs("f" if F else "m") if not r["flags"].get("nolesson")]
 DATA["gapscore"] = GAP_SCORE
+
+# ⛔ **نصوصُ الشارات تُكتب هنا بجنسَيها لا في الجافاسكربت**: قِيس على نسخة
+#    البنات فخرج «عليك — لا مشرفَ لتخصصها» مذكَّراً، و«مشرفٌ مختصٌّ لا يحضر»
+#    كما هو، و«ووكيلها» بلا تاء — لأن `fem()` لا تمسح نصوصَ الشفرة إلا بقائمةٍ
+#    جزئية، فقلبت «يتابع» إلى «تتابع» وفاعلُها «الفريقُ» مذكَّر فخرج لحنٌ
+#    صريح. فما يُقرأ في الشاشة يُكتب بـ`g()` ويُقرأ من `D`. (١ أكتوبر ٢٠٢٦)
+DATA["gaptag"] = g("عليك — لا مشرفَ لتخصصها", "عليكِ — لا مشرفةَ لتخصصها")
+DATA["gaptip"] = g(
+    "لا مشرفَ مختصٌّ لهذا التخصص في هذه المدرسة، فالرصدُ على الفريق المعاون — وأنت منه.",
+    "لا مشرفةَ مختصةً لهذا التخصص في هذه المدرسة، فالرصدُ على الفريق المعاون — وأنتِ منه.")
+DATA["asstag"] = g("عليك — مشرفُها قد لا يحضر", "عليكِ — مشرفتُها قد لا تحضر")
+DATA["asstip"] = g(
+    "لهذه الحصة مشرفٌ مختصٌّ لا يحضر كلَّ حصة، فالرصدُ على مدير المدرسة ووكيله بذات المدرسة.",
+    "لهذه الحصة مشرفةٌ مختصةٌ لا تحضر كلَّ حصة، فالرصدُ على مديرة المدرسة ووكيلتها بذات المدرسة.")
+# ⚠️ وهذه بصيغةٍ اسميةٍ في الجنسَين: فاعلُها «الفريقُ» مذكَّرٌ في النسختين،
+#    فلو كُتبت بفعلٍ قلبَه المؤنِّثُ وخرج «الفريقُ تتابع».
+DATA["intqanodel"] = "فريقُ متابعة التقويم الداخلي: متابعةٌ لا حذف."
 
 
 def guard_sups(sups):

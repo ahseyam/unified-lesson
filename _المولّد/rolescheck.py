@@ -261,7 +261,45 @@ setTimeout(function(){
   T("ولا تتراكم نافذتان", document.querySelectorAll(".udlg").length, 1);
   var _lv = document.getElementById("udlg"); if(_lv) _lv.remove();
 
-  document.title="DONE"; window.__OUT = JSON.stringify(R);
+  /* ── ١١) السؤالُ الموحَّدُ بنعم/لا وبالكتابة — بديلا confirm وprompt ──
+     ⚠️ غيرُ تزامنيَّين بالضرورة، فأُعيد كتابةُ تسعةَ عشرَ موضعاً يستعملهما. */
+  var _p1 = uiAsk("سؤالُ الفحص", "نعم", "bad");
+  var _dq = document.getElementById("udlg");
+  T("نافذةُ السؤال ظهرت", !!_dq, true);
+  var _bt = _dq.querySelectorAll(".udlgbar .b");
+  T("ولها زرّان لا زرّ", _bt.length, 2);
+  T("وزرُّ الفعل باسمه لا «موافق»", (_bt[0].textContent||"").trim(), "نعم");
+  /* ⛔ والتركيزُ على «إلغاء»: فعلٌ لا يُستردُّ لا يُبدأ بضغطةٍ على المسافة */
+  T("والتركيزُ على الإلغاء", document.activeElement === _bt[1], true);
+  _bt[1].click();
+  _p1.then(function(v){
+    T("والإلغاءُ يُعيد false", v, false);
+    var _p2 = uiAsk("سؤالٌ ثانٍ", "تابِع");
+    document.getElementById("udlg").querySelector(".udlgbar .b").click();
+    return _p2;
+  }).then(function(v2){
+    T("والقَبولُ يُعيد true", v2, true);
+    var _p3 = uiPrompt("اكتب شيئاً", "قيمةٌ سابقة");
+    var _d3 = document.getElementById("udlg");
+    var _in = _d3.querySelector(".udlgin");
+    T("خانةُ الكتابة ظهرت", !!_in, true);
+    T("وفيها القيمةُ السابقة", _in.value, "قيمةٌ سابقة");
+    T("والتركيزُ عليها", document.activeElement === _in, true);
+    _in.value = "قيمةٌ جديدة";
+    _d3.querySelector(".udlgbar .b").click();
+    return _p3;
+  }).then(function(v3){
+    T("وتُعيد ما كُتب", v3, "قيمةٌ جديدة");
+    var _p4 = uiPrompt("سؤالٌ يُلغى", "س");
+    document.getElementById("udlg")
+      .dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}));
+    return _p4;
+  }).then(function(v4){
+    T("وEscape تُعيد null", v4, null);
+    T("ولا تبقى نافذةٌ معلَّقة", document.querySelectorAll(".udlg").length, 0);
+    document.title="DONE"; window.__OUT = JSON.stringify(R);
+  });
+  return;
  }catch(e){ document.title="ERR|"+e.message+" @ "+(e.stack||"").split("\n")[1];
             window.__OUT = JSON.stringify(R); }
 }, 350);
@@ -284,7 +322,7 @@ bad = [1 for l,_ in rows if l.startswith("⛔")]
 #    الصندوقُ خالياً — لا شاهدٌ ولا عنوانُ خطأ — فيُعلن «✓ الأربعةُ منفَّذة»
 #    وقد لم يفحص واحداً. وأُثبت تجريبياً: أُفسد نصُّ الإقلاع فمرّ الحارس.
 #    (أمسكه وكيلُ مراجعة الحرّاس ١ أكتوبر ٢٠٢٦)
-FLOOR = 72
+FLOOR = 83
 short = len(rows) < FLOOR
 if short:
     print("  ⛔ %d شاهداً فقط — والأرضيّةُ %d. لم يُقَس ما يكفي، فالحكمُ فشل."

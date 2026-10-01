@@ -40,12 +40,14 @@ D8 = os.path.join(ROOT, "٨ - النموذج الرقمي (تجربة)")
 SIZES = [("جوال ٣٢٠", 320, 720), ("جوال ٣٩٠", 390, 844),
          ("آيباد ٨٢٠", 820, 1180), ("لابتوب ١٤٤٠", 1440, 900)]
 # الشاشاتُ ذاتُ الإدخال — وفيها المصفوفةُ والتحضيرُ والرصد
+# ⚠️ ومنظرٌ على خطوةٍ متأخرةٍ (٥) يختبر سحبَ الشريط إليها — فالأولى مرئيّةٌ
+#    بطبعها ولو لم يسحب الشريطُ شيئاً.
 VIEWS = [("teacher", 1, "fill"), ("teacher", 2, ""), ("supervisor", 3, ""),
-         ("supervisor", 4, ""), ("deputy", 1, "assign")]
+         ("supervisor", 4, ""), ("deputy", 1, "assign"), ("deputy", 5, "")]
 
 BOOT = r"""
 <script>
-setTimeout(function(){
+setTimeout(async function(){
  try{
   localStorage.clear();
   var SEC=D.sectors[0], CX=D.complexlist[0], b=(D.bands[CX]||[])[0];
@@ -113,6 +115,51 @@ setTimeout(function(){
     if(share < 45) out.push(["المصفوفة", "نصيبُ العمل من الشاشة " + share + "٪ فقط",
                              "التسمية " + lab + "بك من " + W]);
   }
+  /* ⑥ **شريطُ المراحل**: كان بنداً واحداً من ستةٍ على ٣٩٠ بكسلاً — كلُّ زرٍّ
+     بعرض نصِّه كاملاً (`flex:0 0 auto`) فمجموعُها ١٠٤٨ في شريطٍ ٣٦٠. فصار
+     شريطَ خُطواتٍ: الحاليةُ باسمها والبواقي بأرقامها، **ويسحب نفسَه إلى
+     خطوتك**. ⚠️ والسحبُ في نبضةٍ تالية، فيُمهَل قبل القياس وإلّا أعلن
+     الحارسُ عطلاً ليس فيه. (١ أكتوبر ٢٠٢٦) */
+  await new Promise(function(r){ setTimeout(r, 220); });
+  var _nv = document.querySelector(".side nav");
+  if(_nv && W <= 760){
+    var _bs = [].slice.call(_nv.querySelectorAll("button"));
+    var _nr = _nv.getBoundingClientRect(), _seen = 0;
+    _bs.forEach(function(b){
+      var r = b.getBoundingClientRect();
+      if(r.left >= _nr.left - 1 && r.right <= _nr.right + 1) _seen++;
+    });
+    if(_bs.length){
+      n++;
+      if(_seen < 3) out.push(["شريط المراحل", "تُرى " + _seen + " خطوةً من "
+        + _bs.length + " فقط", Math.round(_nr.width) + "بك"]);
+      var _cur = _nv.querySelector("button.on");
+      n++;
+      if(!_cur) out.push(["شريط المراحل", "لا خطوةَ حاليةً معلَّمة", ""]);
+      else {
+        var _cr = _cur.getBoundingClientRect();
+        if(_cr.left < _nr.left - 1 || _cr.right > _nr.right + 1)
+          out.push(["شريط المراحل", "خطوتُك الحاليةُ خارجَ المرئيّ", ""]);
+        var _nmv = (_cur.getAttribute("aria-label") || "").trim();
+        if(!_nmv) out.push(["شريط المراحل", "الخطوةُ الحاليةُ بلا اسمٍ يُقرأ", ""]);
+        var _bq = _cur.querySelector("b");
+        if(!_bq || !(_bq.textContent || "").trim())
+          out.push(["شريط المراحل", "الخطوةُ الحاليةُ بلا اسمٍ يُرى", ""]);
+      }
+      /* ⚠️ والأرقامُ أهدافُ لمسٍ كذلك */
+      _bs.forEach(function(b){
+        n++;
+        var r = b.getBoundingClientRect();
+        if(r.width < 34 || r.height < 34)
+          out.push(["خطوة " + ((b.querySelector("i")||{}).textContent || "?"),
+                    "هدفُ لمسٍ صغير", Math.round(r.width) + "×" + Math.round(r.height)]);
+        if(!(b.getAttribute("aria-label") || "").trim())
+          out.push(["خطوة " + ((b.querySelector("i")||{}).textContent || "?"),
+                    "بلا اسمٍ يُقرأ", ""]);
+      });
+    }
+  }
+
   /* ⑤ شريطُ الحفظ: موجودٌ وأزرارُه مَلموسة */
   var ab = document.querySelector(".abar");
   var live = document.querySelector("input:not([disabled]):not([type=hidden]),textarea:not([disabled]),select:not([disabled])");

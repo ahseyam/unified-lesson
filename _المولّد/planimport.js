@@ -300,8 +300,8 @@ function importPanel(m, L, P){
     const txt = planPrompt(L, P);
     const done = ()=>alert("نُسخ الأمر.\n\nألصقه في المساعد، ثم أعد الجوابَ كاملاً إلى الصندوق أدناه.");
     if(navigator.clipboard && navigator.clipboard.writeText)
-      navigator.clipboard.writeText(txt).then(done).catch(()=>prompt("انسخ الأمر:", txt));
-    else prompt("انسخ الأمر:", txt);
+      navigator.clipboard.writeText(txt).then(done).catch(()=>uiPrompt("انسخ الأمر:", txt));
+    else uiPrompt("انسخ الأمر:", txt);
   });
   bar.appendChild(cp);
 
@@ -342,13 +342,16 @@ function importPanel(m, L, P){
     const ok = el("button","b");
     ok.textContent = plan.over.length ? "أدخِله واستبدل المكتوب" : "أدخِله";
     ok.addEventListener("click", ()=>{
-      if(plan.over.length && !confirm("سيُستبدل ما كتبتَه في " + arn(plan.over.length)
-          + " خانة.\n\nأتُتابع؟")) return;
-      snap(L.gk, "استيراد تحضير");        /* ⛔ لقطةُ تراجعٍ قبل الكتابة */
-      const n = planApply(P, plan.fill.concat(plan.over));
-      logAct("استيراد تحضير", lessonTitle(L) + " — " + arn(n) + " خانة", L);
-      save(); shell();
-      alert("أُدخل " + arn(n) + " خانة.\n\nراجعها ثم اضغط «إصدار التحضير».");
+      const go2 = ()=>{
+        snap(L.gk, "استيراد تحضير");      /* ⛔ لقطةُ تراجعٍ قبل الكتابة */
+        const n = planApply(P, plan.fill.concat(plan.over));
+        logAct("استيراد تحضير", lessonTitle(L) + " — " + arn(n) + " خانة", L);
+        save(); shell();
+        alert("✓ أُدخل " + arn(n) + " خانة.\n\nراجعها ثم اضغط «إصدار التحضير».");
+      };
+      if(!plan.over.length){ go2(); return; }
+      uiAsk("سيُستبدل ما كتبتَه في " + arn(plan.over.length) + " خانة.\n\nأتُتابع؟",
+            "استبدِله").then(y=>{ if(y) go2(); });
     });
     out.appendChild(ok);
   };
