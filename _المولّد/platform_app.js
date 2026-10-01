@@ -193,6 +193,55 @@ function apiBody(o){
       للحفظ … ويتاح بعدها الطباعة أو تنزيل الملف»)
    ⚠️ والحفظُ التلقائيُّ **يبقى** — الزرُّ لا يحلُّ محلَّه بل يُطمئن:
       يحفظ، ويدفع فوراً إلى المخزن المشترك، ويقول نتيجةَ ذلك بصريح العبارة. */
+/* ═════════ النوافذُ الموحَّدة — بديلُ `alert` الأصلية ═════════
+   ⛔ **النوافذُ الأصليةُ ثمانٍ وخمسون موضعاً في المنصة** (٤٢ `alert` · ١٠
+      `confirm` · ٦ `prompt`)، وقاعدةُ المستشار تمنعها منذ وقت. وهي:
+      · تخرج بخطِّ النظام وبلغته — فيظهر زرُّ «OK» إنجليزياً في شاشةٍ عربية،
+      · ولا تُنسَّق ولا تُقرأ بخطِّ المنصة، ولا تُميَّز رسالةُ المنع من الإشعار،
+      · وتُجمّد الصفحةَ على الجوال، وبعضُ المتصفحات تكبتها بعد تكرارها،
+      · **وتوقف كروم بلا رأسٍ وقوفاً تامّاً** — فما يُجمّد المسبارَ يُجمّد
+        المستخدم، وقد ضاع عليَّ بها قياسٌ ثلاثَ مرات. (١ أكتوبر ٢٠٢٦)
+   ⚠️ والاستبدالُ **بإعادة تعريف `alert`** لا بتعديل ثمانيةٍ وخمسين نداءً:
+      الموضعُ الواحدُ يُنسى، والنداءاتُ الجديدةُ تُكتب بالعادة القديمة. ومن
+      كتب `alert("…")` غداً نالته النافذةُ الموحَّدةُ بلا أن يعلم.
+   ⚠️ و`confirm` و`prompt` تُعيدان قيمةً **تزامنياً** تُستعمل في شرط، فلا
+      تُستبدلان بنافذةٍ غيرِ تزامنيةٍ إلا بإعادة كتابة منطقِها — وهي خطوةٌ
+      تالية. فيبقى سلوكُهما كما هو اليوم، ولا يُدَّعى غيرُ ذلك. */
+function uiDialog(msg, kind){
+  const old = document.getElementById("udlg");
+  if(old) old.remove();
+  const back = el("div","udlg"); back.id = "udlg";
+  const box = el("div","udlgbox" + (kind ? " " + kind : ""));
+  box.setAttribute("role", "alertdialog");
+  box.setAttribute("aria-modal", "true");
+  const body = el("div","udlgtx");
+  String(msg == null ? "" : msg).split("\n").forEach(line=>{
+    body.appendChild(el("div", null, line || " "));
+  });
+  box.appendChild(body);
+  const bar = el("div","udlgbar");
+  const ok = el("button","b","حسناً");
+  const close = ()=>{ back.remove(); try{ if(back.__prev) back.__prev.focus(); }catch(e){} };
+  ok.addEventListener("click", close);
+  bar.appendChild(ok); box.appendChild(bar);
+  back.appendChild(box);
+  back.addEventListener("click", e=>{ if(e.target === back) close(); });
+  back.addEventListener("keydown", e=>{
+    if(e.key === "Escape"){ e.preventDefault(); close(); }
+    /* ⚠️ والتركيزُ محبوسٌ في النافذة: من خرج منها بـTab تاه خلفها */
+    if(e.key === "Tab"){ e.preventDefault(); ok.focus(); }
+  });
+  back.__prev = document.activeElement;
+  document.body.appendChild(back);
+  ok.focus();
+  return back;
+}
+/* ⛔ تُعاد الكتابةُ على `alert` نفسِها — فيُغطّى كلُّ نداءٍ قائمٍ وقادم */
+window.alert = function(msg){
+  const t = String(msg == null ? "" : msg);
+  uiDialog(t, /^⛔/.test(t) ? "bad" : (/^⚠️/.test(t) ? "warn" : (/^✓/.test(t) ? "ok" : "")));
+};
+
 function toast(msg, cls){
   let t = document.getElementById("toast");
   if(!t){ t = el("div"); t.id = "toast"; document.body.appendChild(t); }

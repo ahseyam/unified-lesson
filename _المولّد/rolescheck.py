@@ -228,6 +228,39 @@ setTimeout(function(){
     _pe.left.filter(function(x){ return x[0].indexOf("إداريّ") >= 0; }).length, 0);
   window.alert = _al; window.confirm = _cf;
 
+  /* ── ١٠) النافذةُ الموحَّدة — بديلُ `alert` الأصلية ──
+     ⛔ كانت النوافذُ الأصليةُ ثمانيةً وخمسين موضعاً: تخرج بخطِّ النظام وبلغته
+        (زرُّ «OK» إنجليزياً في شاشةٍ عربية)، ولا تُميَّز رسالةُ المنع من
+        الإشعار، وتُجمّد الصفحةَ على الجوال — **وتوقف كروم بلا رأسٍ وقوفاً
+        تامّاً**، فضاع بها قياسٌ ثلاثَ مرات. (١ أكتوبر ٢٠٢٦) */
+  var _t0 = Date.now();
+  alert("⛔ رسالةُ منعٍ للفحص\nسطرٌ ثانٍ");
+  T("alert لا تُجمّد الصفحة", (Date.now() - _t0) < 50, true);
+  var _dlg = document.getElementById("udlg");
+  T("ونافذةٌ موحَّدةٌ ظهرت", !!_dlg, true);
+  if(_dlg){
+    var _bx = _dlg.querySelector(".udlgbox");
+    T("ولها دورُ نافذةٍ معلَن", _bx.getAttribute("role"), "alertdialog");
+    T("وهي حاجبةٌ لقارئ الشاشة", _bx.getAttribute("aria-modal"), "true");
+    T("ولونُها يميّز المنع", _bx.className.indexOf("bad") >= 0, true);
+    T("والسطورُ تُعرض سطوراً", _dlg.querySelectorAll(".udlgtx div").length, 2);
+    var _ok = _dlg.querySelector(".udlgbar .b");
+    T("وزرُّها مُركَّزٌ تلقائياً", document.activeElement === _ok, true);
+    _ok.click();
+    T("وتُغلق بزرّها", !document.getElementById("udlg"), true);
+  }
+  alert("✓ رسالةُ نجاح");
+  var _d2 = document.getElementById("udlg");
+  T("ولونُ النجاح يختلف عن المنع",
+    !!_d2 && _d2.querySelector(".udlgbox").className.indexOf("ok") >= 0, true);
+  if(_d2){
+    _d2.dispatchEvent(new KeyboardEvent("keydown", {key:"Escape", bubbles:true}));
+    T("وتُغلق بـEscape", !document.getElementById("udlg"), true);
+  }
+  alert("إشعارٌ عاديّ"); alert("إشعارٌ ثانٍ");
+  T("ولا تتراكم نافذتان", document.querySelectorAll(".udlg").length, 1);
+  var _lv = document.getElementById("udlg"); if(_lv) _lv.remove();
+
   document.title="DONE"; window.__OUT = JSON.stringify(R);
  }catch(e){ document.title="ERR|"+e.message+" @ "+(e.stack||"").split("\n")[1];
             window.__OUT = JSON.stringify(R); }
@@ -251,7 +284,7 @@ bad = [1 for l,_ in rows if l.startswith("⛔")]
 #    الصندوقُ خالياً — لا شاهدٌ ولا عنوانُ خطأ — فيُعلن «✓ الأربعةُ منفَّذة»
 #    وقد لم يفحص واحداً. وأُثبت تجريبياً: أُفسد نصُّ الإقلاع فمرّ الحارس.
 #    (أمسكه وكيلُ مراجعة الحرّاس ١ أكتوبر ٢٠٢٦)
-FLOOR = 61
+FLOOR = 72
 short = len(rows) < FLOOR
 if short:
     print("  ⛔ %d شاهداً فقط — والأرضيّةُ %d. لم يُقَس ما يكفي، فالحكمُ فشل."

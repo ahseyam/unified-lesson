@@ -574,6 +574,7 @@ EN.update({
     " — ومن لا تخصصَ تعليميٌّ له في الكشف لا يُنتظر منه تسجيلُ حصة.":
         " — and anyone with no taught subject on the roster is not expected to register a lesson.",
     " بلا حصةٍ مسجَّلةٍ بعد — ": " with no lesson registered yet — ",
+    "حسناً": "OK",   # زرُّ النافذة الموحَّدة — بديلِ alert الأصلية
     "اسم المادة (": "Subject name (",
     "تعديل المادة": "Subject edited",
     "اختر دورك": "Choose your role",   # تسميةُ مجموعة الاختيار لقارئ الشاشة

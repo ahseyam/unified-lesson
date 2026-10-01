@@ -851,6 +851,28 @@ tbody tr:hover td{background:#f4f8fc}
 .ways .way.on b{color:var(--teal2)}
 @media (max-width:760px){.ways{grid-template-columns:1fr}.ways .way{min-height:0}}
 
+/* ═══ النافذةُ الموحَّدة — بديلُ `alert` الأصلية ═══
+   ⛔ النافذةُ الأصليةُ تخرج بخطِّ النظام وبلغته (زرُّ «OK» إنجليزياً في شاشةٍ
+      عربية)، ولا تُميَّز رسالةُ المنع من الإشعار، وتُجمّد الصفحةَ على الجوال.
+      وقاعدةُ المستشار تمنعها. (١ أكتوبر ٢٠٢٦) */
+.udlg{position:fixed;inset:0;z-index:200;background:rgba(14,30,46,.55);
+ display:flex;align-items:center;justify-content:center;padding:18px}
+.udlgbox{background:#fff;border-radius:14px;max-width:520px;width:100%;
+ box-shadow:0 18px 50px rgba(0,0,0,.3);border-top:5px solid var(--teal2);overflow:hidden}
+.udlgbox.bad{border-top-color:var(--bad)}
+.udlgbox.warn{border-top-color:#b07a00}
+.udlgbox.ok{border-top-color:var(--ok)}
+.udlgtx{padding:20px 22px 6px;font-family:JZL,SK;font-size:16px;line-height:1.85;color:var(--ink)}
+.udlgtx div:first-child{font-family:JZ,SK;font-size:17.5px;font-weight:700;color:var(--navy2);margin-bottom:5px}
+.udlgbar{display:flex;justify-content:flex-start;padding:10px 22px 18px}
+.udlgbar .b{min-height:44px;padding:9px 30px;font-size:16px}
+@media(max-width:760px){
+ .udlg{align-items:flex-end;padding:0}
+ .udlgbox{border-radius:14px 14px 0 0;max-width:none}
+ .udlgbar .b{flex:1}
+}
+@media print{.udlg{display:none!important}}
+
 /* تأكيدٌ يُرى: لا كلمةٌ في الهيدر */
 .toast{position:fixed;inset-inline:0;bottom:0;margin:0 auto;max-width:460px;
  padding:13px 18px;border-radius:12px 12px 0 0;font-family:JZL,SK;font-size:15.5px;
