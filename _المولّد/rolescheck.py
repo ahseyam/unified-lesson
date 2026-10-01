@@ -187,6 +187,47 @@ setTimeout(function(){
   T("وEnter تختار", kcards[1].classList.contains("on"), true);
   T("ولا يبقى الأولُ مختاراً", kcards[0].getAttribute("aria-checked"), "false");
 
+  /* ── ٩) نطاقُ الوكيل: الحذفُ والتقريرُ وما يقع عليه ──
+     ⛔ كان الوكيلُ يحذف حصصَ المجمع كلِّه — ومنها **المعتمدةُ المقفولةُ
+        لمدرسةٍ أخرى** — ويمحو من السلّة محواً نهائياً بلا رجعة. والقاعدةُ
+        محروسةٌ في التعديل ومكشوفةٌ في الحذف.
+     ⚠️ وتُعطَّل النوافذُ الأصليةُ هنا: `alert` توقف كروم بلا رأسٍ فلا يُقاس شيء. */
+  var _al = window.alert, _cf = window.confirm;
+  window.alert = function(){}; window.confirm = function(){ return true; };
+  var CXB2 = D.complexlist[1] || CX, bB2 = (D.bands[CXB2] || [])[0] || b;
+  function _mkL(id, cx, bb){
+    return {id:id, gk:[SEC, cx, bb.stage, bb.per, wk, day, meSp].join("|"),
+            sector:SEC, complex:cx, stage:bb.stage, school:bb.stage, week:wk, day:day,
+            period:bb.per, time:bb.time, teacher:"ف", teacherNo:"", subject:meSp,
+            spec:meSp, klass:"5/A"};
+  }
+  var Lmine = _mkL("dp1", CX, b), Lother = _mkL("dp2", CXB2, bB2);
+  var Lappr = _mkL("dp3", CX, b); Lappr.approved = {by:"س", at:"2026-10-01"};
+  DB.sched = [Lmine, Lother, Lappr]; save();
+  ME = {role:"deputy", name:"وكيلُ الفحص", emp:"", spec:meSp,
+        sector:SEC, complex:CX, school:b.stage, stages:[b.stage]};
+  T("الوكيلُ يحذف حصةَ مدرسته", canDrop(Lmine), true);
+  T("ولا يحذف حصةَ مدرسةٍ أخرى", canDrop(Lother), false);
+  T("ويُقال له السبب", (dropWhy(Lother)||"").indexOf("نطاقك") >= 0, true);
+  T("ولا يحذف معتمدةً مقفولة", canDrop(Lappr), false);
+  T("ويُقال سببُ القفل", (dropWhy(Lappr)||"").indexOf("معتمدة") >= 0, true);
+  var _n0 = DB.sched.length;
+  dropLesson(Lother.id);
+  T("والنداءُ المباشرُ لا يمرّ", DB.sched.length, _n0);
+  /* وما يقع عليه يُعرَّف */
+  T("isMyGap تعمل", typeof isMyGap, "function");
+  T("وعدّادُ ما عليه رقم", typeof myGapCount(), "number");
+  /* وتقريرُ الإدخال على نطاقه */
+  D.roster = {"90001": {n:"معلمُ مدرستي", s:_sub, c:CX, g:b.stage.split("- ")[0], k:SEC},
+              "90002": {n:"معلمُ مدرسةٍ أخرى", s:_sub, c:CXB2, g:bB2.stage.split("- ")[0], k:SEC},
+              "90003": {n:"إداريٌّ لا يُدرّس", s:"أخرى", c:CX, g:b.stage.split("- ")[0], k:SEC}};
+  var _pe = pendingEntry();
+  T("الكشفُ يُرشَّح بنطاق الداخل", _pe.total, 1);
+  T("والنطاقُ يُعلَن في التقرير", (_pe.scope||"").length > 0, true);
+  T("ولا يُعدُّ من لا تخصصَ تعليميَّ له",
+    _pe.left.filter(function(x){ return x[0].indexOf("إداريّ") >= 0; }).length, 0);
+  window.alert = _al; window.confirm = _cf;
+
   document.title="DONE"; window.__OUT = JSON.stringify(R);
  }catch(e){ document.title="ERR|"+e.message+" @ "+(e.stack||"").split("\n")[1];
             window.__OUT = JSON.stringify(R); }
@@ -210,7 +251,7 @@ bad = [1 for l,_ in rows if l.startswith("⛔")]
 #    الصندوقُ خالياً — لا شاهدٌ ولا عنوانُ خطأ — فيُعلن «✓ الأربعةُ منفَّذة»
 #    وقد لم يفحص واحداً. وأُثبت تجريبياً: أُفسد نصُّ الإقلاع فمرّ الحارس.
 #    (أمسكه وكيلُ مراجعة الحرّاس ١ أكتوبر ٢٠٢٦)
-FLOOR = 50
+FLOOR = 61
 short = len(rows) < FLOOR
 if short:
     print("  ⛔ %d شاهداً فقط — والأرضيّةُ %d. لم يُقَس ما يكفي، فالحكمُ فشل."

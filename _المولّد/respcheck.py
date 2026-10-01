@@ -100,7 +100,20 @@ setTimeout(function(){
                              "خطٌّ دون ١٦ — يُكبّر iOS الصفحة", fs + "بك"]);
      });
   }
-  /* ④ شريطُ الحفظ: موجودٌ وأزرارُه مَلموسة */
+  /* ④ **نصيبُ العمل من شاشة الجوال**: كانت أعمدةُ التسمية الثلاثُ ثابتةً
+     بـ٣٠٤ بكسلاً — أي ٧٨٪ من شاشة ٣٩٠ قبل أن يبدأ العمل، فيفتح المعلمُ
+     جدولَه على جواله فلا يرى منه شيئاً. (١ أكتوبر ٢٠٢٦) */
+  var _mx = document.querySelector("table.mx");
+  if(_mx && W <= 760){
+    var cols = [].slice.call(_mx.querySelectorAll("colgroup col"));
+    var lab = 0;
+    cols.slice(0, 3).forEach(function(c){ lab += parseInt(c.style.width) || 0; });
+    n++;
+    var share = Math.round(Math.max(0, W - lab) / W * 100);
+    if(share < 45) out.push(["المصفوفة", "نصيبُ العمل من الشاشة " + share + "٪ فقط",
+                             "التسمية " + lab + "بك من " + W]);
+  }
+  /* ⑤ شريطُ الحفظ: موجودٌ وأزرارُه مَلموسة */
   var ab = document.querySelector(".abar");
   var live = document.querySelector("input:not([disabled]):not([type=hidden]),textarea:not([disabled]),select:not([disabled])");
   if(live && !ab) out.push(["شريط الحفظ", "شاشةٌ فيها إدخالٌ ولا شريطَ حفظٍ لها", ""]);

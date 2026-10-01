@@ -544,6 +544,36 @@ EN.update({
     "زمن عمل الطالبات يفوق زمن كلام المعلمة (٧٠ مقابل ٣٠)":
         "Student working time exceeds teacher talking time (70 to 30)",
     "شرح المعلمة ثم أسئلة للطالبات": "The teacher explains, then asks the students questions",
+    # ⛔ رحلةُ الوكيل التعليمي: الحذفُ محروسٌ بالنطاق · وما يقع عليه يُعلَن
+    #    · وتقريرُ الإدخال يقيس نطاقَه لا المنظومة (١ أكتوبر ٢٠٢٦)
+    "⛔ لم تُحذف: ": "⛔ Not deleted: ",
+    "لم تُوجد هذه الحصة.": "This lesson was not found.",
+    "هذه الحصةُ معتمدةٌ ومقفولة — يُفكّ اعتمادُها أولاً.":
+        "This lesson is approved and locked — its approval must be lifted first.",
+    "هذه الحصةُ ليست باسمك.": "This lesson is not in your name.",
+    "الحذفُ ليس من صلاحيتك.": "Deleting is not within your permissions.",
+    "هذه الحصةُ خارجَ نطاقك.": "This lesson is outside your scope.",
+    "⛔ هذه الحصةُ خارجَ نطاقك.": "⛔ This lesson is outside your scope.",
+    "محوٌ نهائي": "Permanent purge",
+    "عليك — لا مشرفَ لتخصصها": "Yours — its subject has no supervisor",
+    "لا مشرفَ مختصٌّ لهذا التخصص في هذه المدرسة، فالرصدُ على الفريق المعاون — وأنت منه.":
+        "No subject supervisor for this subject in this school, so observing falls to the "
+        "supporting team — and you are part of it.",
+    " · منها ": " · of which ",
+    " عليك (لا مشرفَ لتخصصها)": " are yours (their subject has no supervisor)",
+    "حصصٌ عليك": "Lessons that fall to you",
+    " حصةً تنتظر رصدَك": " lessons await your observation",
+    "رصدتَ ما عليك كلَّه ✓": "You have observed everything that falls to you ✓",
+    "لا حصةَ بلا مشرفٍ مختصٍّ في نطاقك":
+        "No lesson in your scope lacks a subject supervisor",
+    "وهي الحصصُ التي لا مشرفَ لتخصصها — ولولا الفريق المعاون لبقيت بلا تقييم.":
+        "These are the lessons whose subject has no supervisor — without the supporting "
+        "team they would go unrated.",
+    "المقياسُ على نطاقك: ": "Measured against your scope: ",
+    "المنظومة كلُّها": "the whole system",
+    " — ومن لا تخصصَ تعليميٌّ له في الكشف لا يُنتظر منه تسجيلُ حصة.":
+        " — and anyone with no taught subject on the roster is not expected to register a lesson.",
+    " بلا حصةٍ مسجَّلةٍ بعد — ": " with no lesson registered yet — ",
     "اسم المادة (": "Subject name (",
     "تعديل المادة": "Subject edited",
     "اختر دورك": "Choose your role",   # تسميةُ مجموعة الاختيار لقارئ الشاشة

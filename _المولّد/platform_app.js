@@ -433,8 +433,34 @@ function trashList(){
     .map(k=>DB.prep[k]).filter(x=>x && x.L)
     .sort((a,b)=>(b.at||"").localeCompare(a.at||""));
 }
+/* ⛔ **الحذفُ كان بلا حارسٍ البتّة.** `myList` يبني قائمتَه من **المجمع
+   كلِّه** (ستةُ أعمدةٍ في ثلاث مدارس) لا من مدرسة الوكيل، وزرُّ «حذف» يظهر
+   لكل مقيّم — و`dropLesson` لا تفحص نطاقاً ولا اعتماداً. فوكيلُ مدرسةٍ
+   يستطيع محوَ **درجةٍ معتمدةٍ مقفولةٍ لمدرسةٍ أخرى** بلا رجعة. والقاعدةُ
+   المعلنةُ محروسةٌ في التعديل (`canEdit` تُرجع false للوكيل) ومكشوفةٌ في
+   الحذف. (أمسكه وكيلُ رحلة الوكيل التعليمي؛ عولج ١ أكتوبر ٢٠٢٦)
+   ⚠️ والحارسُ **عند المصدر** لا عند الزرّ: الأزرارُ تُنسى، والدالّةُ واحدة. */
+function canDrop(L){
+  if(!L || !ME) return false;
+  if(ME.role === "admin") return true;        /* المستشارُ مالكُ المنظومة */
+  if(L.approved) return false;                /* معتمدةٌ فمقفولةٌ على الجميع */
+  if(ME.role === "teacher") return isMine(L);
+  if(!isEval()) return false;
+  return inMyScope(L);                        /* ولا يتجاوز أحدٌ نطاقَه */
+}
+function dropWhy(L){
+  if(!L) return "لم تُوجد هذه الحصة.";
+  if(ME && ME.role === "admin") return "";
+  if(L.approved) return "هذه الحصةُ معتمدةٌ ومقفولة — يُفكّ اعتمادُها أولاً.";
+  if(ME && ME.role === "teacher" && !isMine(L)) return "هذه الحصةُ ليست باسمك.";
+  if(!isEval()) return "الحذفُ ليس من صلاحيتك.";
+  if(!inMyScope(L)) return "هذه الحصةُ خارجَ نطاقك.";
+  return "";
+}
 function dropLesson(id){
   const L = DB.sched.find(x=>x.id===id);
+  /* ⛔ ولا يُحذف شيءٌ خارجَ النطاق ولو نُودي من موضعٍ لم يفحص */
+  if(L && !canDrop(L)){ alert("⛔ لم تُحذف: " + dropWhy(L)); return false; }
   if(L){
     const obs = {}, peer = {};
     Object.keys(DB.obs).forEach(k=>{ if(k.indexOf(id+"|")===0) obs[k] = DB.obs[k]; });
@@ -725,6 +751,31 @@ function supConflict(L){
   return null;
 }
 function gapTeam(){ return TR("الفريق المعاون"); }
+/* ⛔ **لم يكن أحدٌ يُعرَّف أيَّ حصةٍ عليه.** `isGap` معرَّفةٌ وتُستعمل في
+   `canScore` وحدَها — فلا شارةَ ولا عدَّ ولا مرشِّح. والطريقُ الوحيدُ أن يفتح
+   الوكيلُ حصةً حصةً وينظر: أخرجت له الاستمارةُ أم شاشةُ القراءة؟
+   وفي البنات **ربعُ الخلايا بلا مشرفٍ مختص** — مُلقاةٌ على الفريق المعاون
+   ولا أحدَ يعلم أيُّها، فتبقى بلا رصدٍ حتى يمرّ الأسبوع.
+   (أمسكه وكيلُ رحلة الوكيل التعليمي؛ عولج ١ أكتوبر ٢٠٢٦) */
+function isMyGap(L){
+  return !!L && (D.gapscore || []).indexOf(ME && ME.role) >= 0
+         && isGap(L) && inMyScope(L);
+}
+/* عددُ ما عليه من حصصٍ لم تُرصد بعد — يُعرض في الشريط ولا يُبحث عنه */
+function myGapCount(){
+  try{
+    return DB.sched.filter(L=>isMyGap(L)
+      && !Object.values(DB.obs || {}).some(v=>v && v.__lid === L.id && v.res && v.res.max > 0)
+    ).length;
+  }catch(e){ return 0; }
+}
+/* شارةٌ تُلصق حيث تُعرض الحصة */
+function gapTag(L){
+  if(!isMyGap(L)) return null;
+  const t = el("span","tag no","عليك — لا مشرفَ لتخصصها");
+  t.title = TR("لا مشرفَ مختصٌّ لهذا التخصص في هذه المدرسة، فالرصدُ على الفريق المعاون — وأنت منه.");
+  return t;
+}
 
 /* نطاقُ الداخل: المدرسةُ للمدير والوكيل · المجمعُ لمديره · وما عداهما مفتوح */
 function inMyScope(L){
@@ -1213,6 +1264,21 @@ function shell(){
                                                       : "لا زياراتٍ مسنَدةً إليك بعد")));
     if(!asg.length) bx.appendChild(el("div","cws",
       "يُسنِدها وكيلُ المدرسة التعليمي — راجعه إن تأخّرت."));
+    side.appendChild(bx);
+  }
+  /* ⛔ **وللفريق المعاون عدّادُه كذلك.** كان للزائر وحدَه، والوكيلُ ومديرُ
+     المدرسة ومديرُ المجمع لا يعلمون أن عليهم شيئاً إلا بفتح حصةٍ حصة.
+     وفي البنات ربعُ الخلايا بلا مشرفٍ مختص. (١ أكتوبر ٢٠٢٦) */
+  else if((D.gapscore || []).indexOf(ME.role) >= 0){
+    const n = myGapCount();
+    const all = DB.sched.filter(isMyGap).length;
+    const bx = el("div","cw");
+    bx.appendChild(el("div","cwh","حصصٌ عليك"));
+    bx.appendChild(el("div","cwt", n ? arn(n) + " حصةً تنتظر رصدَك"
+                                     : (all ? "رصدتَ ما عليك كلَّه ✓"
+                                            : "لا حصةَ بلا مشرفٍ مختصٍّ في نطاقك")));
+    bx.appendChild(el("div","cws",
+      "وهي الحصصُ التي لا مشرفَ لتخصصها — ولولا الفريق المعاون لبقيت بلا تقييم."));
     side.appendChild(bx);
   }
   items.forEach(p=>{
@@ -2326,9 +2392,42 @@ let RPT = "school";
       لا يظهر فيه — ولا يُحصى الغائبُ من حاضرين. فهذا يقيس الجدولَ على الكشف.
    ⚠️ ويُحتسب المعلمُ «مُدخِلاً» بالرقم إن حملته الخانة، وبالاسم بديلاً — وإلا
       حُسب الحاضرُ غائباً فلوحق بلا سبب. */
+/* ⛔ **تقريرُ «الإدخالُ الناقص» كان يقيس المنظومةَ كلَّها لا مدرستَه — ولا
+   يبلغ الصفرَ أبداً.** يأخذ الكشفَ كلَّه (٤٦٠) و`DB.sched` كلَّها بلا ترشيحٍ
+   بنطاق الداخل، مع أن كلَّ سطرٍ في الكشف يحمل قطاعَه ومجمعَه ومرحلتَه.
+   فيقول لوكيل مدرسةٍ فيها ٣٤ معلماً: «٤٦٠ من ٤٦٠ بلا حصةٍ مسجَّلة».
+   ⚠️ **وفيه ٨٨ اسماً تخصصُهم «أخرى»** — غيرُ معلمين (ومنهم الوكيلُ نفسُه)
+      ولا حصةَ لهم أصلاً، فلا تُطبع رسالةُ «تامُّ الإدخال» ولو أتمّ الجميع.
+      وتناقضٌ يُثبت العلّة: شاشةُ الإسناد تُسقط أصحابَ «أخرى»، فالكشفُ نفسُه
+      يُعامَل معلماً هنا وغيرَ معلمٍ هناك.
+   فأداةُ متابعته الأولى — وواجبُه الأول — كانت عديمةَ الفائدة.
+   (أمسكه وكيلُ رحلة الوكيل التعليمي؛ عولج ١ أكتوبر ٢٠٢٦) */
 function pendingEntry(){
-  const R = D.roster || {}, keys = Object.keys(R);
+  const R = D.roster || {};
+  const sm = D.specmap || {};
+  let keys = Object.keys(R);
   if(!keys.length) return null;                 /* لا كشفَ فلا قياس */
+  /* ① من لا تخصصَ له في المطابقة ليس معلماً — فلا يُنتظر منه تسجيلُ حصة */
+  keys = keys.filter(k=>{
+    const sp = (R[k] || {}).s;
+    return sp && Object.prototype.hasOwnProperty.call(sm, sp) && sm[sp];
+  });
+  /* ② ويُقاس على نطاق الداخل: المدرسةُ للمدير والوكيل، والمجمعُ لمديره */
+  let scope = "المنظومة كلُّها";
+  if(isSchoolBound()){
+    const st = stageBase(ME.school || "");
+    keys = keys.filter(k=>{
+      const r = R[k] || {};
+      return r.k === ME.sector && r.c === ME.complex && stageBase(r.g || "") === st;
+    });
+    scope = ME.school || "";
+  } else if(ME.role === "cxmgr"){
+    keys = keys.filter(k=>{
+      const r = R[k] || {};
+      return r.c === ME.complex && (!ME.sector || r.k === ME.sector);
+    });
+    scope = ME.complex || "";
+  }
   const byNo = new Set(), byNm = new Set();
   (DB.sched || []).forEach(L=>{
     if(!(L.teacher||"").trim()) return;
@@ -2344,7 +2443,7 @@ function pendingEntry(){
   });
   const coll = new Intl.Collator("ar");
   left.sort((a,b)=>coll.compare(a[0], b[0]));
-  return {total: keys.length, done: done.length, left: left};
+  return {total: keys.length, done: done.length, left: left, scope: scope};
 }
 
 /* ⛔ حصةٌ مسجَّلةٌ بتخصصٍ حُذف من المنصة (كالتحفيظ) لا تجد لها خليةً فلا تُرسَم
@@ -2372,6 +2471,10 @@ function rPending(p){
       + "وقياسُ الجدول على الكشف لا على نفسه."));
     return;
   }
+  /* ⚠️ والنطاقُ يُقال: «٣٤ معلماً» بلا نطاقٍ تُقرأ على المنظومة كلِّها */
+  p.appendChild(el("div","note")).appendChild(el("div",null,
+    TR("المقياسُ على نطاقك: ") + TR(s.scope)
+    + TR(" — ومن لا تخصصَ تعليميٌّ له في الكشف لا يُنتظر منه تسجيلُ حصة.")));
   kpis(p, [[arn(s.total), "في كشف المعلمين"],
            [arn(s.done), "بحصةٍ في الجدول"],
            [arn(s.left.length), "بلا حصةٍ بعد"],
@@ -3803,7 +3906,7 @@ function ph1(m){
     if(s && s.left.length){
       const mb = el("div","msg bad");
       mb.appendChild(el("b",null, arn(s.left.length) + " من " + arn(s.total)
-                                 + " بلا حصةٍ مسجَّلةٍ بعد"));
+                                 + " بلا حصةٍ مسجَّلةٍ بعد — " + TR(s.scope)));
       mb.appendChild(el("span",null, " — والجدولُ ناقصٌ حتى تُسجَّل. "));
       const go = el("button","b ghost sm","افتح الكشف");
       go.addEventListener("click", ()=>{ PH = 5; RPT = "pending"; shell(); });
@@ -3917,8 +4020,19 @@ function grid(m, c, T){
      (المدرسة) يقسّم عرضَه على حصصه — فتضيق أعمدةُ المدرسة ذات الثلاث حصص
      وتتّسع ذاتُ الحصتين، فتتداخل الكلمات. و`colgroup` يفرض عرضاً واحداً لكلٍّ. */
   const cg = document.createElement("colgroup");
-  [88, 104, 112].forEach(w=>{ const c = document.createElement("col"); c.style.width = w+"px"; cg.appendChild(c); });
-  bands.forEach(()=>{ const c = document.createElement("col"); c.style.width = "186px"; cg.appendChild(c); });
+  /* ⛔ **على الجوال كانت أعمدةُ التسمية تلتهم الشاشة.** ثلاثةٌ ثابتةٌ بـ٣٠٤
+     بكسلاً (٨٨+١٠٤+١١٢) — أي **٧٨٪ من شاشة ٣٩٠ قبل أن يبدأ العمل**، ويبقى
+     للحصة ٨٦ بكسلاً من ١٨٦. فالمعلمُ يفتح جدولَه على جواله فلا يرى منه شيئاً.
+     فتُضيَّق التسميةُ ويُوسَّع العمل: ٥٢+٥٦+٦٠ وحصةٌ ١٦٤ — فيصير نصيبُ العمل
+     ٤٩٪ بدل ٢٢٪ من المساحة المرئية. (قِيس بإطارٍ بعرضٍ حقيقيٍّ ١ أكتوبر ٢٠٢٦)
+     ⚠️ والجدولُ يبقى ممرَّراً أفقياً — لا يُصغَّر النصُّ ليُحشر، فالقراءةُ
+        أولى من رؤية كل شيءٍ دفعةً واحدة. */
+  const narrow = (typeof matchMedia === "function")
+                 && matchMedia("(max-width:760px)").matches;
+  const LW = narrow ? [52, 56, 60] : [88, 104, 112];
+  const BW = narrow ? "164px" : "186px";
+  LW.forEach(w=>{ const c = document.createElement("col"); c.style.width = w+"px"; cg.appendChild(c); });
+  bands.forEach(()=>{ const c = document.createElement("col"); c.style.width = BW; cg.appendChild(c); });
   t.appendChild(cg);
 
   /* رأسٌ من ثلاثة صفوف كما في الملف: المدرسة ثم الحصة ثم الحقول */
@@ -4136,6 +4250,12 @@ function cellEditor(c, band, r){
       save(); shell(); });
     w.appendChild(me);
   }
+  /* ⛔ وشارةُ «عليك» في الخانة نفسِها — فهي أولُ ما تقع عليه العين، ولا
+     يُطلب من أحدٍ أن يفتح حصةً حصةً ليعرف أيُّها عليه. (١ أكتوبر ٢٠٢٦) */
+  if(L0){
+    const _g = gapTag(L0);
+    if(_g){ const gw = el("div"); gw.style.marginTop = "2px"; gw.appendChild(_g); w.appendChild(gw); }
+  }
   const act = el("div","crow2");
   const st = el("button","cst","ابدأ الحصة ←");
   st.addEventListener("click", ()=>{ const y = cur(); if(!y) return; CUR = y.id; PH = 2; shell(); });
@@ -4240,9 +4360,17 @@ function rotSup(m, c){
 function myList(m, c){
   let here = DB.sched.filter(x=>x.gk && x.gk.indexOf(c.sector + "|" + c.complex + "|") === 0);
   if(ME.role === "teacher") here = here.filter(isMine);
+  /* ⛔ **القائمةُ كانت تعرض المجمعَ كلَّه لمن نطاقُه مدرسة.** ستةُ أعمدةٍ في
+     ثلاث مدارس أمام وكيلِ مدرسةٍ واحدة — ومعها زرُّ حذف. فيرى حصصَ غيره
+     ويحذفها. و`inMyScope` كانت معرَّفةً ولا تُستعمل هنا. (١ أكتوبر ٢٠٢٦) */
+  else if(isSchoolBound() || ME.role === "cxmgr") here = here.filter(inMyScope);
   const s2 = el("div","card"), sh = el("h3");
   sh.appendChild(el("span",null, ME.role === "teacher" ? "حصصك المسجَّلة" : "الحصص المسجَّلة في المجمع"));
-  sh.appendChild(el("small",null, arn(here.length) + " حصة")); s2.appendChild(sh);
+  /* ⚠️ والعدُّ يقول ما يقع عليه لا مجرّدَ العدد */
+  const _mg = here.filter(isMyGap).length;
+  sh.appendChild(el("small",null, arn(here.length) + " حصة"
+    + (_mg ? (" · منها " + arn(_mg) + " عليك (لا مشرفَ لتخصصها)") : "")));
+  s2.appendChild(sh);
   const sp = el("div","pad");
   if(!here.length){
     sp.appendChild(el("div","empty", ME.role === "teacher"
@@ -4287,6 +4415,9 @@ function myList(m, c){
       }
       const td = el("td");
       const tag = (cls,txt)=>{ td.appendChild(el("span","tag "+cls,txt)); td.appendChild(document.createTextNode(" ")); };
+      /* ⛔ الشارةُ أولاً: هي الجوابُ عن سؤاله الأول «أيُّ حصةٍ عليّ؟» */
+      const _gt = gapTag(L);
+      if(_gt){ td.appendChild(_gt); td.appendChild(document.createTextNode(" ")); }
       if(L.approved) tag("ok", "معتمدة ◆");
       tag(pg.issued?"ok":"no", pg.issued?"حُضِّر":"لم يُحضَّر");
       tag(pg.obs>=3?"ok":(pg.obs?"mid":"no"), "تقييم "+arn(pg.obs)+"/٣");
@@ -4296,7 +4427,9 @@ function myList(m, c){
       const go = el("button","b alt","افتح"); go.style.cssText="padding:4px 12px;font-size:14px";
       go.addEventListener("click", ()=>{ CUR = L.id; PH = 2; shell(); });
       ac.appendChild(go);
-      if(isEval() || isMine(L)){
+      /* ⚠️ ولا يُعرض الزرُّ لمن لا يملكه: الحارسُ عند المصدر يمنع، والزرُّ
+         الظاهرُ بلا صلاحيةٍ يُغري ثم يُحبط. */
+      if(canDrop(L)){
         const x = el("button","b warn","حذف"); x.style.cssText="padding:4px 10px;font-size:14px;margin-inline-start:6px";
         x.addEventListener("click", ()=>{
           if(!confirm("حذف هذه الحصة وكل ما عُلِّق بها؟")) return;
@@ -4828,7 +4961,12 @@ function syncStageInputs(P){
 /* ═════════ عرضُ سلّة المحذوفات ═════════ */
 function trashView(m, c){
   let list = trashList();
+  /* ⛔ **السلّةُ كانت تعرض للمقيّم محذوفاتِ المنظومة كلِّها** — ومعها «محوٌ
+     نهائيٌّ» بلا استرداد. فوكيلُ مدرسةٍ يمحو إلى الأبد ما حذفته مدرسةٌ أخرى.
+     فتُقيَّد بالنطاق كما تُقيَّد القائمةُ والحذف. (١ أكتوبر ٢٠٢٦) */
   if(!isEval()) list = list.filter(t=>t.by === ME.name);
+  else if(isSchoolBound() || ME.role === "cxmgr")
+    list = list.filter(t=>t && t.L && inMyScope(t.L));
   const card = el("div","card"), h = el("h3");
   h.appendChild(el("span",null,"سلّة المحذوفات"));
   h.appendChild(el("small",null,"يُحفظ المحذوفُ ثلاثين يوماً ثم يُمحى نهائياً"));
@@ -4866,8 +5004,16 @@ function trashView(m, c){
         const xb = el("button","b warn","محوٌ نهائي");
         xb.style.cssText = "padding:5px 10px;font-size:14px;margin-inline-start:6px";
         xb.addEventListener("click", ()=>{
+          /* ⛔ **المحوُ النهائيُّ كان بلا حارس** — ونطاقُ السلّة وحدَه لا يكفي:
+             من بلغه مفتاحُ حصةٍ خارجَ نطاقه محاها بلا رجعة. فيُفحص هنا أيضاً.
+             (١ أكتوبر ٢٠٢٦) */
+          if(!isAdmin() && !inMyScope(L)){
+            alert("⛔ هذه الحصةُ خارجَ نطاقك."); return;
+          }
           if(!confirm("محوٌ نهائيٌّ لا يُستردّ بعده. أتُتابع؟")) return;
-          delete DB.prep[trashKey(L.id)]; save(); shell();
+          delete DB.prep[trashKey(L.id)];
+          logAct("محوٌ نهائي", [L.teacher, L.stage, L.period].filter(Boolean).join(" · "), L);
+          save(); shell();
         });
         ac.appendChild(xb);
       }
