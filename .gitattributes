@@ -1,0 +1,6 @@
+# الأسماء العربية تُخزَّن كما هي، والملفات الثنائية لا تُعالَج أسطرها
+* -text
+*.docx binary
+*.pdf  binary
+*.xlsx binary
+*.jpg  binary
