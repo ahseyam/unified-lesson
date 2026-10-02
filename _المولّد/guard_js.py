@@ -169,6 +169,30 @@ def dupes(path, extra=()):
     return {n: w for n, w in seen.items() if len(w) > 1}
 
 
+def dead(paths, extra=()):
+    """⛔ **دوالٌّ معرَّفةٌ لا يَذكرها موضعٌ آخر.**
+
+    ليست زينةً: `rekeySchool` كانت تَعِد في تعليقها بأنها «تُعيد ترقيم مفاتيح
+    حصص المدرسة فلا تُيتَّم حصة» — ولا يناديها شيء. فحارسٌ لم يُنفَّذ أسوأُ
+    من غيابه، لأن قارئَه يطمئنُّ إلى حمايةٍ ليست قائمة. ومعها `stagesSum`
+    نسخةٌ ثانيةٌ من حسابٍ قائمٍ في موضعه (ونسختان تفترقان)، و`gapTeam`.
+    (أمسكها مسحُ ما بقي ١ أكتوبر ٢٠٢٦)
+
+    ⚠️ ويُعدُّ **ذكرُ الاسم** لا نداؤه بأقواس: المراحلُ والتقاريرُ تُنادى من
+       جداول توجيه (`{1: ph1, …}` · `{"pending": rPending}`) فلا أقواسَ لها.
+    """
+    src = {f: open(f, encoding="utf-8").read() for f in tuple(paths) + tuple(extra)}
+    whole = "\n".join(src.values())
+    out = []
+    for f in paths:
+        for n in TOPDEF.findall(src[f]):
+            hits = len(re.findall(r"(?<![\w$])%s(?![\w$])" % re.escape(n), whole))
+            defs = len(re.findall(r"^function\s+%s\s*\(" % re.escape(n), whole, re.M))
+            if hits <= defs:
+                out.append((os.path.basename(f), n))
+    return out
+
+
 def main(paths, extra=()):
     bad = {}
     dup = {}
@@ -209,6 +233,14 @@ def main(paths, extra=()):
                         for n, w in sorted(dup.items()))
             + "\n\n  احذف الزائدَ ولا تُصحِّح أحدَهما. و`node --check` لا يكشف هذا."
               "\n  (وقعت مرتين: استبدالٌ شاملٌ أصاب التعريف · وتعريفٌ ثانٍ ألغى حارسَ null)")
+    dd = dead(paths, extra)
+    if dd:
+        raise SystemExit(
+            "⛔ دوالٌّ معرَّفةٌ لا يناديها شيء — والميتُ يُحذف لا يُصحَّح:\n"
+            + "\n".join("      %s  —  %s( … )" % x for x in dd)
+            + "\n\n  واحذر الوعدَ في تعليقها: `rekeySchool` كانت تَعِد بحماية"
+              "\n  مفاتيحِ المدرسة ولا يناديها شيء — فاطمأنَّ قارئُها إلى ما ليس."
+              "\n  وإن كانت تُنادى من جدولِ توجيهٍ فذِكرُ اسمها يكفي.")
     if bad:
         lines = []
         for p, m in bad.items():

@@ -93,6 +93,64 @@ setTimeout(async function(){
       document.activeElement && document.activeElement.id]);
   }
 
+
+  /* ── التركيزُ عند تغيّر الشاشة: كان يسقط إلى body في كل رسم ──
+     ⚠️ ويُقاس على `document.activeElement` بعد نقلةٍ حقيقيةٍ لا على نصِّ الشفرة. */
+  localStorage.clear();
+  ME={role:"deputy",name:"أ. القياس",emp:"",sector:D.sectors[0],
+      complex:D.complexlist[0],school:(D.bands[D.complexlist[0]]||[])[0].stage};
+  localStorage.setItem(KEY+"_me", JSON.stringify(ME));
+  window.__lastView = undefined;
+  GS=null; PH=1; shell(); await wait(60);
+  R.push(["أولُ رسمٍ لا يخطف التركيز",
+    document.activeElement === document.body || document.activeElement === null,
+    document.activeElement && document.activeElement.tagName]);
+  PH=5; shell(); await wait(80);
+  var mn = document.getElementById("main");
+  R.push(["نقلةُ المرحلة تنقل التركيزَ إلى المحتوى",
+    !!mn && document.activeElement === mn,
+    document.activeElement && (document.activeElement.id || document.activeElement.tagName)]);
+  R.push(["والمحتوى قابلٌ للتركيز ومسمّى",
+    !!mn && mn.tabIndex === -1 && !!(mn.getAttribute("aria-label")||"").trim(),
+    mn && mn.getAttribute("aria-label")]);
+  /* ⛔ ورسمٌ بلا نقلةٍ لا يخطف التركيز — وإلّا ضاع من صندوقٍ يُكتب فيه */
+  var probe = document.createElement("button"); probe.id="pz";
+  document.body.appendChild(probe); probe.focus();
+  shell(); await wait(80);
+  R.push(["ورسمٌ بلا نقلةٍ لا يخطف التركيز",
+    document.activeElement !== document.getElementById("main"),
+    document.activeElement && (document.activeElement.id || document.activeElement.tagName)]);
+  /* ⛔ ومن يكتب في خانةٍ لا يُسلب تركيزُه عند نقلةٍ */
+  PH=1; shell(); setctx("tab","fill"); shell(); await wait(80);
+  var anyin = document.querySelector("input:not([type=hidden]):not([disabled])");
+  if(anyin){
+    anyin.focus();
+    window.__lastView = "zz|zz|zz|zz";          /* نقلةٌ مصطنعة */
+    shell(); await wait(80);
+    R.push(["ولا يُسلب تركيزُ من يكتب في خانة",
+      document.activeElement !== document.getElementById("main"),
+      document.activeElement && document.activeElement.tagName]);
+  }
+
+  /* ── حرّاسُ السلّة عند المصدر: إخفاءُ زرٍّ ليس منعاً ── */
+  var LZ = {id:"zz9", gk:[D.sectors[0],D.complexlist[0],"س","1","أ","ب","ج"].join("|"),
+    sector:D.sectors[0], complex:D.complexlist[0], stage:"س", school:"س",
+    teacher:"أ. محذوفة", period:"1"};
+  DB.prep = {}; DB.prep[trashKey("zz9")] = {L:LZ, by:"أ. غيري", at:new Date().toISOString()};
+  DB.sched = [];
+  ME={role:"intqa", name:"أ. فريق المتابعة", emp:""};
+  R.push(["فريقُ المتابعة لا يستردُّ ولو نُودي مباشرةً", restoreLesson("zz9") === false]);
+  R.push(["ولا يمحو ولو نُودي مباشرةً", purgeLesson("zz9") === false]);
+  R.push(["والمحذوفُ باقٍ بعد محاولتَيه", !!DB.prep[trashKey("zz9")]]);
+  ME={role:"deputy", name:"أ. الوكيل", emp:"",
+      sector:LZ.sector, complex:LZ.complex, school:"__لا مدرسة__"};
+  R.push(["ووكيلُ مدرسةٍ أخرى لا يمحو ولو نُودي", purgeLesson("zz9") === false]);
+  ME={role:"deputy", name:"أ. الوكيل", emp:"",
+      sector:LZ.sector, complex:LZ.complex, school:LZ.stage};
+  R.push(["ووكيلُ مدرستها يمحو", purgeLesson("zz9") === true]);
+  R.push(["فيذهب من السلّة", !DB.prep[trashKey("zz9")]]);
+  localStorage.clear();
+
   document.title="DONE"; window.__OUT=JSON.stringify(R);
  }catch(e){ document.title="ERR|"+e.message; window.__OUT=JSON.stringify(R); }
 }, 400);
@@ -114,7 +172,7 @@ for r in rows:
 if t and H.unescape(t.group(1)).startswith("ERR"):
     print("  ⛔", H.unescape(t.group(1))); ok=False
 # ⛔ أرضيّةُ شواهد: فحصٌ لم يقس شيئاً فاشلٌ لا ناجح
-FLOOR = 17
+FLOOR = 29
 if len(rows) < FLOOR:
     print("  ⛔ %d شاهداً فقط — والأرضيّةُ %d" % (len(rows), FLOOR)); ok = False
 print("\n  %s" % ("✓ الكتابةُ متّصلةٌ والإعلانُ مسموع" if ok and rows else "⛔ ما زال يخرج"))

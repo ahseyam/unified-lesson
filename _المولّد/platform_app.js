@@ -400,8 +400,10 @@ function downloadScreen(title){
   toast("نزل الملفُّ على جهازك: " + name);
 }
 
-/* ⛔ يُنادى في **كل** شاشةٍ فيها إدخال — وحارسُ `savecheck` يفشل عند شاشةٍ
-   فيها خانةٌ ولا شريطَ لها. */
+/* ⛔ يُنادى في **كل** شاشةٍ فيها إدخال — و`respcheck` يفشل عند شاشةٍ فيها
+   خانةٌ حيّةٌ ولا شريطَ حفظٍ لها (الفحصُ ⑤ فيه).
+   ⚠️ وكان هذا التعليقُ يسمّي حارساً اسمُه `savecheck` **لا وجودَ له** — فوعدٌ
+      في تعليقٍ لا يَحرس شيئاً، وقارئُه يطمئنُّ إلى ما ليس. (صُحِّح ١ أكتوبر) */
 function actionBar(host, title, opts){
   const o = opts || {};
   const bar = el("div","abar noprint");
@@ -668,9 +670,25 @@ function dropLesson(id){
   save(); syncFlush();
 }
 /* الاستردادُ يعيد كلَّ ما عُلِّق بالحصة لا الحصةَ وحدها */
+/* ⛔ والمحوُ النهائيُّ كان منطقاً في مُستمِع زرٍّ: صار دالّةً حارسُها فيها،
+   فمن نادى المحوَ من أي طريقٍ نالَه الحارس. */
+function purgeLesson(id){
+  const t = DB.prep[trashKey(id)];
+  if(!t || !t.L) return false;
+  if(!canPurge(t.L)){ uiDialog("⛔ المحوُ النهائيُّ ليس من صلاحيتك هنا.", "bad"); return false; }
+  delete DB.prep[trashKey(id)];
+  logAct("محوٌ نهائي",
+    [t.L.teacher, t.L.stage, t.L.period].filter(Boolean).join(" · "), t.L);
+  save(); syncFlush();
+  return true;
+}
 function restoreLesson(id){
   const t = DB.prep[trashKey(id)];
   if(!t || !t.L) return false;
+  /* ⛔ **الحارسُ عند المصدر لا عند الزرّ**: `dropLesson` تفحص `canDrop` في
+     داخلها، أما الاستردادُ فكان يُحرَس بإخفاء الزرِّ وحدَه — وإخفاءُ زرٍّ ليس
+     منعاً. (١ أكتوبر ٢٠٢٦) */
+  if(!canRestore(t.L)){ uiDialog("⛔ الاستردادُ ليس من صلاحيتك هنا.", "bad"); return false; }
   if(DB.sched.some(x=>x.gk === t.L.gk && x.id !== id)){
     alert("لا يمكن الاسترداد: خانةُ هذه الحصة شُغِلت بحصةٍ أخرى بعد حذفها.");
     return false;
@@ -950,7 +968,8 @@ function supConflict(L){
   }
   return null;
 }
-function gapTeam(){ return TR("الفريق المعاون"); }
+/* ⛔ حُذفت `gapTeam()`: معرَّفةٌ ولا يناديها موضعٌ واحد — والميتُ يُحذف لا
+   يُصحَّح، وإلّا ظنَّ قارئُها أنّ للفريق اسماً يُشتقُّ من دالّة. (١ أكتوبر) */
 /* ⛔ **لم يكن أحدٌ يُعرَّف أيَّ حصةٍ عليه.** `isGap` معرَّفةٌ وتُستعمل في
    `canScore` وحدَها — فلا شارةَ ولا عدَّ ولا مرشِّح. والطريقُ الوحيدُ أن يفتح
    الوكيلُ حصةً حصةً وينظر: أخرجت له الاستمارةُ أم شاشةُ القراءة؟
@@ -1393,7 +1412,7 @@ function navItems(){
    ولا تُستعاد إلا بطلبٍ صريح (`__refocus`) فلا تُخطف من عنصرٍ آخر. */
 function refocusAfterRender(){
   const k = window.__refocus;
-  if(!k) return;
+  if(!k) return viewFocus();
   window.__refocus = null;
   const e = document.querySelector('[data-refocus="' + k + '"]');
   if(!e) return;
@@ -1402,6 +1421,28 @@ function refocusAfterRender(){
     const n = (e.value || "").length;
     if(e.setSelectionRange) e.setSelectionRange(n, n);
   }catch(x){}
+}
+/* ⛔ **كلُّ رسمٍ يمحو الصفحةَ كلَّها** (`body.innerHTML = ""`) فيسقط التركيزُ
+   إلى `body`: من يتنقّل بلوحة المفاتيح يعود إلى أوّل الصفحة بعد كل نقلةٍ
+   فيَمسح الهيدرَ والشريطَ من جديدٍ ليصل إلى عمله، ومن يسمع الشاشةَ لا يُخبَر
+   أنّ الشاشةَ تغيّرت أصلاً. فيُنقل التركيزُ إلى `main` **عند تغيّر الشاشة
+   وحدَه** — لا في كل رسم، وإلّا خُطف من صندوقٍ يُكتب فيه. (١ أكتوبر ٢٠٢٦) */
+function viewFocus(){
+  try{
+    const key = String(PH) + "|" + ((GS && GS.tab) || "") + "|"
+              + (typeof RPT === "undefined" ? "" : (RPT || "")) + "|"
+              + (typeof CUR === "undefined" ? "" : (CUR || ""));
+    if(window.__lastView === key) return;
+    const first = window.__lastView === undefined;
+    window.__lastView = key;
+    if(first) return;                       /* أولُ رسمٍ ليس نقلةً */
+    if(window.__wasTyping) return;          /* سُجِّل قبل محو الصفحة */
+    const m = document.getElementById("main");
+    if(!m) return;
+    m.tabIndex = -1;
+    m.setAttribute("aria-label", TR("محتوى الشاشة"));
+    m.focus({preventScroll: true});
+  }catch(e){}
 }
 function render(){ shell(); }
 /* ═════════ زرُّ تبديل اللغة ═════════
@@ -1417,6 +1458,12 @@ function langBtn(cls){
 }
 function shell(){
   autoPull();
+  /* ⛔ **الحالُ تُسجَّل قبل المحو**: `innerHTML = ""` يُفني الخانةَ المركَّزةَ
+     فيصير `activeElement` هو `body` — فلو سأل `viewFocus` بعدها لم يعرف أنّ
+     المستخدمَ كان يكتب، فخطفَ تركيزَه إلى المحتوى وهو في منتصف كلمة.
+     (أمسكه شاهدُ `focuscheck` ١ أكتوبر ٢٠٢٦ — فالفحصُ قبل الدعوى.) */
+  const _ae = document.activeElement, _at = _ae && _ae.tagName;
+  window.__wasTyping = (_at === "INPUT" || _at === "TEXTAREA" || _at === "SELECT");
   document.body.innerHTML = "";
   const top = el("header","top"), tw = el("div","wrap row");
   const left = el("div"); left.style.cssText="display:flex;align-items:center;gap:12px";
@@ -3698,7 +3745,8 @@ function fillStageTimes(P, force){
   });
   return n;
 }
-function stagesSum(P){ return D.stages.reduce((a,[k])=>a + n2(P["st_"+k+"_time"]), 0); }
+/* ⛔ وحُذفت `stagesSum(P)`: مجموعُ أزمنة المراحل يُحسب في موضعه من خريطة
+   الزمن، وهذه نسخةٌ ثانيةٌ لا يناديها شيء — ونسختان تفترقان. (١ أكتوبر) */
 function tsum(P){
   /* ⚠️ بالمفتاح لا بالموضع: إعادةُ ترتيب الخانات لا تُزحزح قيمةً واحدة */
   const parts = D.tsum_keys.reduce((a,k)=>a + n2(P["tk_"+k]), 0);
@@ -4168,8 +4216,11 @@ function ph1(m){
     tp.appendChild(fb);
   }
   /* ⛔ العددُ حيث يعمل: الوكيلُ لا لوحةَ منظومةٍ له، فلو لم يُعرض هنا لم يعرف
-     من لم يُدخِل إلا أن يمسح الجدولَ بعينه — وهذا لا يُطمئن على كشفٍ كامل. */
-  if(c.tab === "fill" && (isSchoolBound() || isAdmin())){
+     من لم يُدخِل إلا أن يمسح الجدولَ بعينه — وهذا لا يُطمئن على كشفٍ كامل.
+     ⛔ **ومديرُ المجمع كان محجوباً عنها** مع أن `pendingEntry` تحسب نطاقَه
+        بعينه، وهو من يتابع المجمعَ كلَّه. وكذلك فريقُ متابعة التقويم الداخلي
+        — ومتابعةُ الناقص **هي عملُه**. (١ أكتوبر ٢٠٢٦) */
+  if(c.tab === "fill" && (isScopeBound() || isAdmin() || ME.role === "intqa")){
     const s = pendingEntry();
     if(s && s.left.length){
       const mb = el("div","msg bad");
@@ -4741,19 +4792,11 @@ function inject(L, P, force){
   return P;
 }
 
-/* تغييرُ اسم المدرسة يُعيد ترقيم مفاتيح حصص هذا السياق — فلا تُيتَّم حصةٌ واحدة */
-function rekeySchool(c, oldName, newName){
-  if(oldName === newName) return;
-  const pre = [c.sector, c.complex, c.stage, oldName].join("|") + "|";
-  let n = 0;
-  DB.sched.forEach(L=>{
-    if(L.gk && L.gk.indexOf(pre) === 0){
-      L.gk = [c.sector, c.complex, c.stage, newName].join("|") + "|" + L.gk.slice(pre.length);
-      L.school = newName; n++;
-    }
-  });
-  if(n) save();
-}
+/* ⛔ وحُذفت `rekeySchool(c, old, new)`: كانت تُعيد ترقيم المفاتيح عند تغيير
+   اسم المدرسة «فلا تُيتَّم حصة» — **ولا يناديها شيء**. وهي تحرس حالةً لا
+   تقع: لا حقلَ نصيّاً لاسم المدرسة في المنصة، بل تُختار من قائمة `bands`
+   المعتمدة. فحارسٌ لم يُنفَّذ أسوأُ من غيابه: يُطمئن قارئَه إلى حمايةٍ
+   ليست قائمة. (١ أكتوبر ٢٠٢٦) */
 
 /* رابطُ الدعوة: عنوانُ المنصة ومعه المخزن — تُرسله فيُفتح مربوطاً بلا لصقٍ ولا شرح */
 /* ضبطُ مفتاح المخزن وتدويرُه — للمستشار وحدَه */
@@ -5271,15 +5314,10 @@ function trashView(m, c){
         const xb = el("button","b warn","محوٌ نهائي");
         xb.style.cssText = "padding:5px 10px;font-size:14px;margin-inline-start:6px";
         xb.addEventListener("click", ()=>{
-          /* ⛔ **المحوُ النهائيُّ كان بلا حارس** — ونطاقُ السلّة وحدَه لا يكفي:
-             من بلغه مفتاحُ حصةٍ خارجَ نطاقه محاها بلا رجعة. فيُفحص هنا أيضاً.
-             (١ أكتوبر ٢٠٢٦) */
-          if(!canPurge(L)){ uiDialog("⛔ المحوُ النهائيُّ ليس من صلاحيتك هنا.", "bad"); return; }
+          /* ⚠️ والحارسُ في `purgeLesson` نفسِها — ونطاقُ السلّة وحدَه لا يكفي:
+             من بلغه مفتاحُ حصةٍ خارجَ نطاقه محاها بلا رجعة. */
           uiAsk("محوٌ نهائيٌّ لا يُستردُّ بعده. أتُتابع؟", "امحُها نهائياً", "bad").then(ok=>{
-            if(!ok) return;
-            delete DB.prep[trashKey(L.id)];
-            logAct("محوٌ نهائي", [L.teacher, L.stage, L.period].filter(Boolean).join(" · "), L);
-            save(); shell();
+            if(ok && purgeLesson(L.id)) shell();
           });
         });
         ac.appendChild(xb);

@@ -556,6 +556,20 @@ EN.update({
     "⛔ هذه الحصةُ خارجَ نطاقك.": "⛔ This lesson is outside your scope.",
     "محوٌ نهائي": "Permanent purge",
     "للاطّلاع": "View only",
+    "محتوى الشاشة": "Screen content",
+    "⛔ الاستردادُ ليس من صلاحيتك هنا.": "⛔ Restoring is not within your permissions here.",
+    "اختر القطاع والمجمع، ثم رشِّح الأعمدة بمدرستك من المربّعات — "
+    "ومن دخل مديراً أو وكيلاً فمدرستُه مثبَّتةٌ عليه. "
+    "ثم تخصصك إن كنت معلماً.":
+        "Choose the sector and the complex, then filter the columns by your school using the "
+        "checkboxes — and whoever signed in as a principal or a deputy has their school fixed "
+        "for them. Then your subject, if you are a teacher.",
+    "اختاري القطاع والمجمع، ثم رشِّحي الأعمدة بمدرستك من المربّعات — "
+    "ومن دخلت مديرةً أو وكيلةً فمدرستُها مثبَّتةٌ عليها. "
+    "ثم تخصصك إن كنتِ معلمةً.":
+        "Choose the sector and the complex, then filter the columns by your school using the "
+        "checkboxes — and whoever signed in as a principal or a deputy has their school fixed "
+        "for them. Then your subject, if you are a teacher.",
     "⛔ المحوُ النهائيُّ ليس من صلاحيتك هنا.": "⛔ Permanent purge is not within your permissions here.",
     "فريقُ متابعة التقويم الداخلي: متابعةٌ لا حذف.":
         "Internal evaluation follow-up team: follow-up, not deletion.",

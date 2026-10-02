@@ -34,7 +34,32 @@ def docx_text(p):
     return "\n".join(out)
 
 
-def check(docx):
+# ⛔ **وكانت النشراتُ الإنجليزيةُ بلا فحصٍ أصلاً**: الشواهدُ كلُّها عربيةٌ
+#    («قبل أن تبدأ» …) فلم تُقَس عليها سبعُ نشراتٍ منشورةٍ — والشكلُ والتسرّبُ
+#    لا لغةَ لهما. فصار المحتوى بقائمةٍ لكلِّ لغة، والشكلُ لهما معاً.
+#    (أمسكه مسحُ ما بقي ١ أكتوبر ٢٠٢٦)
+NEED_AR = [("الرابط", "ahseyam.github.io/unified-lesson"),
+           ("التوقيع", "إدارةالتخطيطوالاعتمادالمدرسي"),
+           ("قبل أن تبدأ", "قبلأنتبد"),
+           ("خطوةً خطوة", "خطوةًخطوة"),
+           ("ما يقع فيه الخطأ", "يقعفيهالخطأ"),
+           ("أسئلةٌ متكرّرة", "أسئلةٌمتكرّرة"),
+           ("بمن تتصل", "بمنتتصل"),
+           ("شاهدُ اللقطة", "لقطةٌمنالمنصةنفسِها")]
+# ⚠️ وهذه مقروءةٌ من `nshbuild_en.py` حرفاً حرفاً، لا مخمَّنةٌ: خمّنتُها أوّلَ
+#    مرّةٍ فسقطت سبعُ نشراتٍ سليمةٍ على شاهدٍ لا وجودَ له.
+NEED_EN = [("الرابط", "ahseyam.github.io/unified-lesson"),
+           ("التوقيع", "PlanningandSchoolAccreditationDepartment"),
+           ("Before you start", "Beforeyoustart"),
+           ("Step by step", "Stepbystep"),
+           ("Where things usually go wrong", "Wherethingsusuallygowrong"),
+           ("Frequently asked", "Frequentlyasked"),
+           ("شاهدُ اللقطة", "takenfromtheplatformitself")]
+# ⛔ ولا يُقال «لا تسرّبَ» إلا بعد قياسٍ: هذه تُفحص في اللغتين
+FORBID = [("لا كلمةَ سرٍّ", "1121986"), ("ولا بريدَ شخصيّ", "ahmed.mahmud")]
+
+
+def check(docx, lang="ar"):
     pdf = docx[:-5] + ".pdf"
     name = os.path.basename(docx)
     res, ok = [], True
@@ -80,18 +105,11 @@ def check(docx):
     say("اللقطاتُ مُدرَجة", shots >= 4, "%d صورة" % shots)
 
     # ── المحتوى من الـDOCX ──
-    need = [("الرابط", "ahseyam.github.io/unified-lesson"),
-            ("التوقيع", "إدارةالتخطيطوالاعتمادالمدرسي"),
-            ("قبل أن تبدأ", "قبلأنتبد"),
-            ("خطوةً خطوة", "خطوةًخطوة"),
-            ("ما يقع فيه الخطأ", "يقعفيهالخطأ"),
-            ("أسئلةٌ متكرّرة", "أسئلةٌمتكرّرة"),
-            ("بمن تتصل", "بمنتتصل"),
-            ("شاهدُ اللقطة", "لقطةٌمنالمنصةنفسِها")]
-    for label, v in need:
+    for label, v in (NEED_EN if lang == "en" else NEED_AR):
         say(label, v in txt)
     say("لا ذكرَ للبرنامج السابق", "الحصصالتطبيقية" not in txt)
-    say("لا كلمةَ سرٍّ ولا بريد", "1121986" not in txt and "ahmed.mahmud" not in txt)
+    for label, v in FORBID:
+        say(label, v not in txt)
 
     print("── %s ──" % name)
     print("\n".join(res))
@@ -100,7 +118,8 @@ def check(docx):
 
 if __name__ == "__main__":
     good = True
+    # ⚠️ اللغةُ من المسار: مجلَّدُ English نشراتُه إنجليزية
     for a in sys.argv[1:]:
-        good &= check(a)
+        good &= check(a, "en" if os.sep + "English" + os.sep in a else "ar")
         print()
     raise SystemExit(0 if good else 1)

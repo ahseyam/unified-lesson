@@ -25,12 +25,23 @@ ROOT = os.path.dirname(HERE)
 D8 = os.path.join(ROOT, "٨ - النموذج الرقمي (تجربة)")
 BUILDS = [("m", "منصة الحصة الموحَّدة — ابن خلدون.html"),
           ("f", "منصة الحصة الموحَّدة — ابن خلدون (بنات).html")]
+# ⛔ **الصفحةُ المستقلّةُ (بلا خادم) كانت تتخلَّف صامتةً**: مولّدُها `webbuild.py`
+#    لا يناديه بابٌ ولا سكربت، فبقيت على القرص كما بُنيت آخرَ مرّةٍ بيدٍ —
+#    وقِيس ١ أكتوبر ٢٠٢٦ أنّ المنشورَ منها **يفتقد المجالَ الثالثَ كاملاً**
+#    وحقلَ «صفحات الدرس في الكتاب». و`index.html` يربطها كما يربط المنصة،
+#    فيفتحها معلمٌ فيحضّر بلا ما تَرصده الاستمارةُ عليه.
+#    فصارت تُبنى مع المنصة في كل جولة. (والمحتوى مشتركٌ من `zcontent`.)
+WEBS = [("m", "صفحة الحصة الموحَّدة — ابن خلدون.html"),
+        ("f", "صفحة الحصة الموحَّدة — ابن خلدون (بنات).html")]
 
 # ⚠️ البطيءُ يفتح كروم على عشرات الشاشات — والسريعُ شفرةٌ وبيانات
-FAST = ["printsrc", "importcheck"]
+FAST = ["printsrc", "deadkeys", "importcheck"]
 SLOW = ["supcheck", "rolescheck", "orphancheck", "focuscheck", "synccheck",
         "respcheck", "fitcheck", "i18ncheck_en", "i18ncheck_ar", "i18nsweep",
-        "contrastcheck", "sweepcheck"]
+        "contrastcheck", "sweepcheck",
+        # ⛔ `nshcheck` كان بلا بابٍ يناديه: أربعَ عشرةَ نشرةً تُنشر ولا تُفحص.
+        #    و`nshsweep` بابُه. (١ أكتوبر ٢٠٢٦)
+        "nshsweep"]
 
 
 def run(cmd, env=None, label=""):
@@ -56,6 +67,15 @@ def main():
     for g, fn in BUILDS:
         ok &= run([sys.executable, "platform.py", os.path.join(D8, fn)],
                   {"CLS_GENDER": g}, "بناء " + ("بنين" if g == "m" else "بنات"))
+    for g, fn in WEBS:
+        ok &= run([sys.executable, "webbuild.py", os.path.join(D8, fn)],
+                  {"CLS_GENDER": g},
+                  "صفحةٌ مستقلّة " + ("بنين" if g == "m" else "بنات"))
+    # ⛔ **والصفحةُ الرئيسةُ تحمل حرّاسَ التسرّب** (قواعدُ ملغاةٌ في النصّ ·
+    #    أسماءُ أشخاصٍ في خصائص الملفات · مسحُ الثنائيات) — وكانت لا تُنادى
+    #    إلا بيد. فحارسٌ لا يناديه شيءٌ يموت صامتاً، وهذه حرّاسُه الثلاثة.
+    #    وهي تمسح شجرةَ التسليم فتصف الموجودَ لا المتوقَّع. (١ أكتوبر ٢٠٢٦)
+    ok &= run([sys.executable, "hub.py"], None, "الصفحة الرئيسة")
     if not ok:
         print("\n⛔ لم يُبنَ — ولا يُفحص ما لم يُبنَ.")
         return 1
