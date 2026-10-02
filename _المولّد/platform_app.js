@@ -4480,6 +4480,7 @@ function cellEditor(c, band, r){
            period:band.per, week:r.wk, day:r.day, date:(r.dt||{}).g || "",
            datetxt:(r.dt||{}).gt || "", hijri:(r.dt||{}).ht || "", spec:r.spec, group:r.gp,
            subject:r.spec, teacher:"", strategy:"", approach:"", klass:"", time:"",
+           grade:"", topic:"", pages:"",
            peer1:"", peer2:"", peer1e:"", peer2e:"", ev1:"", ev2:"", ev3:"", ev4:""};
       DB.sched.push(x);
     }
@@ -4499,7 +4500,7 @@ function cellEditor(c, band, r){
        لا تنتمي لاتجاهه — وهو ما جاء التقييدُ ليمنعه. */
     if(lock){
       const d = el("div","cin ro2 lock", lock);
-      d.title = lock; w.appendChild(d); return;
+      d.title = lock; d.dataset.f = key; w.appendChild(d); return;
     }
     const e = fld(opts ? "sel" : "txt", v, val=>{
       snap(gk, "تعديل " + ph);
@@ -4513,6 +4514,8 @@ function cellEditor(c, band, r){
           logAct("تعديل", "إسقاط إستراتيجية لا تناسب الاتجاه: «" + y.strategy + "»", y);
           y.strategy = "";
         }
+        /* ⚠️ بعد الحفظ لا قبلَه — فتُبنى القائمةُ على الاتجاه كما صار */
+        setTimeout(remakeStrategy, 0);
       }
       if(key === "teacher"){
         /* ⛔ **لا يُمحى رقمٌ بتعديل نصّ**: كانت المطابقةُ حرفيةً تامّةً على
@@ -4538,8 +4541,30 @@ function cellEditor(c, band, r){
       if(after) try{ after(cur()); }catch(e){}
     }, opts, ph);
     e.className = "cin" + (cls ? " " + cls : "");
+    e.dataset.f = key;
     if(opts) e.title = ph;
     w.appendChild(e);
+  };
+  /* ⛔ **خانةُ الإستراتيجية كانت تبقى مقفولةً بعد اختيار الاتجاه.**
+     `paint()` يغيّر أصنافَ الخلية ولا يُعيد بناءَ حقولها، والقفلُ يُقرَّر
+     مرّةً عند الرسم — فيختار المعلمُ اتجاهَه وتبقى الرسالةُ «اختر الاتجاه
+     التدريسي أولاً» مكانَ القائمة، **فلا يستطيع اختيارَ إستراتيجيةٍ أبداً**.
+     وهي أخطرُ ما يكون: الإستراتيجيةُ تُغذّي بطاقةَ تشخيصها ودرجةَ م٢·٣.
+     (أمسكه المستشارُ وهو يصوّر ٢ أكتوبر ٢٠٢٦.)
+     ✦ فتُعاد الخانةُ وحدَها إلى موضعها عند كل تغييرٍ للاتجاه. */
+  const mkStrategy = ()=>{
+    const apr = (cur() || {}).approach || "";
+    const sl = (D.appstrat || {})[apr];
+    mk("strategy", "الاستراتيجية", sl && sl.length ? sl : null, null,
+       apr ? "" : "اختر الاتجاه التدريسي أولاً");
+  };
+  const remakeStrategy = ()=>{
+    const old = w.querySelector('[data-f="strategy"]');
+    const before = old ? old.nextSibling : null;
+    if(old) old.remove();
+    mkStrategy();                                   /* يُلحَق في آخر الخلية */
+    const added = w.lastElementChild;
+    if(before && added) w.insertBefore(added, before);
   };
   mk("teacher", D.lab_teacher_short, null, "nm", null, x=>{
     const cf = supConflict(x);
@@ -4553,10 +4578,7 @@ function cellEditor(c, band, r){
   mk("approach", "الاتجاه التدريسي", D.approaches);
   /* ⚠️ وقائمةُ الإستراتيجيات تُقصَر على إستراتيجيات الاتجاه المختار — وهي
      من نشرات الاتجاهات المعتمدة. وما لم يُختر اتجاهٌ فلا قائمةَ بل تنبيه. */
-  const _apr = (cur() || {}).approach || "";
-  const _sl = (D.appstrat || {})[_apr];
-  mk("strategy", "الاستراتيجية", _sl && _sl.length ? _sl : null, null,
-     _apr ? "" : "اختر الاتجاه التدريسي أولاً");
+  mkStrategy();
   /* ⛔ **اسمُ المادةِ يُكتب في الخانة.** كان يُملأ من عمود تخصص الزائر ولا
      يُعدَّل — فيصحُّ في التعليم العام ولا يصحُّ في **رياض الأطفال**: موادُّها
      ليست من التخصصات السبعة، وتقييمُها لمديرة الروضة ومديرة المجمع وفريق
@@ -4568,9 +4590,29 @@ function cellEditor(c, band, r){
     const sb = fld("txt", L0 ? (L0.subject||"") : "",
       v=>{ snap(gk,"تعديل المادة"); ensure().subject = v; save(); paint(); },
       null, "اسم المادة (" + TR(r.spec) + ")");
-    sb.className = "cin sm"; rowsub.appendChild(sb);
+    sb.className = "cin sm"; sb.dataset.f = "subject"; rowsub.appendChild(sb);
   } else rowsub.appendChild(el("div","cin sm ro2", (L0 && L0.subject) || "—"));
   w.appendChild(rowsub);
+
+  /* ⛔ **ثلاثُ خاناتٍ أسفلَ المادة** (طلبُ المستشار ٢ أكتوبر ٢٠٢٦): الصفُّ
+     الدراسيُّ واسمُ الدرس وصفحاتُه في الكتاب. وهي ليست زينةً في الجدول —
+     تُضخُّ إلى رأس التحضير (`i_grade` · `i_topic` · `i_pages`)، ومنها
+     **يُبنى أمرُ الذكاء الاصطناعي** فيحضّر على درس المنهج بعينه لا على
+     عنوانٍ عامّ. فكتابتُها في الخلية تُغني المعلمَ عن إعادتها.
+     ⚠️ و«الصف الدراسي» غيرُ «الفصل»: الأولُ المرحلةُ (الرابع الابتدائي)
+        والثاني الشعبةُ (١/أ) — وكلاهما يُسأل عنه في النموذج الورقيّ. */
+  const row1 = (key, ph, hint) => {
+    const r1 = el("div","crow1");
+    if(ed){
+      const f = fld("txt", L0 ? (L0[key]||"") : "",
+        v=>{ snap(gk, "تعديل " + ph); ensure()[key] = v; save(); paint(); }, null, hint);
+      f.className = "cin sm"; f.dataset.f = key; r1.appendChild(f);
+    } else r1.appendChild(el("div","cin sm ro2", (L0 && L0[key]) || "—"));
+    w.appendChild(r1);
+  };
+  row1("grade", "الصف الدراسي", "الصف الدراسي");
+  row1("topic", "اسم الدرس", "اسم الدرس");
+  row1("pages", "صفحات الدرس", "صفحات الدرس في الكتاب");
 
   const rowlet = el("div","crow");
   if(ed){
@@ -4801,6 +4843,10 @@ function inject(L, P, force){
   set("i_teacher", L.teacher);
   set("i_subject", L.subject || L.spec);
   set("i_klass",   L.klass);
+  /* ⚠️ وما يُكتب في الخلية لا يُعاد كتابتُه في التحضير */
+  set("i_grade",   L.grade);
+  set("i_topic",   L.topic);
+  set("i_pages",   L.pages);
   set("i_period",  perLabel(L, true));
   set("i_date",    joinAr([L.day, L.datetxt, L.hijri]) || joinAr([L.week, L.day]));
   set("f_strat",   L.strategy);
