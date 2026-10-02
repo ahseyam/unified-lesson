@@ -6,7 +6,17 @@ const D = __DATA__, LOGO = "__LOGO__";
    عنوان الخادم مشتركٌ أيضاً: فربطُ خادمٍ في إحداهما يُحوّل الأخرى إليه.
    ⚠️ والافتراضُ يبقى «ik» لمن لا dbid له — فلا تضيع بياناتُ من يستعملها اليوم. */
 const NS = (typeof D !== "undefined" && D.dbid) ? D.dbid : "ik";
-const KEY = NS + "_platform_v1", API = NS + "_api_v1";
+/* ⛔ **والفصلُ بين المدارس يبقى، أمّا نسختا المدرسة الواحدة فتقصدان الخادمَ
+   نفسَه.** كان ربطُ الخادم ومفتاحُه منسوبَين إلى النسخة (`ikm` · `ikf`)، فمن
+   ربط البنين وجد البنات تقول «الحفظ على هذا الجهاز فقط» — ويُربط الجهازُ
+   مرّتين، ويُوزَّع رابطان يُنسى أحدُهما فيبقى نصفُ المنظومة بلا مخزن.
+   (بلاغُ المستشار ٢ أكتوبر ٢٠٢٦ بصورة.)
+   ✦ فصار النطاقُ **المدرسةَ** لا النسخة: `ikm`/`ikf` ⟵ `ik`. فالبياناتُ
+     تبقى منفصلةً (`KEY` و`SID` بالنسخة)، والربطُ يُشترك داخل المدرسة وحدَها.
+   ⚠️ والحذفُ لحرفِ الجنس في آخر المعرّف — فمعرّفٌ ينتهي بـm أو f لغير الجنس
+      يُقصَّر خطأً. ولا يقع اليوم: المعرّفاتُ `ikm` و`ikf` و`ik`. */
+const ORG = NS.replace(/[mf]$/, "");
+const KEY = NS + "_platform_v1", API = ORG + "_api_v1";
 /* ⛔ **ومفتاحُ المخزن المشترك كان `db` في النسختين** — أي أن البنين والبنات
    يكتبون في سجلٍّ واحدٍ على الخادم ولو فُصلت مفاتيحُ الجهاز. فصلُ الجهاز
    وحدَه لا يفصل شيئاً ما بقي الخادمُ واحداً. (١ أكتوبر ٢٠٢٦) */
@@ -173,7 +183,19 @@ function api(){ try{ return localStorage.getItem(API)||""; }catch(e){ return "";
    ⚠️ ويسافر في **جزء التجزئة** (`#`) من رابط الدعوة — فلا يُرسَل في ترويسة
       الإحالة ولا يُسجَّل في سجلّات الخوادم الوسيطة.
    ⚠️ وخادمٌ لا يفحصه يتجاهله — فالنشرُ آمنٌ قبل ترقية الخادم وبعدها. */
-const SKEY = NS + "_skey";
+const SKEY = ORG + "_skey";
+/* ⚠️ هجرةٌ تقع مرةً: من ربط قبل الإشراك لا ينقطع — يُنقل ربطُه القديمُ
+   (المنسوبُ إلى نسخته) إلى المفتاح المشترك، ولا يُمَسُّ القديمُ أماناً. */
+(function shareSrv(){
+  try{
+    const o = [[API, NS + "_api_v1"], [SKEY, NS + "_skey"]];
+    o.forEach(([now, was])=>{
+      if(now === was) return;
+      if(!localStorage.getItem(now) && localStorage.getItem(was))
+        localStorage.setItem(now, localStorage.getItem(was));
+    });
+  }catch(e){}
+})();
 function skey(){ try{ return localStorage.getItem(SKEY) || ""; }catch(e){ return ""; } }
 function apiGet(kind, id){
   const k = skey();
@@ -4839,21 +4861,29 @@ function inviteURL(){
   const parts = location.pathname.split("/");
   /* الصفحةُ في <جذر>/<مجلد>/<ملف>.html — فالجذرُ بحذف آخر جزأين */
   if(location.protocol === "file:" || parts.length < 3) return Promise.resolve(long);
-  const short = location.origin + parts.slice(0, -2).join("/")
-              + "/" + (NS === "ikf" ? "f" : "m") + ".html";
-  return fetch(short, {cache: "no-store"})
-    .then(r => r.ok ? short + frag : long)
-    .catch(() => long);
+  const root = location.origin + parts.slice(0, -2).join("/") + "/";
+  const mine = root + (NS === "ikf" ? "f" : "m") + ".html";
+  const other = root + (NS === "ikf" ? "m" : "f") + ".html";
+  return fetch(mine, {cache: "no-store"})
+    .then(r => r.ok ? {u: mine + frag, o: other + frag} : {u: long})
+    .catch(() => ({u: long}));
 }
 function invite(){
   /* ⚠️ المفتاحُ في `#` لا في `?`: جزءُ التجزئة لا يُرسَل في ترويسة الإحالة
      ولا يُسجَّل في سجلّات الخوادم الوسيطة. */
-  inviteURL().then(u=>{
-    const done = ()=>alert("نُسخ رابط الدعوة.\n\nأرسله لمن يعنيه — يفتحه فيُربط جهازه تلقائياً،\n"
-      + "ولا يُطلب منه لصقُ شيء.\n\n" + u);
+  /* ⛔ **ولكلِّ قسمٍ رابطُه**: الرابطُ يفتح صفحةَ نسخته، فلو أُرسل رابطُ
+     البنين إلى مدرسة بناتٍ فتحت لهنّ نسختَه. ويُعرض الآخرُ معه فلا يُنسى
+     نصفُ المنظومة — وما بعد `#` واحدٌ فيهما. (٢ أكتوبر ٢٠٢٦) */
+  inviteURL().then(r=>{
+    const mine = NS === "ikf" ? "البنات" : "البنين";
+    const oth  = NS === "ikf" ? "البنين" : "البنات";
+    const msg = "نُسخ رابط دعوة قسم " + mine + ".\n\n"
+      + "يفتحه من يصله فيُربط جهازُه تلقائياً، ولا يُطلب منه لصقُ شيء.\n\n"
+      + r.u + (r.o ? ("\n\n— ولقسم " + oth + " أرسل هذا:\n" + r.o) : "");
+    const done = ()=>alert(msg);
     if(navigator.clipboard && navigator.clipboard.writeText)
-      navigator.clipboard.writeText(u).then(done).catch(()=>uiPrompt("انسخ رابط الدعوة:", u));
-    else uiPrompt("انسخ رابط الدعوة:", u);
+      navigator.clipboard.writeText(r.u).then(done).catch(()=>uiPrompt("انسخ رابط الدعوة:", r.u));
+    else uiPrompt("انسخ رابط الدعوة:", r.u);
   });
 }
 

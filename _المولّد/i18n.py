@@ -556,6 +556,13 @@ EN.update({
     "⛔ هذه الحصةُ خارجَ نطاقك.": "⛔ This lesson is outside your scope.",
     "محوٌ نهائي": "Permanent purge",
     "للاطّلاع": "View only",
+    "نُسخ رابط دعوة قسم ": "Invite link copied for the ",
+    "البنين": "boys section",
+    "البنات": "girls section",
+    "يفتحه من يصله فيُربط جهازُه تلقائياً، ولا يُطلب منه لصقُ شيء.\n\n":
+        "Whoever opens it has their device linked automatically — nothing to paste.\n\n",
+    "\n\n— ولقسم ": "\n\n— and for the ",
+    " أرسل هذا:\n": " send this one:\n",
     "محتوى الشاشة": "Screen content",
     "⛔ الاستردادُ ليس من صلاحيتك هنا.": "⛔ Restoring is not within your permissions here.",
     "اختر القطاع والمجمع، ثم رشِّح الأعمدة بمدرستك من المربّعات — "

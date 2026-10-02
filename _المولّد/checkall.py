@@ -50,7 +50,7 @@ SLOW = ["supcheck", "rolescheck", "orphancheck", "focuscheck", "synccheck",
         "srvcheck",
         # ⛔ ورابطُ الدعوة يُقاس وهو يُفتح عبر http: حسابُ الجذر خطأً يُنتج
         #    رابطاً ميّتاً **يُوزَّع على المدارس** ولا يُكتشف إلا عندهم.
-        "invitecheck"]
+        "invitecheck", "sharecheck"]
 
 
 def run(cmd, env=None, label=""):

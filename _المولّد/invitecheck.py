@@ -38,7 +38,8 @@ setTimeout(function(){
  try{
   localStorage.setItem(API, "https://srv.example/");
   localStorage.setItem(SKEY, "K123456789012345678901234");
-  inviteURL().then(function(u){
+  inviteURL().then(function(r){
+    var u = r.u;
     A("الرابطُ قصيرٌ لا يحمل مسارَ الصفحة", u.indexOf("__SHORT__") >= 0, u.slice(0, 80));
     A("ولا يحمل اسمَ المجلّد العربيَّ مرمَّزاً", u.indexOf("%D9%A8") < 0);
     A("ويحمل عنوانَ الخادم", u.indexOf("srv.example") >= 0);
