@@ -32,8 +32,12 @@ SRC = os.path.join(ROOT, "٨ - النموذج الرقمي (تجربة)",
 # ⛔ لقطاتُ الدليل الإنجليزي في مجلدٍ خاصٍّ بها: الشاشةُ غيرُ الشاشة، فلو
 #    خُلطت بالعربية كُتب فوقها ودخلت الدليلَ العربيَّ لقطةٌ إنجليزية.
 LANG = os.environ.get("CLS_LANG", "ar")
-OUT = os.path.join(ROOT, "١٠ - أدلّة استخدام المنصة", "صور",
-                   "English" if LANG == "en" else G("بنين", "بنات"))
+# ⚠️ ويُجاوَز مجلَّدُ المخرَج بـ`CLS_SHOTDIR` ليُصوَّر في المؤقتِ **فيُقارن
+#    بالمنشور بلا أن يُمَسّ** — وهو ما يحتاجه حارسُ تطابق اللقطات. (١ أكتوبر)
+_SUB = "English" if LANG == "en" else G("بنين", "بنات")
+OUT = os.path.join(os.environ["CLS_SHOTDIR"], _SUB) \
+    if os.environ.get("CLS_SHOTDIR") \
+    else os.path.join(ROOT, "١٠ - أدلّة استخدام المنصة", "صور", _SUB)
 os.makedirs(OUT, exist_ok=True)
 os.makedirs(SCRATCH, exist_ok=True)
 
@@ -179,6 +183,12 @@ window.__go = function(){
     }
     if (V.cur != null && window.__DEMO && __DEMO[V.cur]) CUR = __DEMO[V.cur].id;
     PH = V.ph || 1;
+    /* ⛔ **ختمُ البناء يتغيّر مع كل بناء** (بصمةُ المصادر)، فكلُّ لقطةٍ تختلف
+       عن سابقتها ولو لم يتغيّر في الشاشة حرف — فلا تُعرف اللقطةُ المتخلِّفةُ
+       من الطازجة، ويستحيل حارسُ تطابق. وقِيس ١ أكتوبر ٢٠٢٦: عشرُ لقطاتٍ من
+       ثلاثٍ وثلاثين اختلافُها **ختمٌ لا غير**. وهو لا يَعني قارئَ النشرة.
+       فيُخفى عند التصوير — وإخفاءُ ختمٍ ليس كذباً على الشاشة. */
+    D.build = "";
     shell();
     document.title = "READY|" + (document.body.innerText||"").replace(/\s+/g," ").slice(0,150);
   }catch(e){ document.title = "ERR " + e.message; }

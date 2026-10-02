@@ -41,7 +41,10 @@ SLOW = ["supcheck", "rolescheck", "orphancheck", "focuscheck", "synccheck",
         "contrastcheck", "sweepcheck",
         # ⛔ `nshcheck` كان بلا بابٍ يناديه: أربعَ عشرةَ نشرةً تُنشر ولا تُفحص.
         #    و`nshsweep` بابُه. (١ أكتوبر ٢٠٢٦)
-        "nshsweep"]
+        "nshsweep",
+        # ⛔ ولقطةٌ متخلِّفةٌ تُري المستخدمَ شاشةً لا وجودَ لها: يُفحص المضمَّنُ
+        #    في المستندات هنا (سريع)، والمقارنةُ بالبكسل تُطلب بيدٍ لبطئها.
+        "shotsync_docx"]
 
 
 def run(cmd, env=None, label=""):
