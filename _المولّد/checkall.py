@@ -47,7 +47,10 @@ SLOW = ["supcheck", "rolescheck", "orphancheck", "focuscheck", "synccheck",
         "shotsync_docx",
         # ⛔ وخادمُ المخزن يُجرَّب بدوالّ المنصة نفسِها قبل أن يُنشر — فعقدٌ
         #    يختلف عن الدمج في الصفحة يُضيع كتابةَ جهازٍ بلا خطأ. (٢ أكتوبر)
-        "srvcheck"]
+        "srvcheck",
+        # ⛔ ورابطُ الدعوة يُقاس وهو يُفتح عبر http: حسابُ الجذر خطأً يُنتج
+        #    رابطاً ميّتاً **يُوزَّع على المدارس** ولا يُكتشف إلا عندهم.
+        "invitecheck"]
 
 
 def run(cmd, env=None, label=""):

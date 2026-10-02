@@ -4824,17 +4824,37 @@ function setKey(){
     shell();
   });
 }
+/* ⛔ **رابطُ الدعوة كان ٤٦٨ حرفاً** — لأنه يحمل مسارَ الصفحة بأسمائها العربية
+   مرمَّزةً (كلُّ حرفٍ ثلاثةُ رموز)، ومعه عنوانُ الخادم والمفتاح. ورابطٌ بهذا
+   الطول يُكسر في واتساب وفي البريد، ويُخيف من يفتحه. والروابطُ القصيرةُ
+   (`m.html` · `f.html`) موجودةٌ في الجذر منذ وقتٍ **وتنقل ما بعد `#`** —
+   ولم يكن زرُّ الدعوة يستعملها. فصار يستعملها: ١٥٥ حرفاً بدل ٤٦٨.
+   (طلبُ المستشار ٢ أكتوبر ٢٠٢٦)
+   ⚠️ ولا يُفترض وجودُها: تُفحص بطلبٍ فعليٍّ قبل اعتمادها، وإلّا وُزّع رابطٌ
+      ميّتٌ على المدارس. وما لم تُوجد فالطويلُ هو الأصل. */
+function inviteURL(){
+  const k = skey();
+  const frag = "#srv=" + encodeURIComponent(api()) + (k ? "&k=" + encodeURIComponent(k) : "");
+  const long = location.origin + location.pathname + frag;
+  const parts = location.pathname.split("/");
+  /* الصفحةُ في <جذر>/<مجلد>/<ملف>.html — فالجذرُ بحذف آخر جزأين */
+  if(location.protocol === "file:" || parts.length < 3) return Promise.resolve(long);
+  const short = location.origin + parts.slice(0, -2).join("/")
+              + "/" + (NS === "ikf" ? "f" : "m") + ".html";
+  return fetch(short, {cache: "no-store"})
+    .then(r => r.ok ? short + frag : long)
+    .catch(() => long);
+}
 function invite(){
   /* ⚠️ المفتاحُ في `#` لا في `?`: جزءُ التجزئة لا يُرسَل في ترويسة الإحالة
      ولا يُسجَّل في سجلّات الخوادم الوسيطة. */
-  const k = skey();
-  const u = location.origin + location.pathname + "#srv=" + encodeURIComponent(api())
-          + (k ? "&k=" + encodeURIComponent(k) : "");
-  const done = ()=>alert("نُسخ رابط الدعوة.\n\nأرسله لمن يعنيه — يفتحه فيُربط جهازه تلقائياً،\n"
-    + "ولا يُطلب منه لصقُ شيء.\n\n" + u);
-  if(navigator.clipboard && navigator.clipboard.writeText)
-    navigator.clipboard.writeText(u).then(done).catch(()=>uiPrompt("انسخ رابط الدعوة:", u));
-  else uiPrompt("انسخ رابط الدعوة:", u);
+  inviteURL().then(u=>{
+    const done = ()=>alert("نُسخ رابط الدعوة.\n\nأرسله لمن يعنيه — يفتحه فيُربط جهازه تلقائياً،\n"
+      + "ولا يُطلب منه لصقُ شيء.\n\n" + u);
+    if(navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(u).then(done).catch(()=>uiPrompt("انسخ رابط الدعوة:", u));
+    else uiPrompt("انسخ رابط الدعوة:", u);
+  });
 }
 
 /* ══ التراجع: يحفظ حال الحصة قبل كل تغيير، ويعيدها بنقرة ══ */
