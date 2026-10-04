@@ -86,6 +86,7 @@ HTML = r"""<!doctype html>
 <html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>__TITLE__</title>
+__ICON__
 <style>
 :root{--navy:#355E91;--teal:#2F7F95;--tealbg:#E2F0F3;--red:#C00000;--head:#E9EEF6;
       --line:#C9D2DE;--zebra:#F6F8FB;--ink:#1A1A1A;--grey:#7F7F7F;--ans:#1F4E79;--bg:#F2F5F9}
@@ -679,7 +680,9 @@ D.lab_teacher_short = D.gender=="f" ? "المعلمة" : "المعلم";
 out = sys.argv[1] if len(sys.argv) > 1 else "prep.html"
 # ⛔ نصوص الجافاسكربت تُؤنَّث قبل حقن البيانات — فالبيانات مؤنَّثةٌ أصلاً
 html = fem_scripts(HTML, F)
-html = (html.replace("__DATA__", json.dumps(DATA, ensure_ascii=False))
+import icon as _ICO
+html = (html.replace("__ICON__", _ICO.head("../"))
+            .replace("__DATA__", json.dumps(DATA, ensure_ascii=False))
             .replace("__TITLE__", fem(DATA["title"]))
             .replace("__SCHOOL__", DATA["school"]))
 with open(out, "w", encoding="utf-8") as f:

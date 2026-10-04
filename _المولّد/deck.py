@@ -243,6 +243,7 @@ HTML = """<!doctype html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>نظام الحصة الموحَّدة — عرض تعريفي</title>
+__ICON__
 <style>__FONTS____CSS__</style></head><body>
 <div id="stage"><div id="slide"></div></div>
 <div id="bar"><i></i></div>
@@ -283,7 +284,9 @@ if os.path.exists(lp):
 data = [{k: fix(v) for k, v in s.items() if k in ("t", "s", "b", "x", "kind", "img", "cap")}
         for s in SLIDES]
 out = sys.argv[1] if len(sys.argv) > 1 else "deck.html"
+import icon as _ICO
 page = (HTML.replace("__FONTS__", FONTCSS).replace("__CSS__", CSS)
+            .replace("__ICON__", _ICO.head("../"))
             .replace("__JS__", JS.replace("__DATA__", json.dumps(data, ensure_ascii=False))
                                  .replace("__IMGS__", json.dumps(imgs))
                                  .replace("__LOGO__", logo)))

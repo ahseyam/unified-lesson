@@ -10,6 +10,8 @@
 import os
 import urllib.parse
 
+import icon as _ICO
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 D8 = "٨ - النموذج الرقمي (تجربة)"
@@ -26,6 +28,7 @@ TPL = """<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title} — مدارس ابن خلدون</title>
 <link rel="canonical" href="{enc}">
+{icon}
 <style>body{{font-family:-apple-system,"Segoe UI",Tahoma,sans-serif;background:#f2f5f9;color:#16202e;
 display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center}}
 a{{color:#1d5d70}}</style></head><body>
@@ -48,7 +51,7 @@ for short, target, title in LINKS:
         continue
     enc = urllib.parse.quote(target)
     with open(os.path.join(ROOT, short), "w", encoding="utf-8") as f:
-        f.write(TPL.format(title=title, enc=enc))
+        f.write(TPL.format(title=title, enc=enc, icon=_ICO.head("")))
     n += 1
     print(f"  /{short:9} ← {title}")
 print("أُنشئت", n, "روابطَ قصيرة")

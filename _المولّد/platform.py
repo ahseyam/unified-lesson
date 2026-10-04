@@ -1011,6 +1011,7 @@ HTML = """<!doctype html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>منصة الحصة الموحَّدة — مدارس ابن خلدون</title>
+__ICON__
 <style>__FONTS____CSS__</style></head><body></body>
 <script>__JS__</script></html>
 """
@@ -1427,7 +1428,9 @@ JS = ("const I18N = " + json.dumps(I18N, ensure_ascii=False) + ";\n"
       + i18n.wrap(JS))
 print("  ✓ الترجمة: %d مدخلاً في الصفحة · %d نصّاً مفحوصاً" % (len(I18N), len(_need)))
 
+import icon as _ICO
 page = (HTML.replace("__FONTS__", FONTCSS).replace("__CSS__", CSS)
+            .replace("__ICON__", _ICO.head("../"))
             .replace("__JS__", JS.replace("__DATA__", json.dumps(DATA, ensure_ascii=False))
                                  .replace("__LOGO__", logo)))
 with open(out, "w", encoding="utf-8") as f:

@@ -4437,7 +4437,15 @@ function grid(m, c, T){
       const isToday = r.dt && r.dt.g === todayISO();
       const td = el("td","cd" + (isToday ? " today" : ""));
       td.rowSpan = shown.filter(x=>x.wk === r.wk && x.day === r.day).length;
-      td.appendChild(el("b",null, r.day + (isToday ? "  ●" : "")));
+      /* ⛔ **«الأحد  ●» لا مدخلَ له في المعجم**، ولا يُقسَم لأن «  ●»
+         ليست فاصلاً من `TR_SEPS` — فبقي اليومُ عربياً في الشاشة
+         الإنجليزية. ولم يظهر العطلُ إلّا يومَ وقع اليومُ الجاري داخلَ
+         التقويم (٤ أكتوبر ٢٠٢٦ — أولُ أيام الأسبوع السادس)، فمرَّ
+         الحارسُ قبلَه بريئاً. فالعلامةُ تُلحَق عقدةً مستقلّةً بعد
+         الترجمة، ولا تُوصَل بنصٍّ مترجَمٍ قطُّ. */
+      const bd = el("b", null, r.day);
+      if(isToday) bd.appendChild(document.createTextNode("  ●"));
+      td.appendChild(bd);
       if(r.dt && r.dt.gt){
         td.appendChild(el("i",null, r.dt.gt));
         td.appendChild(el("u",null, r.dt.ht));

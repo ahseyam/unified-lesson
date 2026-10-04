@@ -431,6 +431,7 @@ HTML = """<!doctype html>
 <html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>نظام الحصة الموحَّدة — مدارس ابن خلدون</title>
+__ICON__
 <meta name="description" content="مسارٌ واحد يجمع نموذج تحضير الحصة واستمارة الملاحظة الصفية وبنك الإستراتيجيات والاتجاهات التدريسية وآلية الزيارات والنموذج الرقمي.">
 <style>__FONTS____CSS__</style></head><body>
 <header class="top"><div class="wrap">
@@ -469,7 +470,9 @@ lp = os.path.join(HERE, "hub_logo.jpg")
 if os.path.exists(lp):
     logo = f'<img src="data:image/jpeg;base64,{b64(lp)}" alt="مدارس ابن خلدون · معارف">'
 
+import icon as _ICO
 page = (HTML.replace("__FONTS__", FONTCSS).replace("__CSS__", CSS)
+            .replace("__ICON__", _ICO.head(""))
             .replace("__LOGO__", logo).replace("__FILES__", arnum(FILES))
             .replace("__JS__", JS.replace("__SEC__", json.dumps(SEC, ensure_ascii=False))))
 out = os.path.join(ROOT, "index.html")

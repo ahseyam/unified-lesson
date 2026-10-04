@@ -35,7 +35,7 @@ WEBS = [("m", "صفحة الحصة الموحَّدة — ابن خلدون.html
         ("f", "صفحة الحصة الموحَّدة — ابن خلدون (بنات).html")]
 
 # ⚠️ البطيءُ يفتح كروم على عشرات الشاشات — والسريعُ شفرةٌ وبيانات
-FAST = ["printsrc", "deadkeys", "importcheck"]
+FAST = ["printsrc", "deadkeys", "importcheck", "icocheck"]
 SLOW = ["supcheck", "rolescheck", "orphancheck", "focuscheck", "synccheck",
         "respcheck", "fitcheck", "i18ncheck_en", "i18ncheck_ar", "i18nsweep",
         "contrastcheck", "sweepcheck",
@@ -84,7 +84,18 @@ def main():
     #    أسماءُ أشخاصٍ في خصائص الملفات · مسحُ الثنائيات) — وكانت لا تُنادى
     #    إلا بيد. فحارسٌ لا يناديه شيءٌ يموت صامتاً، وهذه حرّاسُه الثلاثة.
     #    وهي تمسح شجرةَ التسليم فتصف الموجودَ لا المتوقَّع. (١ أكتوبر ٢٠٢٦)
+    # ⛔ **والعرضُ التعريفيُّ كان بلا بابٍ أيضاً** — يُبنى بيدٍ فيتخلَّف.
+    ok &= run([sys.executable, "deck.py",
+               os.path.join(ROOT, "٩ - العرض التعريفي",
+                            "العرض التعريفي — نظام الحصة الموحَّدة.html")],
+              None, "العرض التعريفي")
     ok &= run([sys.executable, "hub.py"], None, "الصفحة الرئيسة")
+    # ⛔ **و`shortlinks.py` كان بلا بابٍ** مثلَ `webbuild`: أربعُ صفحاتٍ في
+    #    الجذر (m · f · p · pf) هي ما يُوزَّع على المدارس، وتُبنى بيدٍ فقط.
+    #    فبقيت ٤ أكتوبر ٢٠٢٦ بلا أيقونةٍ بعد أن حملتها كلُّ صفحةٍ سواها.
+    #    و`icon.py` قبلها: منها يُكتب ملفُّ أيقونةِ الجوال في الجذر.
+    ok &= run([sys.executable, "icon.py"], None, "الأيقونة")
+    ok &= run([sys.executable, "shortlinks.py"], None, "الروابط القصيرة")
     if not ok:
         print("\n⛔ لم يُبنَ — ولا يُفحص ما لم يُبنَ.")
         return 1
