@@ -113,6 +113,79 @@ setTimeout(async function(){
   await pullNow();
   A("وسلّةُ المحذوفات تَعبر المزامنة", !!DB.prep["~trash~zz"]);
 
+  /* ⑥ ⛔ **الإرسالُ الجزئيُّ لا يجوز أن يُضيع حرفاً** (٥ أكتوبر ٢٠٢٦):
+     صارت الدفعةُ ترسل ما تغيّر وحدَه بدل القاعدة كلِّها. والبياناتُ الحيّةُ
+     لمعلمين يعملون الآن، فيُجرَّب على سيناريو نعلم جوابَه: جهازٌ يكتب حصةً
+     ثالثةً وتحضيرَها فقط — فتصل، **ولا تُمحى الأولى والثانية** اللتان لم
+     تُرسَلا في هذه الدفعة. ولو أُرسلت القاعدةُ ناقصةً بلا دمجٍ لاختفتا. */
+  /* ⚠️ **ويُثبَّت أساسُ المقارنة أولاً**: الاختبارُ السابقُ صفَّر `lastSent`
+     عمداً، وبلا أساسٍ تكون الدفعةُ الكاملةُ هي الصوابَ (شبكةُ الأمان الأولى).
+     فقياسُ الجزئيّةِ هناك يقيس الأمانَ لا الجزئيّة. فتُدفَع دفعةٌ ناجحةٌ
+     تُثبِّت الأساسَ، ثم يُقاس ما بعدها. */
+  pending = true; await pushNow();
+  var before = DB.sched.map(x=>x.id).sort().join("+");
+  DB.sched.push({id:"s3", teacher:"أ. الثالث", gk:"g3"});
+  DB.prep["s3"] = {f_1:"نصُّ الثالث"};
+  pending = true;
+  var dl = (typeof deltaOf === "function") ? deltaOf(lastSent) : null;
+  A("الدفعةُ جزئيةٌ لا كاملة", !!dl && (dl.sched||[]).length === 1,
+    dl ? ((dl.sched||[]).length + " حصة · " + Object.keys(dl.prep||{}).length + " تحضير")
+       : ("كاملة — deltaOf=" + (typeof deltaOf) + " · lastSent=" + (lastSent||"").length
+          + " · seq=" + (typeof pushSeq!=="undefined" ? pushSeq : "?")));
+  await pushNow();
+  DB.sched = []; DB.prep = {};
+  await pullNow();
+  var after = DB.sched.map(x=>x.id).sort().join("+");
+  A("وصلت الحصةُ الجديدة", DB.sched.some(x=>x.id==="s3"));
+  A("ووصل تحضيرُها", !!(DB.prep["s3"] && DB.prep["s3"].f_1));
+  A("ولم تُمحَ ما لم يُرسَل في هذه الدفعة",
+    after.indexOf("s1") >= 0 && after.indexOf("s2") >= 0, before + " ← " + after);
+  A("وسلّةُ المحذوفات باقيةٌ كذلك", !!DB.prep["~trash~zz"]);
+  /* وتعديلُ حصةٍ قائمةٍ يسافر هو الآخر */
+  DB.sched.find(x=>x.id==="s1").teacher = "أ. المعدَّل";
+  pending = true; await pushNow();
+  DB.sched = []; await pullNow();
+  A("وتعديلُ حصةٍ قائمةٍ يصل",
+    (DB.sched.find(x=>x.id==="s1")||{}).teacher === "أ. المعدَّل",
+    (DB.sched.find(x=>x.id==="s1")||{}).teacher);
+
+  /* ⑦ ⛔ **خليةٌ واحدةٌ لا تُحجَز مرّتين** (٥ أكتوبر ٢٠٢٦): جهازان بنسختَين
+     قديمتَين يُنشئان للخلية نفسِها حصّتين بمعرّفَين. فيُجرَّب بسيناريو نعلم
+     جوابَه: الأولُ يحجز، والثاني يُنشئ معرّفاً آخرَ على `gk` نفسِه — فتُردّ
+     حصتُه ويُسمَّى من سبقه، **وتبقى حصةُ الأول كما كتبها**. */
+  var GK = "وطني|النفل|الابتدائية- النفل|الحصة 1|الأسبوع الثامن|الأحد|رياضيات";
+  var cid = "cell_" + Date.now();
+  var r1 = await fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: apiBody({kind:"platform", id:cid,
+      data:{sched:[{id:"A1", gk:GK, teacher:"أ. الأول", klass:"١/أ"}]}})}).then(r=>r.json());
+  A("الأولُ حجز الخلية", (r1.data.sched||[]).length === 1 && !(r1.conflicts||[]).length);
+
+  var r2 = await fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: apiBody({kind:"platform", id:cid,
+      data:{sched:[{id:"B2", gk:GK, teacher:"أ. الثاني", klass:"٢/ب"}]}})}).then(r=>r.json());
+  A("والثاني رُدّ عن الخلية نفسِها", (r2.conflicts||[]).length === 1,
+    JSON.stringify(r2.conflicts||[]).slice(0,70));
+  A("وسُمّي من سبقه", ((r2.conflicts||[])[0]||{}).by === "أ. الأول",
+    ((r2.conflicts||[])[0]||{}).by);
+  A("ولم تُضَف حصتُه", !(r2.data.sched||[]).some(x=>x.id==="B2"));
+  A("وحصةُ الأول كما كتبها",
+    ((r2.data.sched||[]).find(x=>x.id==="A1")||{}).teacher === "أ. الأول" &&
+    ((r2.data.sched||[]).find(x=>x.id==="A1")||{}).klass === "١/أ");
+
+  /* ⚠️ ومن يُعدّل حصتَه هو لا يُردّ — فمعرّفُها قائم */
+  var r3 = await fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: apiBody({kind:"platform", id:cid,
+      data:{sched:[{id:"A1", gk:GK, teacher:"أ. الأول", klass:"٣/ج"}]}})}).then(r=>r.json());
+  A("وصاحبُها يُعدّلها بلا ردّ", !(r3.conflicts||[]).length &&
+    ((r3.data.sched||[]).find(x=>x.id==="A1")||{}).klass === "٣/ج");
+
+  /* ⚠️ وخليةٌ أخرى تمرّ — فالمنعُ على المأخوذة وحدَها */
+  var r4 = await fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: apiBody({kind:"platform", id:cid,
+      data:{sched:[{id:"C3", gk:GK + "|آخر", teacher:"أ. الثالث"}]}})}).then(r=>r.json());
+  A("وخليةٌ شاغرةٌ تُقبل", !(r4.conflicts||[]).length &&
+    (r4.data.sched||[]).some(x=>x.id==="C3"));
+
   /* ⚠️ ومفتاحٌ مستحدَثٌ خارجَ الخمسة **يُتجاهَل** — وعليه بُنيت المنصة */
   var r0 = await fetch(api(), {method:"POST",
     headers:{"Content-Type":"text/plain;charset=utf-8"},

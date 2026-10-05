@@ -520,18 +520,68 @@ function mergeDB(src){
   });
 }
 
+/* ═════════ ما يُرسَل: المتغيّرُ وحدَه ═════════
+   ⛔ **كانت القاعدةُ كلُّها تسافر في كلِّ حفظة**. وقِيس على جدول فصلٍ كامل:
+      ٢٢ ميجابايت تُرفع وتُنزَّل عند كلِّ ضغطةِ حفظٍ من كلِّ جهاز. والخادمُ
+      يفكُّ ثلاثَ نسخٍ في ذاكرةٍ محدودة، فيبدأ العطبُ عند نصف الجدول.
+   ⚠️ **والدمجُ في الخادم يجعل الإرسالَ الجزئيَّ صحيحاً بطبعه**: الحصصُ تُدمج
+      بالمعرّف، والمفاتيحُ الأربعةُ بالمفتاح — فما لم يُرسَل لا يُمَسّ. والحذفُ
+      وحدَه صريحٌ في `__deleted`، فيُرسَل دائماً.
+   ⛔ **ولا يجوز أن يضيع تغييرٌ**، وبيانات المعلمين على المحكّ. فثلاثُ شبكاتِ أمان:
+      ① أولُ دفعةٍ بعد فتح الصفحة كاملةٌ دائماً (`lastSent` خاوٍ).
+      ② وكلُّ دفعةٍ عاشرةٍ كاملة — فلو أخطأ الفرقُ مرّةً صحَّحته التاليةُ بنفسها.
+      ③ والمقارنةُ على **نصِّ السجلّ** لا على علامةِ تعديلٍ يدوية: ما اختلف نصُّه
+         أُرسِل، فلا يعتمد الأمرُ على تذكُّري وضعَ علامةٍ في كل موضعِ كتابة. */
+let pushSeq = 0;
+function deltaOf(prevTxt){
+  const now = DB, out = {};
+  let prev = null;
+  try{ prev = prevTxt ? JSON.parse(prevTxt) : null; }catch(e){ prev = null; }
+  if(!prev) return null;                       /* لا أساسَ فتُرسَل كاملة */
+  const ps = {}; (prev.sched || []).forEach(x=>{ if(x && x.id) ps[x.id] = JSON.stringify(x); });
+  const sched = (now.sched || []).filter(x=>x && x.id && ps[x.id] !== JSON.stringify(x));
+  if(sched.length || (now.sched || []).length !== (prev.sched || []).length) out.sched = sched;
+  ["prep","obs","peer","rot"].forEach(k=>{
+    const a = now[k] || {}, b = prev[k] || {}, d = {};
+    let n = 0;
+    Object.keys(a).forEach(kk=>{
+      if(JSON.stringify(a[kk]) !== JSON.stringify(b[kk])){ d[kk] = a[kk]; n++; }
+    });
+    if(n) out[k] = d;
+  });
+  if(now.__deleted && now.__deleted.length) out.__deleted = now.__deleted;
+  return out;
+}
 function pushNow(){
   clearTimeout(syncT); syncT = null;
   if(!api()) return Promise.resolve(false);
   const body = dbSnapshot();
   if(!body || body === lastSent){ pending = false; setSyn(""); return Promise.resolve(true); }
   setSyn("يُحفظ…");
-  return fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: apiBody({kind:"platform", id:SID, data: JSON.parse(body)})})
+  const full = (++pushSeq % 10 === 0);
+  const d = full ? null : deltaOf(lastSent);
+  const sent = d || JSON.parse(body);
+  return fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: apiBody({kind:"platform", id:SID, data: sent})})
     .then(r=>{
       if(r.status === 429 || r.status === 503) throw new Error("limit");
       return r.json();
     })
     .then(r=>{
+      /* ⛔ **خليةٌ سبقك إليها غيرُك**: الخادمُ يردُّها ولا يقبلها، ويُسمّي من
+         حجزها. فتُزال النسخةُ المحليةُ — وإلّا بقيت على الشاشة وصاحبُها
+         يظنُّها محفوظةً وهي ليست في المخزن — ويُقال له من أخذها صراحةً. */
+      if(r && r.ok && r.conflicts && r.conflicts.length){
+        const ids = r.conflicts.map(c=>c.id);
+        DB.sched = (DB.sched || []).filter(x=>ids.indexOf(x.id) < 0);
+        ids.forEach(id=>{ delete DB.prep[id]; });
+        try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){}
+        const c0 = r.conflicts[0];
+        uiDialog("هذه الخلية سجّلها غيرُك قبلك"
+          + (c0.by ? (TR(": ") + c0.by) : "")
+          + TR(".\n\nوما كتبتَه فيها لم يُحفظ — اختر خليةً أخرى. "
+               + "وقد حُدِّث جدولُك بما عند الجميع."), "bad");
+        setTimeout(()=>{ try{ pull().then(()=>shell()); }catch(e){} }, 0);
+      }
       if(r && r.ok && r.data){
         mergeDB(r.data);
         try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){}
@@ -3378,6 +3428,41 @@ function autoPull(){
   lastPull = now;
   pull().then(ok=>{ if(ok && PH !== 2) render(); });
 }
+
+/* ═════════ تجديدُ الشاشة على الآيفون ═════════
+   ⛔ **بلاغُ معلّمٍ ٥ أكتوبر ٢٠٢٦**: «ممكن معلم يسجل لفصل ويظل الفصل متاح
+      كخيار لمعلم آخر — خاصة بآيفون». والعلّةُ ليست في الفصل بل في **متى
+      تُسحب البيانات**: كان السحبُ لا يقع إلا داخل `shell()`، أي عند
+      **التنقّل بين الشاشات** وبفاصل نصف دقيقة. فمن جلس على الجدول لا
+      يُسحب له شيءٌ أبداً مهما طال جلوسُه.
+   ⛔ **والآيفونُ يضاعفها**: من خرج إلى واتساب ثم عاد، تُستأنف الصفحةُ من
+      ذاكرة الرجوع (bfcache) **بلا إعادة تحميل** ومؤقّتاتُها موقوفة — فيرى
+      جدولاً عمرُه نصفُ ساعة، وخليّةً أخذها غيرُه ما زالت تبدو فارغة. فيكتب
+      فيها، فيدمج الخادمُ كتابتَه فوق كتابة الأول.
+   ⚠️ **ولا يُخطف التركيزُ ممّن يكتب**: إن كان المؤشّرُ في حقلٍ سُحبت
+      البياناتُ ولم تُعَد الشاشةُ رسماً — فالرسمُ يُفني الحقلَ المركَّز. */
+function isTyping(){
+  const a = document.activeElement, t = a && a.tagName;
+  return t === "INPUT" || t === "TEXTAREA" || t === "SELECT";
+}
+function freshen(){
+  if(!api() || !ME) return;
+  lastPull = Date.now();
+  pull().then(ok=>{ if(ok && PH !== 2 && !isTyping()) render(); });
+}
+addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible") freshen();
+});
+/* ⚠️ و`pageshow` بـ`persisted` هو **حدثُ الآيفون** بعينه: استئنافٌ من ذاكرة
+   الرجوع لا تحميلٌ جديد، فلا يقع `visibilitychange` في بعض الحالات. */
+addEventListener("pageshow", (e)=>{ if(e && e.persisted) freshen(); });
+/* ⚠️ ومن جلس على الجدول ولم يبرح: تجديدٌ كلَّ دقيقةٍ ما دامت الصفحةُ مرئيّةً
+   ولا أحدَ يكتب. ومؤقّتُ الآيفون يتوقّف في الخلفية — وهذا مقصودٌ لا عيب. */
+setInterval(()=>{
+  if(document.visibilityState !== "visible") return;
+  if(isTyping()) return;
+  freshen();
+}, 60000);
 function boot(){ if(!ME) login(); else shell(); linkGate(); }
 
 /* ═════════ بوّابةُ الربط ═════════
@@ -3457,6 +3542,14 @@ function linkGate(){
 function adoptBuiltIn(){
   try{
     if(!D.srv) return false;
+    /* ⛔ **نسخةٌ محليةٌ كانت تنضمُّ إلى قاعدة المدارس الحيّة**: صار المخزنُ
+       مبنيّاً في الصفحة، فأيُّ ملفٍّ مفتوحٍ من القرص — ومنه **كلُّ مسبارِ
+       حارسٍ عندي** — يرتبط بها ويسحب بياناتِ معلمين حقيقيين. وظهر ذلك في
+       فحص الترجمة: أسماءُ معلماتٍ حقيقياتٍ في شاشةٍ مُختبَرية. ولو سبقَ
+       حفظٌ تنظيفَ المسبار لكتب في قاعدتهم. (٥ أكتوبر ٢٠٢٦)
+       ⚠️ فالانضمامُ التلقائيُّ للمنشور وحدَه: من فتح الملفَّ من قرصه يعمل
+          على جهازه، ومن أراد الربطَ ألصق رابطَه في بوّابة الربط. */
+    if(location.protocol === "file:") return false;
     if(api()) return false;                 /* له مخزنٌ فلا يُبدَّل */
     if(soloMode()) return false;            /* أعلن انفرادَه */
     localStorage.setItem(API, D.srv);

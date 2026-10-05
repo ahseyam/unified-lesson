@@ -2022,6 +2022,13 @@ EN.update({
     "استبدال كشف المعلمين": "Replacing the teacher roster",
     "أُلغي التفريغ — لا مفتاحَ إدارة.": "Wipe cancelled — no admin key.",
     "أُلغي الرفع — لا مفتاحَ إدارة.": "Upload cancelled — no admin key.",
+    # ── الخليةُ المحجوزة (٥ أكتوبر ٢٠٢٦) ──
+    "هذه الخلية سجّلها غيرُك قبلك": "Someone registered this cell before you",
+    ".\n\nوما كتبتَه فيها لم يُحفظ — اختر خليةً أخرى. ":
+        ".\n\nWhat you wrote in it was not saved — choose another cell. ",
+    ".\n\nوما كتبتَه فيها لم يُحفظ — اختاري خليةً أخرى. ":
+        ".\n\nWhat you wrote in it was not saved — choose another cell. ",
+    "وقد حُدِّث جدولُك بما عند الجميع.": "Your schedule has been refreshed with everyone's.",
     # ── بوّابةُ ربط الجهاز (٥ أكتوبر ٢٠٢٦) ──
     "هذا الجهاز غير متصلٍ بالمنظومة": "This device is not connected to the system",
     "ما تكتبه هنا يبقى على هذا الجهاز ولا يصل مدرستَك ولا مشرفَك. ":

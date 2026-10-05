@@ -552,7 +552,16 @@ html.en .side nav button.on{box-shadow:inset -3px 0 0 var(--teal)}
 main{min-width:0}
 .mwrap{min-width:0}
 /* ───── مصفوفة جدول الحصص الموحَّدة ───── */
-.gwrap{overflow:auto;padding:0 2px 10px;max-height:calc(100vh - 210px)}
+/* ⛔ **`100vh` على iOS/سفاري ليس ارتفاعَ النافذة**: يحسبها سفاري على الشاشة
+   **بلا شريطَي المتصفّح**، فيزيد الارتفاعُ عمّا يُرى فعلاً — فآخرُ صفوف
+   المصفوفة تقع خلف شريط العناوين ولا تُدرَك إلا بالتمرير الأعمى. وهذا
+   الموضعُ وحدَه في المنصة كلِّها يستعمل `vh`، وكنتُ قد علّمتُه موضعَ الشكِّ
+   الأولَ في iOS قبل أن أملك جهازاً أفحصه عليه. (٥ أكتوبر ٢٠٢٦)
+   ⚠️ و`dvh` يُقاس على **المرئيِّ الحقيقيِّ** ويتبع ظهورَ الشريطَين. ويُكتب
+      سطراً ثانياً: من لا يعرفه (سفاري دون ١٥٫٤) يُسقطه ويبقى على الأول،
+      ومن يعرفه يأخذ الأصحّ. فلا ينكسر قديمٌ ولا يبقى حديثٌ معيباً. */
+.gwrap{overflow:auto;padding:0 2px 10px;max-height:calc(100vh - 210px);
+ max-height:calc(100dvh - 210px)}
 table.mx{table-layout:fixed;border-collapse:separate;border-spacing:0}
 table.mx th{position:relative;background:var(--navy);color:#fff;font-size:13px;padding:5px 4px;
  text-align:center;border:1px solid var(--navy2);z-index:3;word-break:normal;overflow-wrap:anywhere}
