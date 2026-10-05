@@ -38,6 +38,9 @@ CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 SRC = os.path.join(ROOT, "٨ - النموذج الرقمي (تجربة)",
                    "منصة الحصة الموحَّدة — ابن خلدون.html")
 KEY = "MFTH-TAJRIBA-1234567890ab"
+# ⛔ **مفتاحُ الانضمام صار منشوراً** (٥ أكتوبر ٢٠٢٦)، فالهدمُ لا يقع به:
+#    `__replace` والحذفُ الجماعيُّ يحتاجان `ADMIN_KEY` ولا يُنشر البتّة.
+AKEY = "IDARA-TAJRIBA-0987654321zz"
 
 # ⚠️ المحاكاةُ لا تُعيد كتابةَ منطق الخادم: تستورد الوحدةَ كما هي وتُمرّر لها
 #    الطلبَ وبيئةً فيها `DB` بواجهة get/put.
@@ -46,6 +49,7 @@ import worker from "./worker.js";
 import http from "node:http";
 const KV = new Map();
 const env = { STORE_KEY: process.env.STORE_KEY || "",
+  ADMIN_KEY: process.env.ADMIN_KEY || "",
   /* ⚠️ الخادمُ القائم يعمل على D1 أو KV؛ وتُوفَّر هنا KV وحدَها باسم `DB`
      — وهو ما يرتبط به في المضيف حين لا تُربط D1. */
   DB: { get: async (k) => (KV.has(k) ? KV.get(k) : null),
@@ -118,12 +122,12 @@ setTimeout(async function(){
   /* ③ الاستبدال: كشفُ المنسوبين */
   var rid = NS + "_roster";
   await fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
-    body: apiBody({kind:"platform", id:rid, data:{"11111":{n:"أ. نموذج"}}, __replace:true})});
+    body: apiBody({kind:"platform", id:rid, data:{"11111":{n:"أ. نموذج"}}, __replace:true, admin:"IDARA-TAJRIBA-0987654321zz"})});
   var g1 = await fetch(apiGet("platform", rid)).then(r=>r.json());
   A("والكشفُ يُخزَّن كما هو بـ__replace", !!(g1.data && g1.data["11111"]),
     JSON.stringify(g1.data).slice(0,60));
   await fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
-    body: apiBody({kind:"platform", id:rid, data:{"22222":{n:"أ. ثانٍ"}}, __replace:true})});
+    body: apiBody({kind:"platform", id:rid, data:{"22222":{n:"أ. ثانٍ"}}, __replace:true, admin:"IDARA-TAJRIBA-0987654321zz"})});
   var g2 = await fetch(apiGet("platform", rid)).then(r=>r.json());
   A("ويستبدله ضخٌّ تالٍ ولا يدمجه",
     !!(g2.data && g2.data["22222"]) && !(g2.data && g2.data["11111"]));
@@ -135,6 +139,45 @@ setTimeout(async function(){
   var none = await fetch("__URL__?kind=platform&id=" + encodeURIComponent(SID))
             .then(r=>({s:r.status}));
   A("وبلا مفتاحٍ أصلاً يُردّ", none.s === 403, none.s);
+
+  /* ⑤ ⛔ **والمفتاحُ المنشورُ لا يَهدم**: صار مفتاحُ الانضمام داخلَ الصفحة
+     (٥ أكتوبر ٢٠٢٦)، فمن قرأ مصدرَها يكتب — ولا يمحو. ويُجرَّب الهدمُ
+     بالمفتاح المنشور وحدَه: إن مرَّ فالتحصينُ وهمٌ لا حِمى. */
+  var wid = "hadm_" + Date.now();
+  await fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: apiBody({kind:"platform", id:wid, data:{sched:[
+      {id:"a1"},{id:"a2"},{id:"a3"},{id:"a4"},{id:"a5"},
+      {id:"a6"},{id:"a7"},{id:"a8"},{id:"a9"},{id:"b1"},
+      {id:"b2"},{id:"b3"},{id:"b4"},{id:"b5"},{id:"b6"},
+      {id:"b7"},{id:"b8"},{id:"b9"},{id:"c1"},{id:"c2"},
+      {id:"c3"},{id:"c4"},{id:"c5"}]}})});
+  var pre = await fetch(apiGet("platform", wid)).then(r=>r.json());
+  A("زُرعت ٢٣ حصةً للتجربة", (pre.data.sched||[]).length === 23, (pre.data.sched||[]).length);
+
+  var wipe = await fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: apiBody({kind:"platform", id:wid, data:{}, __replace:true})}).then(r=>({s:r.status}));
+  A("التفريغُ الكاملُ بالمفتاح المنشور يُردّ ٤٠٣", wipe.s === 403, wipe.s);
+
+  var kill = await fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: apiBody({kind:"platform", id:wid, data:{sched:[],
+      __deleted:["a1","a2","a3","a4","a5","a6","a7","a8","a9",
+                 "b1","b2","b3","b4","b5","b6","b7","b8","b9",
+                 "c1","c2","c3","c4","c5"]}})}).then(r=>({s:r.status}));
+  A("والحذفُ الجماعيُّ كذلك يُردّ ٤٠٣", kill.s === 403, kill.s);
+
+  var still = await fetch(apiGet("platform", wid)).then(r=>r.json());
+  A("والحصصُ باقيةٌ لم تُمَسّ", (still.data.sched||[]).length === 23,
+    (still.data.sched||[]).length);
+
+  var one = await fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: apiBody({kind:"platform", id:wid, data:{sched:[], __deleted:["a1"]}})})
+    .then(r=>({s:r.status}));
+  A("وحذفُ حصةٍ واحدةٍ يمرّ — فالعملُ اليوميُّ لا يُحبَس", one.s === 200, one.s);
+
+  var adm = await fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: apiBody({kind:"platform", id:wid, data:{}, __replace:true,
+                   admin:"IDARA-TAJRIBA-0987654321zz"})}).then(r=>({s:r.status}));
+  A("وبمفتاح الإدارة يقع التفريغ", adm.s === 200, adm.s);
 
   localStorage.clear();
   document.title = "DONE"; window.__OUT = JSON.stringify(R);
@@ -163,7 +206,7 @@ def main():
         print("  ⛔ لا خادمَ في مجلَّده الخاصّ:\n      %s" % WORKER)
         return 1
     shutil.copy(WORKER, os.path.join(os.path.dirname(shim), "worker.js"))
-    env = dict(os.environ, PORT=str(port), STORE_KEY=KEY)
+    env = dict(os.environ, PORT=str(port), STORE_KEY=KEY, ADMIN_KEY=AKEY)
     srv = subprocess.Popen([ "node", shim], env=env, cwd=os.path.dirname(shim),
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     up = False

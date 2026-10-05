@@ -35,9 +35,9 @@ WEBS = [("m", "صفحة الحصة الموحَّدة — ابن خلدون.html
         ("f", "صفحة الحصة الموحَّدة — ابن خلدون (بنات).html")]
 
 # ⚠️ البطيءُ يفتح كروم على عشرات الشاشات — والسريعُ شفرةٌ وبيانات
-FAST = ["printsrc", "deadkeys", "importcheck", "icocheck"]
+FAST = ["printsrc", "deadkeys", "importcheck", "icocheck", "calcheck"]
 SLOW = ["supcheck", "rolescheck", "orphancheck", "focuscheck", "synccheck",
-        "respcheck", "fitcheck", "i18ncheck_en", "i18ncheck_ar", "i18nsweep",
+        "respcheck", "overlapcheck", "fitcheck", "i18ncheck_en", "i18ncheck_ar", "i18nsweep",
         "contrastcheck", "sweepcheck",
         # ⛔ `nshcheck` كان بلا بابٍ يناديه: أربعَ عشرةَ نشرةً تُنشر ولا تُفحص.
         #    و`nshsweep` بابُه. (١ أكتوبر ٢٠٢٦)

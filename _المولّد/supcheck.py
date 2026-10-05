@@ -93,10 +93,16 @@ setTimeout(function(){
         sector:gap.sector, complex:"__لا مجمع__"};
     A("ولا يرصدها مديرُ مجمعٍ آخر", !canScore(gap));
     ME={role:"intqa", name:"أ. فريق المتابعة", emp:"44444"};
-    A("ولا يرصدها فريقُ المتابعة — يتابع ولا يرصد", !canScore(gap));
+    /* ⚠️ **نُقضت قاعدةُ «المشرفُ وحدَه»** (٤ أكتوبر ٢٠٢٦): المقيّمون خمسةٌ،
+       لكلٍّ استمارتُه، والمعتمَدُ متوسّطُ من رصد. فصار الشاهدُ عكسَ ما كان:
+       يرصد فريقُ المتابعة، ويرصد المديرُ ولو كان للحصة مشرفُها. */
+    A("ويرصدها فريقُ متابعة التقويم الداخلي", canScore(gap));
     ME={role:"principal", name:"أ. المدير", emp:"22222",
         sector:L1.sector, complex:L1.complex, school:L1.stage};
-    A("ولا يرصد المديرُ حصةً لها مشرفُها", !canScore(L1));
+    A("ويرصد المديرُ حصةً لها مشرفُها — في مدرسته", canScore(L1));
+    ME={role:"principal", name:"أ. مديرٌ آخر", emp:"22299",
+        sector:L1.sector, complex:L1.complex, school:"__لا مدرسة__"};
+    A("ولا يرصد مديرُ مدرسةٍ أخرى — النطاقُ باقٍ", !canScore(L1));
   }
 
   /* ── الرقمُ الوظيفي: السجلُّ لا الكشف ── */
@@ -152,9 +158,12 @@ setTimeout(function(){
       A("ويرصدها وكيلُها", canScore(LH));
       ME={role:"cxmgr", name:"أ. مدير المجمع", emp:"33333",
           sector:LH.sector, complex:LH.complex};
-      A("ولا يرصدها مديرُ المجمع — «بذات المدرسة»", !canScore(LH));
+      A("ويرصدها مديرُ المجمع — مجمعُه", canScore(LH));
+      ME={role:"cxmgr", name:"أ. مديرُ مجمعٍ آخر", emp:"33399",
+          sector:LH.sector, complex:"__لا مجمع__"};
+      A("ولا مديرُ مجمعٍ آخر", !canScore(LH));
       ME={role:"intqa", name:"أ. فريق المتابعة", emp:"44444"};
-      A("ولا فريقُ المتابعة", !canScore(LH));
+      A("ويرصدها فريقُ المتابعة", canScore(LH));
       ME={role:"principal", name:"أ. المدير", emp:"22222",
           sector:LH.sector, complex:LH.complex, school:"__لا مدرسة__"};
       A("ولا مديرُ مدرسةٍ أخرى", !canScore(LH));

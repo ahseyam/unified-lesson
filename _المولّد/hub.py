@@ -66,7 +66,7 @@ def pair(folder, base, g=""):
     return {"docx": rel(folder, base + g + ".docx"), "pdf": rel(folder, base + g + PDF)}
 
 
-def item(title, note, files, tags="", btn=None, hero=False, rows=None):
+def item(title, note, files, tags="", btn=None, hero=False, rows=None, warn=None):
     """⚠️ `rows` لبطاقةٍ فيها أكثرُ من ملفَّين: سطرٌ لكل مرحلةٍ بروابطها،
     وإلا ضاعت ملفاتٌ لأن البطاقة المسطَّحة لا تحمل إلا خمسة مفاتيح."""
     d = {"t": title, "n": note, "f": files, "g": tags}
@@ -76,6 +76,8 @@ def item(title, note, files, tags="", btn=None, hero=False, rows=None):
         d["b"] = btn
     if hero:
         d["h"] = 1
+    if warn:
+        d["w"] = warn
     return d
 
 
@@ -87,15 +89,25 @@ def section(sid, title, sub, items):
 
 
 # ── ١) ابدأ من هنا ──
+# ⛔ **بابان إلى المنصة، وأحدُهما يُوقع المستخدمَ في طريقٍ مسدود**: من فتحها
+#    من هنا فجهازُه غيرُ مربوطٍ بالمخزن — فيكتب تحضيرَه كاملاً ولا يبلغ
+#    مدرستَه. ومن فتحها برابط الدخول رُبط جهازُه من أول فتحة.
+#    أمسكه المستشارُ على جواله ٥ أكتوبر ٢٠٢٦: «فلماذا تظهر مثل تلك الرسالة
+#    فتربك المستخدم». فصار البابُ يقول ما وراءه **قبل** أن يُفتح.
+_SRVNOTE = ("⚠️ هذا الزرُّ للاطّلاع والتجربة — وجهازُك لا يُربط بمخزن المدرسة منه. "
+            "وللعمل الفعلي افتح **رابط الدخول** الذي وصلك من إدارة التخطيط والاعتماد، "
+            "فيُربط جهازُك من أول فتحةٍ ولا يُطلب منك شيءٌ بعدها. "
+            "وإن فتحتَ من هنا فالمنصةُ تسألك عن الرابط وتربطك به.")
+
 section("start", "ابدأ من هنا", "المنصة أولاً — ثم النشرتان اللتان تشرحان النموذج والاستمارة", [
     item("★ منصة الحصة الموحَّدة — بنين",
          "التطبيق نفسه: جدول الحصص الموحَّدة مصفوفةً · شريطٌ جانبي للمراحل الخمس · "
          "ثلاثة أدوار · سبعة تقارير — يُفتح ويُعمل عليه مباشرةً",
          {"html": rel(D8, "منصة الحصة الموحَّدة — ابن خلدون.html")}, "بنين رقمي",
-         btn="افتح المنصة ←", hero=True),
+         btn="افتح المنصة ←", hero=True, warn=_SRVNOTE),
     item("★ منصة الحصة الموحَّدة — بنات", "النسخة المؤنَّثة كاملةً — بالمصفوفة والشريط الجانبي نفسيهما",
          {"html": rel(D8, "منصة الحصة الموحَّدة — ابن خلدون (بنات).html")}, "بنات رقمي",
-         btn="افتح المنصة ←", hero=True),
+         btn="افتح المنصة ←", hero=True, warn=_SRVNOTE),
     item("نشرة استخدام نموذج التحضير", "بالونات شارحة على النموذج نفسه: ما المطلوب في كل خانة",
          {"pdf": rel(D1, "نشرة الاستخدام", "نشرة استخدام نموذج التحضير — ابن خلدون.pdf"),
           "pdf2": rel(D1, "نشرة الاستخدام", "نشرة استخدام نموذج التحضير — ابن خلدون (بنات).pdf")}, "بنين بنات"),
@@ -323,6 +335,9 @@ nav button.on{background:var(--navy);color:#fff}
 .cnt{color:var(--grey);font-family:JZL,SK;font-size:15px}
 section{margin:22px 0 30px}
 section h2{font-size:24px;color:var(--navy2);display:flex;align-items:center;gap:12px}
+.card .warn{background:#fdf3e3;border:1px solid #e8cf9f;border-inline-start:4px solid #c08a2e;
+ border-radius:8px;padding:9px 12px;margin:4px 0 10px;font-size:14px;line-height:1.75;color:#6b4e14}
+.card .warn b{color:#8a5b00}
 section h2::before{content:"";width:7px;height:26px;background:var(--gold);border-radius:4px}
 section .sub{font-family:JZL,SK;color:var(--grey);font-size:16px;margin:4px 0 14px;padding-inline-start:19px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
@@ -362,6 +377,15 @@ function card(it){
   const c = el("div", it.h ? "card hero" : "card");
   c.appendChild(el("h3", null, it.t));
   c.appendChild(el("p", null, it.n));
+  /* ⚠️ تحذيرُ البطاقة يسبق أزرارَها: من قرأه قبل الضغط لم يُفاجأ بعده.
+     والتوكيدُ `**نصّ**` يُحوَّل وسماً — ولا يُطبع كما هو. */
+  if(it.w){
+    const wd = el("div","warn");
+    it.w.split(/[*][*]/).forEach((part, i)=>{
+      wd.appendChild(i % 2 ? el("b", null, part) : document.createTextNode(part));
+    });
+    c.appendChild(wd);
+  }
   const mk = (files, btn) => {
     const L = el("div","links");
     for(const k of ORD){
@@ -500,8 +524,19 @@ with open(out, "w", encoding="utf-8") as f:
 #    أمر المستشارُ بمسحهما (١ أكتوبر ٢٠٢٦). فصارا محروسَين: من يُعيد الكلمةَ
 #    إلى مستندٍ منشورٍ يُفشل البناء.
 #    ⚠️ ولا تُدرج هنا كلمةٌ قد تَرِد بوجهٍ صحيح — هذه ألفاظُ قواعدَ ملغاةٍ لا غير.
+# ⛔ **والقاعدةُ الثانيةُ أُلغيت هي الأخرى** (٤ أكتوبر ٢٠٢٦): «المشرفُ المختصُّ
+#    وحدَه يرصد» صار المقيّمون خمسةً، لكلٍّ استمارتُه، والمعتمَدُ متوسّطُ من رصد.
+#    فبقيت ألفاظُها في نشرتَي مدير المجمع وفريق التقويم الداخلي وفي شريحة
+#    الأدوار وسيناريو الفيديو — أمسكها مسحٌ يدويٌّ لا حارس. فصارت محروسةً:
+#    قاعدتان ملغاتان لا واحدة.
 STALE_WORDS = ["ثلاثة مقيّمين", "المقيّمون الثلاثة", "المقيّمات الثلاث",
-               "ثلاث مقيّمات", "مقيّماً رابعاً", "مقيّمةً رابعة", "تحفيظ"]
+               "ثلاث مقيّمات", "مقيّماً رابعاً", "مقيّمةً رابعة", "تحفيظ",
+               "وحده يرصد", "وحدها ترصد", "وحدَه يرصد", "وحدَها ترصد",
+               "يتابع ولا يرصد", "تتابع ولا ترصد", "يتابعان ولا يرصدان",
+               "تتابعان ولا ترصدان", "المتابعةُ لا الرصد", "المتابعة لا الرصد",
+               "ولا تُفتح لكما استمارة", "ولا تُفتح لك استمارة",
+               "but do not observe", "follow-up, not observation",
+               "no form opens for you"]
 
 LEAK_WORDS = ["الحصص " + "التطبيقية",
               "cloud" + "flare", "Bind" + "ings", "wran" + "gler",

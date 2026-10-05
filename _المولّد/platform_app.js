@@ -206,6 +206,16 @@ function apiBody(o){
   const k = skey();
   return JSON.stringify(k ? Object.assign({key: k}, o) : o);
 }
+/* ⛔ **مفتاحُ الانضمام صار منشوراً في الصفحة** (٥ أكتوبر ٢٠٢٦) ليرتبط كلُّ
+   جهازٍ تلقائياً من الصفحة الرئيسة. فبه يُقرأ ويُكتب — **ولا يُهدم**.
+   والعملياتُ الهادمةُ (التفريغُ الكامل · استبدالُ الكشف) تحتاج `ADMIN_KEY`
+   من أسرار الخادم. ويُطلب من المستشار عند كل عملية **ولا يُخزَّن في الجهاز**:
+   فلو خُزِّن لصار جهازُه بابَ هدمٍ لمن يفتحه بعده، ولعادت العلّةُ نفسُها. */
+function askAdmin(what){
+  return uiPrompt("مفتاحُ الإدارة مطلوبٌ لـ: " + TR(what)
+    + "\n\nوهو غيرُ مفتاح الانضمام المبنيِّ في الصفحة، ولا يُحفظ على هذا الجهاز.", "")
+    .then(v=>(v || "").trim());
+}
 
 /* ═════════ حفظٌ صريحٌ · طباعةٌ · تنزيل — في كل شاشةِ إدخال ═════════
    ⛔ كان الحفظُ تلقائياً عند كل تغيير، وأثرُه الوحيدُ **كلمةٌ صغيرةٌ في
@@ -587,8 +597,24 @@ function pullNow(){
    ⚠️ `~trash~` و`~log~` مفاتيحُ جانبيةٌ داخل `prep` — لا تحضيرات. وُضعت هناك
       لأن خادمَ المستشار يدمج خمسةَ مفاتيحَ ويتجاهل ما عداها، فالمفتاحُ الجديد
       يضيع. ويُستثنيان من كل عدٍّ للتحضيرات. */
-const TRASH = "~trash~", LOG = "~log~";
-const LOG_MAX = 600;                       /* حدٌّ يمنع تضخّم القاعدة */
+/* ⛔ **تعليقُ المدير كان يُكتب ويُفقَد**: سكن `DB.notes` — مفتاحاً أعلى
+   مستوىً، ودمجُ المخزن يقبل خمسةً لا غير (`sched · prep · obs · peer · rot`)
+   فيُسقطه الخادمُ صامتاً. فلا يصل التعليقُ جهازاً آخر أبداً. ومعه عطلٌ ثانٍ:
+   **لم يكن يُقرأ في موضعٍ واحد** مع أن تسميتَه تَعِد «يظهر في تقرير الحصة».
+   فكُتب ولا يُرى ولا يُنقل — ثلاثَ مرّاتٍ بلا فائدة. (٤ أكتوبر ٢٠٢٦)
+   فصار يسكن داخل `prep` كالسلّة والسجلّ، فيُزامَن كما يُزامنان. */
+const TRASH = "~trash~", LOG = "~log~", NOTE = "~note~";
+function noteKey(lid, by){ return NOTE + lid + "|" + by; }
+function notesOf(lid){
+  return Object.keys(DB.prep || {})
+    .filter(k=>k.indexOf(NOTE + lid + "|") === 0)
+    .map(k=>DB.prep[k]).filter(x=>x && (x.t || "").trim());
+}
+/* ⛔ **٦٠٠ كانت تقصُّ تاريخَ أوّل من سجّل**: ٤٦٠ معلماً × (تسجيلُ حصةٍ +
+   إصدارُ تحضير) = ٩٢٠ حدثاً قبل أن يُرصد شيء — فيُمحى نصفُ السجلّ في أول
+   أسبوعٍ من التفعيل، ومعه تنبيهاتُ المقيّمين عن أقدم ما سُجِّل.
+   (قرارُ المستشار ٤ أكتوبر ٢٠٢٦) والمدخلُ نحو ١٥٠ بايتاً فألفان ٣٠٠ ك.ب. */
+const LOG_MAX = 2000;
 /* ⚠️ الوقتُ وحده لا يكفي للترتيب: عمليتان في الميلي‑ثانية نفسها تتساويان
    فيختلّ ترتيبُهما. فيُضاف عدّادٌ متسلسلٌ داخل المفتاح، ويُرتَّب بالمفتاح. */
 let logSeq = 0;
@@ -687,6 +713,8 @@ function dropLesson(id){
   DB.sched = DB.sched.filter(y=>y.id!==id);
   delete DB.prep[id];
   Object.keys(DB.obs).forEach(k=>{ if(k.indexOf(id+"|")===0) delete DB.obs[k]; });
+  /* وتعليقاتُ المدير تسكن `prep` بمفتاح `~note~` فتُرفع معها */
+  Object.keys(DB.prep).forEach(k=>{ if(k.indexOf(NOTE+id+"|")===0) delete DB.prep[k]; });
   Object.keys(DB.peer).forEach(k=>{ if(k.indexOf(id+"|")===0) delete DB.peer[k]; });
   purgeTrash();
   save(); syncFlush();
@@ -1037,10 +1065,19 @@ function inMyScope(L){
     return L.sector === ME.sector && L.complex === ME.complex && L.stage === ME.school;
   return true;
 }
-/* ⛔ من يملأ الاستمارة ويعتمد:
-     · المشرفُ المختصُّ **لحصته هو** — لا لحصةِ مشرفٍ آخر.
-     · فإن لم يكن للتخصص مشرفٌ فالوكيلُ أو المديرُ أو مديرُ المجمع، كلٌّ في نطاقه.
-     · وفريقُ متابعة التقويم الداخلي يتابع ولا يرصد. */
+/* ⛔ **كانت الاستمارةُ للمشرف المختصِّ وحدَه** — والمديرُ يطّلع ويعلّق،
+     والوكيلُ يتابع التعبئة، وفريقُ التقويم الداخليِّ لا يرصد. فقِيس ٤ أكتوبر
+     ٢٠٢٦ على حصةٍ مكتملةٍ أن **الأربعةَ يرون صفرَ حقل**. ونقضه المستشارُ في
+     اليوم نفسِه: «قم بتعديل ذلك».
+   ⚠️ فصار المقيّمون خمسةً، **لكلٍّ استمارتُه المستقلّةُ بدرجتها واسمِه**:
+     · المشرفُ التربويُّ — لحصص تخصصه في سجل الإشراف، فالسجلُّ نطاقُه.
+     · مديرُ المدرسة والوكيلُ — لمدرستهما · ومديرُ المجمع — لمجمعه.
+     · فريقُ متابعة التقويم الداخلي — للمنظومة، فمتابعتُها عملُه.
+   ⚠️ والمعتمَدُ **متوسّطُ من رصد** (قرارُ المستشار) — وهو ما يحسبه `agg()`
+     أصلاً، فلم تُمسَّ النتيجة. والمفتاحُ `L.id + "|" + اسمُ المقيّم` يفصل
+     استمارةً عن أخرى، فلا يمحو راصدٌ رصدَ غيره.
+   ⚠️ وسقط شرطا «الفجوة» و«المعان»: كانا بابَين ضيّقَين لما صار مفتوحاً
+     للخمسة في نطاقهم — ودالّتاهما باقيتان لتقارير الفجوة. */
 function canScore(L){
   if(!ME) return false;
   if(ME.role === "admin") return true;
@@ -1048,9 +1085,7 @@ function canScore(L){
     if(!L) return !!supByEmp(ME.emp);
     return supsFor(L).some(r=>r.emp === latnum(ME.emp));
   }
-  if((D.gapscore || []).indexOf(ME.role) >= 0 && isGap(L) && inMyScope(L)) return true;
-  /* والمعانُ لمدرسته هو — بشرط النطاق كغيره */
-  if(assistRoles().indexOf(ME.role) >= 0 && isAssisted(L) && inMyScope(L)) return true;
+  if(EVAL_ROLES_K.indexOf(ME.role) >= 0) return !L || inMyScope(L);
   return false;
 }
 function isEval(){ return !!ME && (EVAL_ROLES_K.indexOf(ME.role) >= 0 || ME.role === "admin"); }
@@ -1078,6 +1113,115 @@ function roleTitle(){
    فيُترجَم له كلُّ من يقيّم — وتبقى قوائمُ المراحل كما هي بلا مساس. */
 function effRole(){ return isEval() ? "evaluator" : ME.role; }
 
+
+/* ═════════ تنبيهاتُ المقيّمين ═════════
+   ⚠️ **طلبُ المستشار ٤ أكتوبر ٢٠٢٦**: زرُّ تنبيهاتٍ في حساب المقيّمين الخمسة
+      يقول أمرين: ما سجّله المعلمون من حصص، وجاهزيةُ تحضير كلِّ معلمٍ قائمٍ
+      بالحصة. فالمقيّمُ كان لا يعلم بحصةٍ جديدةٍ إلا أن يمسح الجدولَ بعينه.
+   ⚠️ **والنطاقُ هو `canScore`** لا نطاقٌ ثانٍ يُكتب هنا: فما أُنبّه عليه هو
+      ما أرصده — ولو كُتب ترشيحٌ مستقلٌّ لافترق عن البوّابة يوماً.
+   ⚠️ **ولا كشفَ للمعلمين** (قرارُ المستشار)، فالجاهزيةُ تُقاس على **من سجّل**
+      لا على من كان يجب أن يسجّل — ويُقال ذلك صراحةً في اللوحة كي لا يُفهم
+      «صفرُ متأخّرين» أنّ الجميع سجّل. */
+const NOTIF_ACTS = ["تسجيل حصة", "إصدار التحضير"];
+function notifSeen(){ try{ return localStorage.getItem(KEY + "_seen") || ""; }catch(e){ return ""; } }
+function notifMark(){ try{ localStorage.setItem(KEY + "_seen", new Date().toISOString()); }catch(e){} }
+function notifFeed(){
+  const out = [];
+  logList().forEach(e=>{
+    if(NOTIF_ACTS.indexOf(e.a) < 0) return;
+    const L = (DB.sched || []).find(x=>x.id === e.lid);
+    if(!L || !canScore(L)) return;
+    out.push({e: e, L: L});
+  });
+  return out.slice(0, 40);
+}
+function notifNew(feed){
+  const s0 = notifSeen();
+  return (feed || notifFeed()).filter(x=>(x.e.t || "") > s0).length;
+}
+/* جاهزيةُ التحضير: لكل معلمٍ في نطاقي — كم حصةً له وكم صدر تحضيرُها */
+function prepReady(){
+  const by = {};
+  (DB.sched || []).forEach(L=>{
+    if(!canScore(L)) return;
+    const n = (L.teacher || "").trim(); if(!n) return;
+    const r = by[n] = by[n] || {n: n, all: 0, done: 0};
+    r.all++;
+    const P = DB.prep[L.id];
+    if(P && P.__issued) r.done++;
+  });
+  return Object.values(by).sort((a,b)=>(a.done / a.all) - (b.done / b.all)
+                                       || b.all - a.all);
+}
+function notifPanel(){
+  const old = document.getElementById("udlg"); if(old) old.remove();
+  const feed = notifFeed(), ready = prepReady(), fresh = notifNew(feed);
+  const back = el("div","udlg"); back.id = "udlg";
+  const box = el("div","udlgbox wide");
+  box.setAttribute("role","dialog"); box.setAttribute("aria-modal","true");
+  box.setAttribute("aria-label", TR("التنبيهات"));
+  const body = el("div","udlgtx ntf");
+  body.appendChild(el("h3",null,"تسجيلُ الحصص وإصدارُ التحضير"));
+  if(!feed.length)
+    body.appendChild(el("div","msg","لا تسجيلَ ولا إصدارَ في نطاقك بعد."));
+  else feed.forEach(x=>{
+    const r = el("div","ntfr" + ((x.e.t || "") > notifSeen() ? " nw" : ""));
+    r.appendChild(el("b",null, TR(x.e.a)));
+    r.appendChild(el("span",null, lessonTitle(x.L) + TR(" · ") + lessonSub(x.L)));
+    r.appendChild(el("i",null, (x.e.by || "—") + TR(" · ") + agoTxt(x.e.t)));
+    const go = el("button","b ghost sm","افتحها");
+    go.addEventListener("click", ()=>{ notifMark(); back.remove();
+      CUR = x.L.id; PH = 3; shell(); window.scrollTo(0,0); });
+    r.appendChild(go);
+    body.appendChild(r);
+  });
+  body.appendChild(el("h3",null,"جاهزيةُ تحضير المعلمين"));
+  if(!ready.length)
+    body.appendChild(el("div","msg","لا حصةَ في نطاقك بعد."));
+  else {
+    const t = el("table"), hr = el("tr");
+    [D.lab_teacher_short || "المعلم", "حصصه", "صدر تحضيرُها", "الجاهزية"]
+      .forEach(h=>hr.appendChild(el("th",null,h)));
+    t.appendChild(hr);
+    ready.forEach(r=>{
+      const pc = Math.round(r.done / r.all * 100), tr2 = el("tr");
+      tr2.appendChild(el("td",null,r.n));
+      tr2.appendChild(el("td",null,arn(r.all)));
+      tr2.appendChild(el("td",null,arn(r.done)));
+      const td = el("td");
+      td.appendChild(el("span","tag " + (pc >= 100 ? "ok" : pc > 0 ? "mid" : "no"),
+                        arn(pc) + "٪"));
+      tr2.appendChild(td); t.appendChild(tr2);
+    });
+    body.appendChild(t);
+    body.appendChild(el("div","msg",
+      "وهذه جاهزيةُ من سجّل حصصَه — ولا كشفَ للمعلمين تُقاس عليه، "
+      + "فمن لم يسجّل حصةً أصلاً لا يظهر هنا."));
+  }
+  box.appendChild(body);
+  const bar = el("div","udlgbar");
+  const ok = el("button","b","حسناً");
+  const close = ()=>{ notifMark(); back.remove();
+    try{ if(back.__prev) back.__prev.focus(); }catch(e){} };
+  ok.addEventListener("click", close); bar.appendChild(ok);
+  box.appendChild(bar); back.appendChild(box);
+  back.addEventListener("click", e=>{ if(e.target === back) close(); });
+  back.addEventListener("keydown", e=>{ if(e.key === "Escape"){ e.preventDefault(); close(); } });
+  back.__prev = document.activeElement;
+  document.body.appendChild(back);
+  ok.focus();
+  if(fresh) notifMark();
+}
+function notifBtn(){
+  const n = notifNew();
+  const b = el("button","ntfb" + (n ? " on" : ""));
+  b.appendChild(el("span",null,"التنبيهات"));
+  if(n) b.appendChild(el("b",null,arn(n)));
+  b.setAttribute("aria-label", TR("التنبيهات") + (n ? TR(" — جديدٌ: ") + arn(n) : ""));
+  b.addEventListener("click", notifPanel);
+  return b;
+}
 function login(){
   document.body.innerHTML = "";
   applyLang();
@@ -1508,6 +1652,8 @@ function shell(){
   mkn("التالي ►", seq[at+1], at < 0 || at >= seq.length-1);
   const me = el("div","me");
   me.appendChild(langBtn());
+  /* تنبيهاتُ المقيّمين الخمسة — ومديرُ المنصة معهم */
+  if(isEval()) me.appendChild(notifBtn());
   me.appendChild(el("span",null,TR(roleTitle()) + " · " + ME.name));
   const sv = el("span"); sv.id="syn"; sv.style.cssText="font-size:13px;color:#bfe3c9"; me.appendChild(sv);
   const ob = el("button",null,"خروج");
@@ -1654,9 +1800,19 @@ function shell(){
     }
     st0.appendChild(sbtn);
   } else {
-    /* معلمٌ أو زائرٌ بلا خادم: تنبيهٌ صامتٌ بلا أزرار — الربطُ ليس من شأنه */
+    /* ⛔ **كان تنبيهاً صامتاً فصار طريقاً**: من أراد الربطَ وجد زرَّه هنا،
+       ومن اختار العملَ منفرداً قرأ أثرَ اختياره صريحاً لا هامساً. */
+    st0.classList.add("bad");
     st0.appendChild(el("b",null,"غير متصلٍ بالمنظومة"));
-    st0.appendChild(el("span",null,"راجع إدارة التخطيط والاعتماد لتزويدك برابط الدخول الصحيح."));
+    st0.appendChild(el("span",null,
+      "ما تكتبه يبقى على هذا الجهاز ولا يصل مدرستَك. "
+      + "راجع إدارة التخطيط والاعتماد لتزويدك برابط الدخول."));
+    const lnk = el("button","b ghost sm","عندي الرابط — اربط الجهاز");
+    lnk.addEventListener("click", ()=>{
+      try{ localStorage.removeItem(KEY + "_solo"); }catch(e){}
+      window.__linkAsked = 0; linkGate();
+    });
+    st0.appendChild(lnk);
   }
   side.appendChild(st0);
   const sf = el("div","sf");
@@ -2083,14 +2239,34 @@ function ph3(m){
     w.textContent = TR("تحضير هذه الحصة لم يُصدَر بعد — والرصد قبل قراءة التحضير يُفقد الشواهد معناها.");
     hp.appendChild(w);
   }
+  /* ⚠️ **ثلاثةُ مقاصدَ في شاشةٍ واحدةٍ طويلة**: تحضيرُ المعلم ثم الاستمارةُ
+     بخمسين مؤشراً ثم بطاقةُ الإستراتيجية. فمن نزل إلى المؤشر الأربعين ثم
+     أراد مراجعةَ التحضير مرَّ بثلاثِ شاشاتٍ بإصبعه. وشريطٌ ثلاثيٌّ يُغني.
+     (طلبُ المستشار ٤ أكتوبر ٢٠٢٦: «بكل وضوح وكل سلاسة») */
+  const jump = el("div","bar");
+  [["تحضير المعلم","sec_prep"], ["استمارة تقييم للحصة","sec_form"],
+   ["بطاقة الإستراتيجية","sec_strat"]].forEach(([t,id])=>{
+    const j = el("button","b ghost sm", t);
+    j.addEventListener("click", ()=>{
+      const e = document.getElementById(id);
+      if(e) e.scrollIntoView({behavior:"smooth", block:"start"});
+    });
+    jump.appendChild(j);
+  });
+  hp.appendChild(jump);
   head.appendChild(hp); m.appendChild(head);
 
   /* تحضير المعلم للقراءة */
-  const pc = el("div","card");
+  const pc = el("div","card"); pc.id = "sec_prep";
   const ph = el("h3"); ph.appendChild(el("span",null,"تحضير المعلم — للقراءة"));
   ph.appendChild(el("small",null, P.__issued ? ("صدر: " + P.__issued) : "لم يُصدَر بعد")); pc.appendChild(ph);
   const pp = el("div","pad");
-  const det = el("details"); det.appendChild(el("summary",null,"افتح التحضير كاملاً")).style.cssText="cursor:pointer;color:var(--navy);font-weight:700";
+  /* ⛔ **كان التحضيرُ مطويّاً** وأولُ خطوةٍ في الشاشة تقول «اقرأ تحضير المعلم
+     أولاً» — فيُطلب منه ما هو مخبوءٌ خلف نقرة. وقِيس ٤ أكتوبر ٢٠٢٦ أنّ نصَّ
+     التحضير لا يظهر في الشاشة البتّة عند المقيّمين الخمسة. فصار مفتوحاً،
+     ويبقى قابلاً للطيّ لمن أراد. */
+  const det = el("details"); det.open = true;
+  det.appendChild(el("summary",null,"تحضيرُ المعلم — اطوِه إن شئت")).style.cssText="cursor:pointer;color:var(--navy);font-weight:700";
   const box = el("div"); box.style.marginTop="10px";
   D.sections.forEach(sec=>{
     const t = el("div"); t.style.cssText="font-weight:700;color:var(--navy2);margin:9px 0 4px";
@@ -2104,52 +2280,65 @@ function ph3(m){
 
   if(ME.role !== "teacher") scorerNote(m, L);
   if(ME.role === "peer") peerCard(m, L);
-  /* ⛔ الاستمارةُ للمشرف التربوي وحدَه (قرارُ الاجتماع). والمديرُ يطّلع
-     ويعلّق، والوكيلُ يتابع التعبئةَ ولا يرصد. */
-  else if(canScore(L)) evalForms(m, L);
+  /* ⚠️ الاستمارةُ لكلِّ مقيّمٍ في نطاقه (٤ أكتوبر ٢٠٢٦) — ومن خرجت الحصةُ
+     عن نطاقه رآها اطّلاعاً وتعليقاً لا رصداً. */
+  else if(canScore(L)){
+    evalForms(m, L);
+    if(isPrincipal()){
+      const nc = el("div","card"), nh = el("h3");
+      nh.appendChild(el("span",null,"تعليقُ مدير المدرسة"));
+      nh.appendChild(el("small",null,"ملاحظةٌ نوعيةٌ بجانب درجتك — لا بدلاً منها"));
+      nc.appendChild(nh);
+      const np = el("div","pad"); noteBox(np, L); nc.appendChild(np); m.appendChild(nc);
+    }
+  }
   else viewOnly(m, L);
 }
 
 /* ═════════ اطّلاعٌ وتعليقٌ بلا رصد ═════════
-   ⛔ المديرُ والوكيلُ لا يملآن الاستمارة. وبدل أن تُخفى عنهما الشاشةُ فيحتارا
-      «أين ما أعمله؟»، تُعرض لهما نتيجةُ المشرف للاطّلاع، ولمدير المدرسة
-      صندوقُ تعليقٍ يُنسب إليه ويظهر في تقرير الحصة. */
+   ⚠️ هذه لمن خرجت الحصةُ عن نطاقه — لا لدورٍ بعينه. فالمقيّمون الخمسةُ
+      يرصدون كلٌّ في نطاقه (٤ أكتوبر ٢٠٢٦)، ومن جاء إلى حصةٍ ليست في نطاقه
+      رأى ما رُصد عليها وكتب تعليقَه، ولم تُخفَ عنه الشاشةُ فيحتار «أين عملي؟». */
 function viewOnly(m, L){
   const c = el("div","card"), h = el("h3");
-  h.appendChild(el("span",null, isDeputy() ? "متابعةُ الحصة" : "الاطّلاع والتعليق"));
-  h.appendChild(el("small",null, isDeputy()
-    ? "تتأكّد من تعبئة معلميك — والرصدُ للمشرف التربوي"
-    : "ترى ما رصده المشرفُ التربوي، وتكتب تعليقك"));
+  h.appendChild(el("span",null, "الاطّلاع والتعليق"));
+  h.appendChild(el("small",null,
+    "هذه الحصة خارج نطاقك فلا تُرصد منك — ترى ما رُصد عليها وتكتب تعليقك"));
   c.appendChild(h);
   const p = el("div","pad");
   const obs = Object.values(DB.obs).filter(v=>v.__lid === L.id && v.res);
   if(!obs.length)
-    p.appendChild(el("div","msg","لم يرصد المشرفُ التربوي هذه الحصة بعد."));
+    p.appendChild(el("div","msg","لم يرصد أحدٌ هذه الحصة بعد."));
   else obs.forEach(v=>{
     const r = el("div","msg ok");
     r.appendChild(el("b",null, (v.__by || "—") + " — " + arn(Math.round(v.res.pct || 0)) + "٪"));
     if(v.bridge) r.appendChild(el("span",null,"إجراءُ الجسر: " + v.bridge));
     p.appendChild(r);
   });
-  if(isPrincipal()){
-    const K = "note|" + L.id + "|" + ME.name;
-    DB.notes = DB.notes || {};
-    const V = DB.notes[K] = DB.notes[K] || {};
-    const lb = el("label","f");
-    lb.appendChild(el("span",null,"تعليقُ مدير المدرسة — يظهر في تقرير الحصة"));
-    lb.appendChild(fld("area", V.t, v=>{
-      V.t = v; V.__lid = L.id; V.__by = ME.name; V.__at = new Date().toISOString(); save();
-    }, null, "ملاحظتك على الحصة — لا درجة"));
-    p.appendChild(lb);
-    const bar = el("div","bar");
-    const sv = el("button","b","حفظ التعليق");
-    sv.addEventListener("click", ()=>{
-      logAct("تعليق مدير", lessonTitle(L), L); save(); syncFlush();
-      alert("حُفظ تعليقك — ويظهر في تقرير الحصة.");
-    });
-    bar.appendChild(sv); p.appendChild(bar);
-  }
+  if(isPrincipal()) noteBox(p, L);
   c.appendChild(p); m.appendChild(c);
+}
+
+/* ⛔ **كاد تعليقُ المدير يموت صامتاً**: كان ساكناً في `viewOnly` وحدَها،
+   فلمّا صار المديرُ يرصد حصصَ مدرسته (٤ أكتوبر ٢٠٢٦) لم يعد يمرُّ بتلك
+   الشاشة، فاختفى الصندوقُ ومعه `DB.notes` من تقرير الحصة — وما أحدٌ طلب
+   حذفَه. فصار دالّةً تُنادى من المسارين: حين يرصد وحين يطّلع. */
+function noteBox(p, L){
+  const K = noteKey(L.id, ME.name);
+  const V = DB.prep[K] = DB.prep[K] || {};
+  const lb = el("label","f");
+  lb.appendChild(el("span",null,"تعليقُ مدير المدرسة — يظهر في تقرير الحصة"));
+  lb.appendChild(fld("area", V.t, v=>{
+    V.t = v; V.__lid = L.id; V.__by = ME.name; V.__at = new Date().toISOString(); save();
+  }, null, "ملاحظتك على الحصة — لا درجة"));
+  p.appendChild(lb);
+  const bar = el("div","bar");
+  const sv = el("button","b","حفظ التعليق");
+  sv.addEventListener("click", ()=>{
+    logAct("تعليق مدير", lessonTitle(L), L); save(); syncFlush();
+    uiDialog("حُفظ تعليقك — ويظهر في تقرير الحصة.");
+  });
+  bar.appendChild(sv); p.appendChild(bar);
 }
 
 function peerCard(m, L){
@@ -2269,12 +2458,18 @@ function evalForms(m, L){
      فيختارها بيده، وقد يختار غيرَ صفته فتُنسب درجتُه إلى خانةٍ ليست له.
      ومنذ فصل الأدوار (٢٩ سبتمبر ٢٠٢٦) صارت معلومةً من الدخول. */
   const auto = {principal: D.evalroles[0], deputy: D.evalroles[1],
-                supervisor: D.evalroles[2], cxmgr: D.evalroles[3]}[ME.role];
+                supervisor: D.evalroles[2], cxmgr: D.evalroles[3],
+                intqa: D.evalroles[4]}[ME.role];
   if(auto){
     /* الصفةُ تُثبَّت في الكائن، ولا تُولِّد سجلاً ولا تُحفظ قبل أول رصد */
     V.role = auto;
-    const tag = el("div"); tag.appendChild(el("span","tag ok", auto));
-    tag.appendChild(el("small",null," — من دورك عند الدخول، ولا تُبدَّل هنا"));
+    /* ⛔ **الشارةُ والشرحُ كانا يتراكبان على ٣٢٠ بكسلاً** (أمسكه حارسُ
+       التداخل): حاويةٌ بلا تخطيطٍ تجعل `small` يجري بجوار الشارة ثم يركبها
+       حين يضيق السطر. فصارت صفّاً مرناً يلتفّ بفجوة. */
+    const tag = el("div");
+    tag.style.cssText = "display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px";
+    tag.appendChild(el("span","tag ok", auto));
+    tag.appendChild(el("small",null,"من دورك عند الدخول، ولا تُبدَّل هنا"));
     rp.appendChild(tag);
   } else {
     rp.appendChild(fld("sel", V.role, v=>{ bear(); V.role=v; save(); }, D.evalroles));
@@ -2284,6 +2479,7 @@ function evalForms(m, L){
   /* الاستمارة */
   D.domains.forEach((dm,di)=>{
     const c = el("div","card");
+    if(di === 0) c.id = "sec_form";
     const h = el("h3"); h.appendChild(el("span",null,"المجال " + arn(di+1) + " · " + dm.t));
     const sc = el("small"); sc.id = "dsc"+di; h.appendChild(sc); c.appendChild(h);
     const t = el("table"), tr = el("tr");
@@ -2351,7 +2547,7 @@ function evalForms(m, L){
 
   /* بطاقة الإستراتيجية — تُفتح على ما أعلنه المعلم */
   const b = D.bank.find(x=>x.name === L.strategy) || D.bank.find(x=>x.key === V.strat);
-  const sc = el("div","card");
+  const sc = el("div","card"); sc.id = "sec_strat";
   const sh = el("h3"); sh.appendChild(el("span",null,"بطاقة تشخيص الإستراتيجية"));
   sh.appendChild(el("small",null, b ? b.name : "لم تُعلَن إستراتيجيةٌ لهذه الحصة في الجدول")); sc.appendChild(sh);
   const sp = el("div","pad");
@@ -2526,8 +2722,12 @@ function ph4(m){
   }
   /* ⛔ الاعتمادُ يقفل الحصة: بعده لا تُعدَّل خانتُها ولا تحضيرُها ولا رصدُها،
      وإلا تغيّرت أسسُ درجةٍ صدرت. والفكُّ بتأكيدٍ ويُسجَّل باسم فاعله.
-     ⚠️ **والاعتمادُ لمن يرصد**: صار المشرفَ التربوي وحدَه بقرار الاجتماع،
-        فلا يعتمد درجةً من لم يملأ استمارتَها. (٣٠ سبتمبر ٢٠٢٦) */
+     ⚠️ **والاعتمادُ لمن يرصد** — فلا يعتمد درجةً من لم يملأ استمارتَها.
+     ⛔ **وهنا تعارضٌ كشفه التدقيق** (٤ أكتوبر ٢٠٢٦): صار المقيّمون خمسةً
+        والمعتمَدُ متوسّطَهم، والقفلُ يقع على الجميع — فمن اعتمد يومَ الأحد
+        منع الأربعةَ الباقين من الرصد، والمتوسّطُ يُحسب على واحدٍ لا على
+        خمسة. ولا يُحلّ بمنع الاعتماد (فتبقى الحصةُ مفتوحةً أبداً)، بل
+        بأن يَعلم المعتمِدُ **من رصد ومن لم يرصد** قبل أن يقفل. */
   if(canScore(L)){
     if(!L.approved){
       const ap = el("button","b","اعتماد النتيجة وقفل الحصة");
@@ -2541,7 +2741,23 @@ function ph4(m){
           return alert("⛔ لا تُعتمد النتيجةُ بعد:\n\n"
             + nab.map(x=>"• " + ((x[0].role || x[0].__by || "مقيّم") + ": " + x[1])).join("\n")
             + "\n\nيفتح كلُّ مقيّمٍ استمارتَه ويكتب السبب.");
-        uiAsk("بعد الاعتماد تُقفل الحصة: لا يُعدَّل جدولُها ولا تحضيرُها ولا رصدُها.\n\nأتُتابع؟",
+        /* ⛔ **أوّلُ من يعتمد يقفلها على الأربعة** — فلو اعتمد المديرُ الأحدَ
+           جاء المشرفُ الثلاثاءَ فوجدها مقفولة، والمتوسّطُ على واحدٍ لا على
+           خمسة. والتنبيهُ وحدَه لا يكفي حيث للمادة مشرفٌ بالاسم: رصدُه
+           ركنُ الاعتماد. (قرارُ المستشار ٤ أكتوبر ٢٠٢٦)
+           ⚠️ وما لا مشرفَ لتخصصه لا يُحبَس: الشرطُ يسقط بسقوط سببه. */
+        const _sup = supsFor(L);
+        if(_sup.length && !rows.some(([,v])=>v && v.res && v.res.max > 0
+                                      && v.role === D.evalroles[2]))
+          return uiDialog("⛔ لا تُعتمد قبل أن يرصدها مشرفُ المادة: "
+            + _sup.map(r=>r.name).join(TR(" · "))
+            + TR(". ودرجتُك محفوظةٌ باسمك، ويُعتمد بعد رصده."), "bad");
+        const who = rows.filter(([,v])=>v && v.res && v.res.max > 0)
+                        .map(([,v])=>(v.__by || "—") + (v.role ? " (" + TR(v.role) + ")" : ""));
+        uiAsk("بعد الاعتماد تُقفل الحصة على الجميع: لا يُعدَّل جدولُها ولا تحضيرُها "
+              + "ولا رصدُها، ولا يرصدها مقيّمٌ آخر بعدك.\n\nرصدها حتى الآن "
+              + arn(who.length) + ": " + who.join(" · ")
+              + "\n\nفإن كان يُنتظر غيرُهم فأجِّل الاعتماد.\n\nأتُتابع؟",
               "اعتمدها").then(ok=>{
           if(!ok) return;
           L.approved = {by: ME.name, no: ME.emp || "", at: new Date().toISOString()};
@@ -2619,6 +2835,26 @@ function ph4(m){
     p.appendChild(k);
   }
   c.appendChild(p); m.appendChild(c);
+
+  /* ⛔ **تعليقُ مدير المدرسة كان يُكتب ولا يُقرأ**: تسميتُه تَعِد «يظهر في
+     تقرير الحصة» ولا موضعَ يعرضه في المنصة كلِّها — فيكتب المديرُ ملاحظتَه
+     ويظنُّها بلغت، وهي في جهازه وحده. وهذا موضعُها الموعود. (٤ أكتوبر ٢٠٢٦) */
+  const nts = notesOf(L.id);
+  if(nts.length){
+    const nc = el("div","card");
+    const nh = el("h3"); nh.appendChild(el("span",null,"تعليقُ مدير المدرسة"));
+    nh.appendChild(el("small",null, arn(nts.length) + TR(" تعليقاً")));
+    nc.appendChild(nh);
+    const np = el("div","pad");
+    nts.forEach(v=>{
+      const r = el("div","msg");
+      r.appendChild(el("b",null, (v.__by || "—")
+        + (v.__at ? TR(" · ") + agoTxt(v.__at) : "")));
+      r.appendChild(el("span",null, v.t));
+      np.appendChild(r);
+    });
+    nc.appendChild(np); m.appendChild(nc);
+  }
 
   /* بطاقة الجسر */
   const bc = el("div","card");
@@ -2762,19 +2998,32 @@ function pendingEntry(){
 
 /* ⛔ حصةٌ مسجَّلةٌ بتخصصٍ حُذف من المنصة (كالتحفيظ) لا تجد لها خليةً فلا تُرسَم
    ولا يُعلَن عنها خطأ — فتضيع صامتةً. فتُعدُّ هنا بالاسم قبل كل شيء. */
-function orphanSpec(){
-  const live = {}; (D.specs || []).forEach(x=>{ live[x] = 1; });
-  return (DB.sched || []).filter(L=>L && L.spec && !live[L.spec])
-    .map(L=>[L.teacher || "—", L.spec, L.complex + " · " + L.stage,
-             L.week + " · " + L.day + " · " + L.period]);
+/* ⛔ **كان يقيس التخصصَ وحدَه** — والأسبوعُ مثلُه تماماً: حصةٌ أسبوعُها خارجَ
+   الرزنامة لا صفَّ لها في الجدول فلا تُرى، **وتُحسب في التقارير** كغيرها.
+   ولم يظهر العطلُ حتى غُيِّرت الرزنامةُ من السادس إلى الثامن (٤ أكتوبر ٢٠٢٦)
+   فصار كلُّ ما سُجِّل قبلَها يتيماً صامتاً. فالقاعدةُ واحدةٌ لحقلَين:
+   ما لا موضعَ له في الجدول يُعلَن ولا يُترك. */
+function orphanLessons(){
+  const spec = {}; (D.specs || []).forEach(x=>{ spec[x] = 1; });
+  const wk = {}; (D.weeks || []).forEach(x=>{ wk[x] = 1; });
+  return (DB.sched || []).filter(L=>L && ((L.spec && !spec[L.spec])
+                                       || (L.week && !wk[L.week])))
+    .map(L=>[L.teacher || "—",
+             (L.spec && !spec[L.spec]) ? L.spec : "—",
+             (L.week && !wk[L.week]) ? L.week : "—",
+             L.complex + " · " + L.stage,
+             /* ⚠️ والأسبوعُ يبقى في الموضع ولو كان هو الملغى: الموضعُ
+                موضعٌ، وبه يجدها من يُصلحها. أسقطتُه فأعماني الحارس. */
+             joinAr([L.week, L.day, L.period])]);
 }
 function rOrphan(p){
-  const o = orphanSpec();
+  const o = orphanLessons();
   if(!o.length) return;
   p.appendChild(el("div","msg bad",
-    "حصصٌ مسجَّلةٌ بتخصصٍ لم يبقَ في المنصة، فلا خليةَ لها في الجدول ولا تظهر فيه. "
-    + "تُنقل إلى تخصصها الصحيح أو تُحذف — ولا تُترك."));
-  tbl(p, ["المعلم", "التخصص الملغى", "المدرسة", "موضعُها"], o);
+    "حصصٌ لا موضعَ لها في الجدول: تخصصٍ لم يبقَ في المنصة أو أسبوعٍ لم يبقَ فيها، "
+    + "فلا تظهر في المصفوفة وتُحسب في التقارير. "
+    + "تُنقل إلى موضعها الصحيح أو تُحذف — ولا تُترك."));
+  tbl(p, ["المعلم", "التخصص الملغى", "الأسبوع الملغى", "المدرسة", "موضعُها"], o);
 }
 function rPending(p){
   rOrphan(p);
@@ -2841,10 +3090,14 @@ function rGap(p){
       "لا حصةَ في نطاقك بلا مشرفٍ مختص — كلُّ تخصصٍ له مشرفُه."));
     return;
   }
+  /* ⚠️ **«ولا يرصدها غيرُهم» صارت كذباً** بعد فتح الاستمارة للخمسة
+     (٤ أكتوبر ٢٠٢٦) — ولم يمسكها حارس، لأنها جملةٌ صحيحةُ العربية في
+     شاشةٍ قائمة. فصارت تقول ما هي: هؤلاء **من يقع عليهم** أولاً، لا من
+     يُؤذن لهم وحدَهم. */
   p.appendChild(el("div","msg warn",
-    "هذه حصصُ تخصصاتٍ لا مشرفَ مختصّاً لها، فرصدُها على الفريق المعاون: "
+    "هذه حصصُ تخصصاتٍ لا مشرفَ مختصّاً لها، فأوّلُ من يقع عليها: "
     + (D.gapscore || []).map(k=>TR((D.roles.find(r=>r.k===k)||{}).t || k)).join(TR(" أو "))
-    + TR(". ولا يرصدها غيرُهم.")));
+    + TR(" — ولا أحدَ سواهم يراها في جدوله.")));
   tbl(p, ["المدرسة والمجمع","الموعد","التخصص",D.lab_teacher_short,"التحضير","الرصد","الاعتماد",""], rows);
 }
 
@@ -3065,22 +3318,27 @@ function rActive(p){
     [[L.peer1, L.peer1e], [L.peer2, L.peer2e]].forEach(([n, no])=>{
       const x = put(n, "زائر", no); if(x) x.sched += 0;
     });
-    [L.ev1, L.ev2, L.ev3, L.ev4].forEach(n=>put(n, "مقيّم"));
+    [L.ev1, L.ev2, L.ev3, L.ev4, L.ev5].forEach(n=>put(n, "مقيّم"));
   });
   Object.entries(DB.prep).forEach(([lid,P])=>{
-    if(lid.indexOf(TRASH) === 0 || lid.indexOf(LOG) === 0) return;   /* مفاتيحُ جانبية */
+    if(lid.indexOf(TRASH) === 0 || lid.indexOf(LOG) === 0
+       || lid.indexOf(NOTE) === 0) return;                            /* مفاتيحُ جانبية */
     if(!P.__issued) return;
     const L = DB.sched.find(x=>x.id===lid); if(!L) return;
     const x = put(L.teacher, "معلم", L.teacherNo); if(x) x.prep++;
   });
   /* ⛔ الرصدُ يُنسب إلى المقيّم المسنَد في الجدول لا إلى اسم الدخول:
      لو اختلف الاسمان حرفاً ظهر الشخصُ مرتين — مرةً «لم يفعّل» ومرةً «مفعِّل».
-     ومفتاحُ الرصد يحمل صفةَ المقيّم، فمنها يُعرف صاحبُها في الجدول. */
-  const SLOT = {}; D.evalroles.forEach((r,i)=>{ SLOT[r] = ["ev1","ev2","ev3","ev4"][i]; });
+     ⛔ **وكان هذا النسبُ ميتاً منذ كُتب**: قرأ الصفةَ من `k.split("|")[1]`
+        ومفتاحُ الرصد `رقمُ الحصة|اسمُ المقيّم` — فالجزءُ الثاني **اسمٌ لا
+        صفة**، فـ`SLOT[الاسم]` دائماً `undefined` و`L[undefined]` كذلك،
+        فيسقط كلُّ شيءٍ إلى `v.__by` ولا يظهر «دخل باسم» أبداً. فلم يُمسَك
+        اختلافُ الاسمَين قطُّ — والتعليقُ يصف ما لا يقع. (٤ أكتوبر ٢٠٢٦)
+     ⚠️ والصفةُ مخزونةٌ في السجلّ نفسِه (`v.role`) تُملأ من الدور عند الرصد. */
+  const SLOT = {}; D.evalroles.forEach((r,i)=>{ SLOT[r] = ["ev1","ev2","ev3","ev4","ev5"][i]; });
   Object.entries(DB.obs).forEach(([k,v])=>{
     const L = DB.sched.find(z=>z.id===v.__lid) || {};
-    const role = k.split("|")[1] || "";
-    const named = L[SLOT[role]] || v.__by;
+    const named = L[SLOT[v.role || ""]] || v.__by;
     const x = put(named, "مقيّم"); if(x){ x.obs++; if(v.__by && v.__by !== named) x.alias = v.__by; }
   });
   Object.entries(DB.peer).forEach(([k,v])=>{
@@ -3120,9 +3378,92 @@ function autoPull(){
   lastPull = now;
   pull().then(ok=>{ if(ok && PH !== 2) render(); });
 }
-function boot(){ if(!ME) login(); else shell(); }
+function boot(){ if(!ME) login(); else shell(); linkGate(); }
+
+/* ═════════ بوّابةُ الربط ═════════
+   ⛔ **طريقٌ مسدودٌ يُفقد العملَ صامتاً.** كان الجهازُ غيرُ المربوط يُعرض عليه
+      سطرٌ في الشريط الجانبي: «غير متصلٍ بالمنظومة — راجع إدارة التخطيط»،
+      **ثم يُترك يعمل**. فيدخل المعلمُ ويكتب تحضيرَه كاملاً — أربعاً وسبعين
+      خانة — ويُصدره، ويظنُّ أنه سلَّم. وهو في جهازه وحده لا يبلغ مدرستَه أبداً.
+      ولا أحدَ يعلم: لا هو ولا مشرفُه.
+   ⛔ **والطريقُ إليه هو الطريقُ الطبيعي**: الصفحةُ الرئيسةُ العامّةُ تربط
+      المنصةَ بلا `#srv=`، فمن فتحها من هناك — أو كتب العنوانَ بيده —
+      وقع فيه. وأمسكه المستشارُ على جواله. (٥ أكتوبر ٢٠٢٦)
+   ⚠️ **وكان العذرُ**: «لا يُطلب من معلمةٍ أن تلصق رابطاً — الرابطُ يحملها».
+      وهذا صحيحٌ لمن فتح الرابط، لا لمن لم يفتحه. فصار الخيارُ معروضاً ولا
+      يُفرَض: إمّا تلصق الرابطَ الذي وصلها، وإمّا تُعلن أنها تعمل على جهازها
+      وحده — **فيصير فقدانُ الاتصال قراراً لا مفاجأة**. */
+function soloMode(){ try{ return localStorage.getItem(KEY + "_solo") === "1"; }catch(e){ return false; } }
+function linkGate(){
+  if(api() || window.__linkAsked || soloMode()) return;
+  window.__linkAsked = 1;
+  const old = document.getElementById("udlg"); if(old) old.remove();
+  const back = el("div","udlg"); back.id = "udlg";
+  const box = el("div","udlgbox warn");
+  box.setAttribute("role","alertdialog"); box.setAttribute("aria-modal","true");
+  box.setAttribute("aria-describedby","udlgtx");
+  const body = el("div","udlgtx"); body.id = "udlgtx";
+  body.appendChild(el("div",null,"هذا الجهاز غير متصلٍ بالمنظومة"));
+  body.appendChild(el("div",null,
+    "ما تكتبه هنا يبقى على هذا الجهاز ولا يصل مدرستَك ولا مشرفَك. "
+    + "ورابطُ الدخول الذي وصلك يربطه في ثانية."));
+  const lb = el("label","f");
+  lb.appendChild(el("span",null,"ألصق رابط الدخول الذي وصلك"));
+  const inp = el("input"); inp.type = "text"; inp.className = "cin";
+  inp.placeholder = TR("الرابط الذي أرسلته لك إدارة التخطيط والاعتماد");
+  inp.setAttribute("aria-label", TR("رابط الدخول"));
+  lb.appendChild(inp); body.appendChild(lb);
+  const err = el("div","msg bad"); err.style.display = "none"; body.appendChild(err);
+  box.appendChild(body);
+  const bar = el("div","udlgbar");
+  const go = el("button","b","اربط الجهاز");
+  const solo = el("button","b ghost","أعمل على هذا الجهاز وحده");
+  go.addEventListener("click", ()=>{
+    const v = (inp.value || "").trim();
+    /* ⚠️ يُقبل الرابطُ كاملاً أو جزؤه بعد `#` — فمن نسخ نصفَه لا يُردّ خائباً */
+    const m = v.match(/[#&?]srv=([^&\s]+)/) || v.match(/^(https?%3A[^&\s]+)$/i);
+    const u = m ? decodeURIComponent(m[1]) : "";
+    if(!/^https?:\/\//.test(u)){
+      err.textContent = TR("هذا ليس رابطَ الدخول — انسخه كاملاً كما وصلك.");
+      err.style.display = ""; inp.focus(); return;
+    }
+    const mk = v.match(/[#&?]k=([^&\s]+)/);
+    try{
+      if(mk) localStorage.setItem(SKEY, decodeURIComponent(mk[1]));
+      localStorage.setItem(API, u);
+    }catch(e){}
+    back.remove();
+    location.replace(location.pathname);
+  });
+  solo.addEventListener("click", ()=>{
+    try{ localStorage.setItem(KEY + "_solo", "1"); }catch(e){}
+    back.remove(); shell();
+  });
+  bar.appendChild(go); bar.appendChild(solo);
+  box.appendChild(bar); back.appendChild(box);
+  back.addEventListener("keydown", e=>{ if(e.key === "Tab"){ e.preventDefault();
+    (document.activeElement === inp ? go : inp).focus(); } });
+  document.body.appendChild(back);
+  inp.focus();
+}
 /* ⛔ لا يُطلب من معلمةٍ أن تلصق رابطاً: الرابطُ الذي تصلها يحمل المخزن في #srv=
    فيُربط جهازُها من أول فتحةٍ ثم يُنظَّف العنوان فلا يبقى فيه شيء. */
+/* ⛔ **من دخل من الصفحة الرئيسة كان يقع على جهازٍ غيرِ مربوط** — والفيديوُ
+   المنشورُ يشرح الدخولَ منها. فصار المخزنُ مبنيّاً في الصفحة: أيُّ بابٍ دخل
+   منه المستخدمُ رُبط جهازُه من أول فتحة، بلا رسالةٍ ولا سؤال. (٥ أكتوبر ٢٠٢٦)
+   ⚠️ **ولا يَدهس اختياراً قائماً**: من ضبط مخزناً بيده — أو قَبِل دعوةً إلى
+      مخزنٍ آخر — يبقى عليه. فالمبنيُّ **افتراضٌ عند الفراغ** لا فرضٌ عند كل فتحة.
+   ⚠️ ومن أعلن «أعمل على هذا الجهاز وحده» يُحترم إعلانُه. */
+function adoptBuiltIn(){
+  try{
+    if(!D.srv) return false;
+    if(api()) return false;                 /* له مخزنٌ فلا يُبدَّل */
+    if(soloMode()) return false;            /* أعلن انفرادَه */
+    localStorage.setItem(API, D.srv);
+    if(D.join) localStorage.setItem(SKEY, D.join);
+    return true;
+  }catch(e){ return false; }
+}
 function adoptSrv(){
   try{
     const h = location.hash || "", q = location.search || "";
@@ -3177,7 +3518,9 @@ load();
 try{ if(DB.__schema !== 3){ migrate(); DB.__schema = 3; save(); } }
 catch(e){ try{ console.error("migrate:", e); }catch(_){}
   try{ setSyn("تعذّرت هجرةُ البيانات — راجع إدارة التخطيط", "warnsyn"); }catch(_){} }
+/* الرابطُ الواصلُ أولاً — فإن لم يحمل شيئاً فالمبنيُّ في الصفحة */
 adoptSrv();
+adoptBuiltIn();
 /* ⛔ **هجرةُ المخزن المشترك** — لا تكفي هجرةُ الجهاز: السجلُّ القديمُ على
    الخادم كان اسمُه `db`، وهو في الواقع سجلُّ البنين (نسخةُ البنات وُلدت بعده).
    فينُقل مرةً واحدةً إلى `ikm_db`، **وبشرطين** لا يُستثنى منهما: أن يكون
@@ -3263,8 +3606,10 @@ function rosterUp(){
         + "يحلُّ محلَّ الكشف القائم، ويراه كلُّ من فتح المنصةَ بعد ربطِ الخادم.\n\n"
         + "أتُتابع؟", "ارفعه").then(ok=>{
       if(!ok) return;
+      askAdmin("استبدال كشف المعلمين").then(adm=>{
+      if(!adm){ uiDialog("أُلغي الرفع — لا مفتاحَ إدارة.", "warn"); return; }
       fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
-          body: apiBody({kind:"platform", id:NS+"_roster", data:d, __replace:true})})
+          body: apiBody({kind:"platform", id:NS+"_roster", data:d, __replace:true, admin:adm})})
         .then(r=>r.json())
         .then(r=>{
           if(!(r && r.ok)){ alert("⛔ لم يستجب الخادمُ للرفع."); return; }
@@ -3276,7 +3621,8 @@ function rosterUp(){
           shell();
         })
         .catch(e=>alert("تعذّر الاتصال بالخادم: " + e.message));
-      });
+      });      /* askAdmin */
+      });      /* uiAsk */
     };
     fr.readAsText(f, "utf-8");
   });
@@ -4489,7 +4835,7 @@ function cellEditor(c, band, r){
            datetxt:(r.dt||{}).gt || "", hijri:(r.dt||{}).ht || "", spec:r.spec, group:r.gp,
            subject:r.spec, teacher:"", strategy:"", approach:"", klass:"", time:"",
            grade:"", topic:"", pages:"",
-           peer1:"", peer2:"", peer1e:"", peer2e:"", ev1:"", ev2:"", ev3:"", ev4:""};
+           peer1:"", peer2:"", peer1e:"", peer2e:"", ev1:"", ev2:"", ev3:"", ev4:"", ev5:""};
       DB.sched.push(x);
     }
     return x;
@@ -4798,9 +5144,10 @@ function myList(m, c){
         }
         r.appendChild(pe);
         const ev = el("td","nar");
-        ev.appendChild(fld("txt", [L.ev1,L.ev2,L.ev3,L.ev4].filter(Boolean).join("، "), v=>{
+        ev.appendChild(fld("txt", [L.ev1,L.ev2,L.ev3,L.ev4,L.ev5].filter(Boolean).join("، "), v=>{
           const a = v.split(/[،,]/).map(z=>z.trim());
-          L.ev1=a[0]||""; L.ev2=a[1]||""; L.ev3=a[2]||""; L.ev4=a[3]||""; save();
+          L.ev1=a[0]||""; L.ev2=a[1]||""; L.ev3=a[2]||""; L.ev4=a[3]||"";
+          L.ev5=a[4]||""; save();
         }, null, "المقيّمون الثلاثة"));
         r.appendChild(ev);
       }
@@ -4994,15 +5341,26 @@ function clearCell(gk){
    ولا تُترك الخانةُ صامتةً فيظنَّ كلٌّ أن غيرَه يرصدها. */
 function scorerNote(m, L){
   const sup = supsFor(L), c = el("div","card"), p2 = el("div","pad");
+  /* ⚠️ **تُعرض أسماءُ من رصد فعلاً لا من يحقُّ له**: صار المقيّمون خمسةً،
+     فعدُّ الصفات يملأ الشاشةَ ولا يفيد. والمشرفُ يُذكر لأنه المعروفُ سلفاً
+     من سجل الإشراف، والبقيةُ تُعرف برصدها. (٤ أكتوبر ٢٠٢٦) */
+  const done = Object.values(DB.obs).filter(v=>v.__lid === L.id && v.res);
   if(sup.length){
-    p2.appendChild(el("div","msg ok", TR("المقيّم: ")
+    p2.appendChild(el("div","msg ok", TR("مشرفُ المادة: ")
       + sup.map(r=>r.name).join(TR(" · ")) + TR(" — ")
-      + TR(D.evalroles[2]) + TR(". والمديرُ يطّلع ويعلّق، والوكيلُ يتابع التعبئة.")));
+      + TR(D.evalroles[2]) + TR(". ويرصد معه كلُّ مقيّمٍ في نطاقه، والمعتمَدُ متوسّطُ من رصد.")));
   } else {
-    p2.appendChild(el("div","msg warn", TR("لا مشرفَ مختصٌّ لهذا التخصص في هذه المدرسة، ")
-      + TR("فالتقييمُ للفريق المعاون: ")
+    p2.appendChild(el("div","msg warn", TR("لا مشرفَ مختصٌّ لهذا التخصص في هذه المدرسة — ")
+      + TR("فالرصدُ على المقيّمين في نطاقهم: ")
       + (D.gapscore||[]).map(k=>TR((D.roles.find(r=>r.k===k)||{}).t || k)).join(TR(" أو "))
       + TR(".")));
+  }
+  if(done.length){
+    const t = el("div","msg");
+    t.appendChild(el("b",null, TR("رصدَ هذه الحصةَ ") + arn(done.length) + TR(": ")));
+    t.appendChild(el("span",null, done.map(v=>(v.__by||"—")
+      + (v.role ? " (" + TR(v.role) + ")" : "")).join(TR(" · "))));
+    p2.appendChild(t);
   }
   const cf = supConflict(L);
   if(cf) p2.appendChild(el("div","msg bad", TR("تعارض: مشرفُ هذه المادة (") + cf.name
@@ -5804,7 +6162,8 @@ function myPeerReport(m){
       ويستعمل `__replace` لأن الدمجَ في الخادم يمنع المحوَ عمداً. */
 function wipeAll(){
   if(!isAdmin()) return;          /* ⛔ بوّابةٌ رابعة: الدورُ نفسُه */
-  const n = DB.sched.length, p = Object.keys(DB.prep).filter(k=>k.indexOf(TRASH)&&k.indexOf(LOG)).length;
+  const n = DB.sched.length, p = Object.keys(DB.prep)
+    .filter(k=>k.indexOf(TRASH) && k.indexOf(LOG) && k.indexOf(NOTE)).length;
   /* ⛔ ثلاثُ بوّاباتٍ متسلسلةٌ — ولا تُدمج: الأولى تُعلم بما يضيع، والثانية
      تطلب كلمةً تُكتب بيدٍ فلا تُضغط سهواً. (وغيرُ تزامنيةٍ الآن) */
   uiAsk("تفريغٌ كاملٌ لبيانات المنظومة على كل الأجهزة:\n\n"
@@ -5821,13 +6180,20 @@ function wipeAll(){
 }
 /* ⚠️ فُصل جسمُ التفريغ في دالّةٍ لأن التأكيدَ صار غيرَ تزامنيّ */
 function wipeGo(){
+  if(api()) return askAdmin("تفريغ بيانات المنظومة").then(adm=>{
+    if(!adm){ uiDialog("أُلغي التفريغ — لا مفتاحَ إدارة.", "warn"); return; }
+    wipeSend(adm);
+  });
+  wipeSend("");
+}
+function wipeSend(adm){
   backup();                                    /* نسخةٌ قبل المحو */
   const empty = {sched:[], prep:{}, obs:{}, peer:{}, rot:{}};
   DB = empty; lastSent = ""; UNDO = [];
   try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){}
   if(!api()){ alert("فُرّغت بيانات هذا الجهاز."); shell(); return; }
   fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body: apiBody({kind:"platform", id:SID, data:empty, __replace:true})})
+      body: apiBody({kind:"platform", id:SID, data:empty, __replace:true, admin:adm})})
     .then(r=>r.json())
     .then(r=>{
       if(r && r.ok && r.replaced){

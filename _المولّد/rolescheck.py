@@ -75,10 +75,21 @@ setTimeout(function(){
   T("المشرفُ يرصد حصةَ مادته", canScore(L), true);
   ME={role:"supervisor",name:"x",emp:"00000"};
   T("ومن ليس في السجلّ لا يرصد", canScore(L), false);
+  /* ⚠️ **نُقضت قاعدةُ «المشرفُ وحدَه»** (٤ أكتوبر ٢٠٢٦): المقيّمون خمسةٌ،
+     لكلٍّ استمارتُه المستقلّة، والمعتمَدُ متوسّطُ من رصد. والنطاقُ باقٍ
+     حارساً — فالشاهدُ يقيسه لا يقيس الدور. */
   ME={role:"principal",name:"x",emp:"",sector:L.sector,complex:L.complex,school:L.stage};
-  T("المديرُ لا يرصد حصةً لها مشرفُها", canScore(L), false);
+  T("المديرُ يرصد حصةَ مدرسته ولو كان لها مشرفُها", canScore(L), true);
+  ME={role:"principal",name:"x",emp:"",sector:L.sector,complex:L.complex,school:"__لا مدرسة__"};
+  T("ولا يرصد حصةَ مدرسةٍ أخرى", canScore(L), false);
   ME={role:"deputy",name:"x",emp:"",sector:L.sector,complex:L.complex,school:L.stage};
-  T("والوكيلُ كذلك", canScore(L), false);
+  T("والوكيلُ يرصد حصةَ مدرسته", canScore(L), true);
+  ME={role:"cxmgr",name:"x",emp:"",sector:L.sector,complex:L.complex};
+  T("ومديرُ المجمع يرصد حصةَ مجمعه", canScore(L), true);
+  ME={role:"cxmgr",name:"x",emp:"",sector:L.sector,complex:"__لا مجمع__"};
+  T("ولا يرصد حصةَ مجمعٍ آخر", canScore(L), false);
+  ME={role:"intqa",name:"x",emp:""};
+  T("وفريقُ التقويم الداخلي يرصد", canScore(L), true);
   ME={role:"teacher",name:"x",emp:""}; T("والمعلمُ لا يرصد", canScore(L), false);
 
   /* ── ٤) مرشَّحو الزيارة ── */

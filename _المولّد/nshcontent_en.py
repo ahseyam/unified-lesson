@@ -315,9 +315,9 @@ sheet(
     "cxmgr", "cxmgr",
     "Platform User Guide — Complex Manager",
     "For: the complex manager, who follows every school in their complex",
-    "Your scope is a **whole complex**, not a single school. And you are part of the "
-    "“supporting team”: you observe the lessons whose **subject has no supervisor** — "
-    "roughly five lessons in every twenty-five, which would otherwise go unrated.",
+    "Your scope is a **whole complex**, not a single school, and you observe **any lesson "
+    "in it**: you have your own independent form with its own score and your name, which no "
+    "other evaluator overwrites. The adopted score for a lesson is the average of those who scored it.",
     [
         ("Sign in and choose your complex", "login_cx",
          ["Choose the “Complex manager” card, then the sector and the complex you manage.",
@@ -327,37 +327,40 @@ sheet(
         ("Read your complex's schedule", "c_grid",
          ["The schedule shows every lesson in your complex's schools: week, day, subject and teacher.",
           "You do not edit a cell in it — scheduling belongs to the teacher and their deputy."], None),
-        ("Know what falls to you", "c_gap",
+        ("Know what needs you first", "c_gap",
          ["The “Lessons with no subject supervisor” report lists what has no supervisor in your complex.",
-          "These alone are what you observe — together with the academic deputy and the principal."],
-         "What does have a supervisor is not yours to observe: its form does not open for you, "
-         "and that is correct."),
-        ("Observe a gap lesson", "c_obs",
-         ["Open the lesson from the report; your capacity “Complex manager” is filled in from your role.",
-          "Fill the form and the strategy card, then approve the result."], None),
+          "Start with these — no one but you and those with you observes them."],
+         "And you observe the rest as well: the form opens for you on any lesson in your complex."),
+        ("Observe the lesson", "c_obs",
+         ["Open the lesson; your capacity “Complex manager” is filled in from your role.",
+          "Fill the form and the strategy card, then approve the result."],
+         "Your form carries your name alone — and anyone who scored it with you appears beside you."),
         ("Follow your complex through the reports", "c_reports",
          ["Your complex's reports: teachers and their results · subjects · the weakest "
           "indicators · and missing entries.",
           "All of them are confined to your complex — so what you see concerns you."], None),
     ],
     [("A lesson I can see will not open its form",
-      "It has a named subject supervisor, and observing it is theirs. You observe what has none."),
+      "It is outside your complex — observing belongs to whoever has the lesson in scope. "
+      "Anything inside your complex does open for you."),
      ("I cannot edit a cell in the schedule",
       "Scheduling belongs to the teacher giving the lesson and their deputy; you follow and observe.")],
     [("My complex has both boys' and girls' schools?",
       "Each sector has its own platform and its own store — you sign in to each separately."),
      ("Who approves a result I recorded?",
-      "You do — whoever observes approves. No one approves a mark whose form they did not fill.")],
+      "You do — whoever observes approves. If someone scored it with you, the adopted score "
+      "is the average of both.")],
 )
 
 # ── 7) Internal evaluation follow-up team ──
 sheet(
     "intqa", "intqa",
     "Platform User Guide — Internal Evaluation Follow-up Team",
-    "For: two members of the central administration who follow up but do not observe",
-    "Your role is **follow-up, not observation**: you review the lessons whose subject has "
-    "no supervisor and make sure no one has been forgotten, and you write your comment — "
-    "and no form opens for you. That is deliberate: whoever follows up is not whoever rates.",
+    "For: two members of the central administration — their scope is the whole system",
+    "Your scope is the **whole system**: both sectors, the complexes and the schools. You make "
+    "sure no lesson is left without an observer, **and you observe too**: each of you has an "
+    "independent form with its own score and name. The adopted score for a lesson is the "
+    "average of those who scored it.",
     [
         ("Sign in with your role", "login_iq",
          ["Choose the “Internal evaluation follow-up team” card — it is the last of them.",
@@ -369,18 +372,19 @@ sheet(
          ["The “Lessons with no subject supervisor” report is your first task: who observes "
           "them, and whether they have been observed.",
           "If one remains with no observer, you alert the deputy or the complex manager."], None),
-        ("Write your comment", "q_note",
-         ["Under “After the lesson” there is a review-and-comment card where you write what you see.",
-          "Your comment is saved in your name and is seen by whoever opens the lesson."],
-         "No form opens for you — and that is correct, not a fault in the platform."),
+        ("Observe the lesson", "q_note",
+         ["Open the lesson under “Lesson observation”; your capacity is filled in from your role.",
+          "Fill the form and the strategy card — each of you has their own form."],
+         "Your form carries your name, and no other observer overwrites it — "
+         "their score appears beside yours."),
     ],
     [("Where is the form?",
-      "It does not open for you by the meeting's decision: observation belongs to the subject "
-      "supervisor, or to the supporting team where there is none. You follow up."),
+      "Under “Lesson observation” once the lesson is open — and a bar at its head moves you "
+      "between the teacher's prep, the form and the strategy card."),
      ("I see every lesson in the system — is that right?",
       "Yes: your scope is the whole system, unlike the complex manager who is confined to theirs.")],
-    [("Does our follow-up count towards the lesson average?",
-      "No — a comment carries no mark, so it enters no average."),
+    [("Does our score count towards the lesson average?",
+      "Yes — the adopted score is the average of everyone who scored, so yours is part of it."),
      ("How do we know what is late?",
       "The “Missing entries” report measures the schedule against the teacher roster and "
       "names whoever has not registered yet.")],

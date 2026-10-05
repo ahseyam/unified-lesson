@@ -40,6 +40,37 @@ setTimeout(function(){
   R.push(["وباسم التخصص الملغى", t.indexOf("تحفيظ") >= 0]);
   R.push(["وبموضعها في الجدول", t.indexOf(w) >= 0 && t.indexOf(CX) >= 0]);
 
+  /* ⑤ **واليُتمُ بالأسبوع مثلُه**: تخصصٌ قائمٌ وأسبوعٌ خرج من الرزنامة.
+     وهذا ما وقع ٤ أكتوبر ٢٠٢٦ حين بدأ الجدولُ بالثامن: كلُّ ما سُجِّل تحت
+     السادس والسابع صار بلا صفٍّ في المصفوفة — **لا يُرى ويُحسب في التقارير**.
+     وكان الكاشفُ يقيس التخصصَ وحدَه فمرَّ عليه. */
+  var SP = (D.specs||[])[0];
+  DB.sched = [{id:"orph2",
+    gk:[D.sectors[0],CX,b.stage,b.per,"الأسبوع الأول",dy,SP].join("|"),
+    sector:D.sectors[0], complex:CX, stage:b.stage, school:b.stage,
+    period:b.per, week:"الأسبوع الأول", day:dy, spec:SP,
+    teacher:"أ. المهجور", teacherNo:"30777", klass:"٢/ب"}];
+  save(); open_();
+  var t2 = body();
+  R.push(["«الأسبوع الأول» ليس في الرزنامة", (D.weeks||[]).indexOf("الأسبوع الأول") < 0]);
+  R.push(["الحصةُ بأسبوعٍ ملغى صُرخ بها", t2.indexOf("أسبوعٍ لم يبقَ") >= 0]);
+  R.push(["وباسم معلمها", t2.indexOf("أ. المهجور") >= 0]);
+  R.push(["وباسم الأسبوع الملغى", t2.indexOf("الأسبوع الأول") >= 0]);
+  R.push(["ولا تظهر في المصفوفة", (function(){
+    PH=1; setctx("tab","fill"); setctx("sector",D.sectors[0]); setctx("complex",CX);
+    shell();
+    var cells=[].map.call(document.querySelectorAll("table.mx td"),
+                          function(x){ return x.textContent; }).join(" ");
+    return cells.indexOf("أ. المهجور") < 0;
+  })()]);
+  /* ويُعاد المزروعُ الأولُ لتكملة ما بعده */
+  DB.sched = [{id:"orph1",
+    gk:[D.sectors[0],CX,b.stage,b.per,w,dy,"تحفيظ"].join("|"),
+    sector:D.sectors[0], complex:CX, stage:b.stage, school:b.stage,
+    period:b.per, week:w, day:dy, spec:"تحفيظ",
+    teacher:"أ. المزروع", teacherNo:"30888", klass:"١/أ"}];
+  save(); open_();
+
   /* ③ ولا تظهر في الجدول نفسِه — فالصرخةُ هي سبيلُها الوحيد */
   PH=1; setctx("tab","fill"); setctx("sector",D.sectors[0]); setctx("complex",CX);
   shell();

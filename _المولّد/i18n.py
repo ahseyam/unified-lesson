@@ -735,6 +735,8 @@ EN.update({
     "الأسبوع السادس": "Week 6", "الأسبوع السابع": "Week 7",
     "الأسبوع الثامن": "Week 8", "الأسبوع التاسع": "Week 9",
     "الأسبوع العاشر": "Week 10", "الأسبوع الحادي عشر": "Week 11",
+    "الأسبوع الثاني عشر": "Week 12", "الأسبوع الثالث عشر": "Week 13",
+    "الأسبوع الرابع عشر": "Week 14", "الأسبوع الخامس عشر": "Week 15",
     # التخصصاتُ الثمانية
     "رياضيات": "Mathematics", "اجتماعيات": "Social studies", "لغتي": "Arabic",
     "إسلامية": "Islamic studies", "علوم": "Science", "حاسب آلي": "Computing",
@@ -2007,6 +2009,117 @@ EN.update({
     "فاختر واحداً ونقِّل الباقي إلى أسبوعٍ آخر مع الوكيل.":
         "so pick one and move the rest to another week with the deputy.",
     "فريق متابعة التقويم الداخلي": "Internal Evaluation Follow-up Team",
+    # ── المقيّمون الخمسة (٤ أكتوبر ٢٠٢٦) ──
+    "من دورك عند الدخول، ولا تُبدَّل هنا": "From the role you signed in with; not changed here",
+    # ── مفتاحُ الإدارة (٥ أكتوبر ٢٠٢٦) ──
+    "مفتاحُ الإدارة مطلوبٌ لـ: ": "The admin key is required for: ",
+    "\n\nوهو غيرُ مفتاح الانضمام المبنيِّ في الصفحة، ولا يُحفظ على هذا الجهاز.":
+        "\n\nIt is not the join key built into the page, and it is not stored on this device.",
+    "تفريغ بيانات المنظومة": "Wiping the system's data",
+    "استبدال كشف المعلمين": "Replacing the teacher roster",
+    "أُلغي التفريغ — لا مفتاحَ إدارة.": "Wipe cancelled — no admin key.",
+    "أُلغي الرفع — لا مفتاحَ إدارة.": "Upload cancelled — no admin key.",
+    # ── بوّابةُ ربط الجهاز (٥ أكتوبر ٢٠٢٦) ──
+    "هذا الجهاز غير متصلٍ بالمنظومة": "This device is not connected to the system",
+    "ما تكتبه هنا يبقى على هذا الجهاز ولا يصل مدرستَك ولا مشرفَك. ":
+        "What you write here stays on this device and reaches neither your school "
+        "nor your supervisor. ",
+    "ورابطُ الدخول الذي وصلك يربطه في ثانية.":
+        "The access link you were sent connects it in a second.",
+    "ألصق رابط الدخول الذي وصلك": "Paste the access link you were sent",
+    "الرابط الذي أرسلته لك إدارة التخطيط والاعتماد":
+        "The link sent to you by the Planning and Accreditation Department",
+    "رابط الدخول": "Access link",
+    "اربط الجهاز": "Connect this device",
+    "أعمل على هذا الجهاز وحده": "Work on this device only",
+    "هذا ليس رابطَ الدخول — انسخه كاملاً كما وصلك.":
+        "That is not the access link — copy it in full, exactly as you received it.",
+    "ما تكتبه يبقى على هذا الجهاز ولا يصل مدرستَك. ":
+        "What you write stays on this device and does not reach your school. ",
+    "راجع إدارة التخطيط والاعتماد لتزويدك برابط الدخول.":
+        "Ask the Planning and Accreditation Department for your access link.",
+    "عندي الرابط — اربط الجهاز": "I have the link — connect this device",
+    # ── تنبيهاتُ المقيّمين (٤ أكتوبر ٢٠٢٦) ──
+    "تسجيل حصة": "Lesson registered",
+    "إصدار التحضير": "Prep issued",
+    " تعليقاً": " comment(s)",
+    "⛔ لا تُعتمد قبل أن يرصدها مشرفُ المادة: ":
+        "⛔ Not approved before the subject supervisor scores it: ",
+    ". ودرجتُك محفوظةٌ باسمك، ويُعتمد بعد رصده.":
+        ". Your score is saved in your name, and approval follows their scoring.",
+    "حصصٌ لا موضعَ لها في الجدول: تخصصٍ لم يبقَ في المنصة أو أسبوعٍ لم يبقَ فيها، ":
+        "Lessons with no place in the schedule: a subject no longer on the platform, "
+        "or a week no longer on it, ",
+    "فلا تظهر في المصفوفة وتُحسب في التقارير. ":
+        "so they do not appear in the matrix yet still count in the reports. ",
+    "تُنقل إلى موضعها الصحيح أو تُحذف — ولا تُترك.":
+        "Move them to their correct place or delete them — do not leave them.",
+    "الأسبوع الملغى": "Retired week",
+    "التنبيهات": "Alerts",
+    " — جديدٌ: ": " — new: ",
+    "تسجيلُ الحصص وإصدارُ التحضير": "Lesson registrations and prep issuing",
+    "لا تسجيلَ ولا إصدارَ في نطاقك بعد.": "No registration or issuing in your scope yet.",
+    "افتحها": "Open it",
+    "جاهزيةُ تحضير المعلمين": "Teachers' prep readiness",
+    "لا حصةَ في نطاقك بعد.": "No lesson in your scope yet.",
+    "حصصه": "Lessons",
+    "صدر تحضيرُها": "Prep issued",
+    "الجاهزية": "Readiness",
+    "وهذه جاهزيةُ من سجّل حصصَه — ولا كشفَ للمعلمين تُقاس عليه، ":
+        "This is the readiness of those who registered their lessons — there is no teacher "
+        "roster to measure against, ",
+    "فمن لم يسجّل حصةً أصلاً لا يظهر هنا.":
+        "so whoever registered no lesson at all does not appear here.",
+    "بعد الاعتماد تُقفل الحصة على الجميع: لا يُعدَّل جدولُها ولا تحضيرُها ":
+        "After approval the lesson locks for everyone: its schedule, its prep ",
+    "ولا رصدُها، ولا يرصدها مقيّمٌ آخر بعدك.\n\nرصدها حتى الآن ":
+        "and its scoring can no longer be edited, and no other evaluator scores it after you."
+        "\n\nScored so far ",
+    "\n\nفإن كان يُنتظر غيرُهم فأجِّل الاعتماد.\n\nأتُتابع؟":
+        "\n\nIf others are still expected, postpone the approval.\n\nContinue?",
+    "هذه حصصُ تخصصاتٍ لا مشرفَ مختصّاً لها، فأوّلُ من يقع عليها: ":
+        "These are lessons in subjects with no specialist supervisor, so the first to take them on: ",
+    " — ولا أحدَ سواهم يراها في جدوله.": " — and no one else sees them in their schedule.",
+    "يرى حصص مدرسته وحدها ويجدولها، ويرصد أيَّ حصةٍ فيها ويعتمد نتيجتها":
+        "Sees and schedules their school's lessons alone, scores any of them and approves the result",
+    "ترى حصص مدرستها وحدها وتجدولها، وترصد أيَّ حصةٍ فيها وتعتمد نتيجتها":
+        "Sees and schedules her school's lessons alone, scores any of them and approves the result",
+    "يجدول حصص مدرسته ويسنِد المعلمين الزائرين إليها، ويرصد حصصها":
+        "Schedules their school's lessons, assigns the visiting teachers, and scores them",
+    "تجدول حصص مدرستها وتسنِد المعلمات الزائرات إليها، وترصد حصصها":
+        "Schedules her school's lessons, assigns the visiting teachers, and scores them",
+    "يتابع مجمعه كلَّه، ويرصد حصصه": "Follows their whole complex and scores its lessons",
+    "تتابع مجمعها كلَّه، وترصد حصصها": "Follows her whole complex and scores its lessons",
+    "اثنان من الإدارة العامة: يتابعان المنظومة كلَّها ويرصدان حصصها":
+        "Two from the central administration: they follow the whole system and score its lessons",
+    "اثنتان من الإدارة العامة: تتابعان المنظومة كلَّها وترصدان حصصها":
+        "Two from the central administration: they follow the whole system and score its lessons",
+    "تحضير المعلم": "Teacher's prep",
+    "استمارة تقييم للحصة": "Lesson evaluation form",
+    "تعليقُ مدير المدرسة": "Principal's comment",
+    "ملاحظةٌ نوعيةٌ بجانب درجتك — لا بدلاً منها":
+        "A qualitative note beside your score — not instead of it",
+    "بطاقة الإستراتيجية": "Strategy card",
+    "تحضيرُ المعلم — اطوِه إن شئت": "Teacher's prep — fold it if you wish",
+    "خمسةُ مقيّمين يرصدون كلٌّ في نطاقه — المشرف التربوي ومدير المدرسة والوكيل التعليمي ومدير المجمع وفريق متابعة التقويم الداخلي. ولكل مقيّمٍ استمارته المستقلة بدرجتها، والمعتمَد متوسط من رصد. ومعلمان زائران يملآن بطاقة الأقران. والشاهد يُرى لا يُفترض: ما لم يُرصد أثناء الحصة لا يُحتسب.":
+        "Five evaluators score, each within their own scope — the supervisor, the principal, "
+        "the academic deputy, the complex manager and the internal evaluation follow-up team. "
+        "Each evaluator has an independent form with its own score, and the adopted score is "
+        "the average of those who scored. Two visiting teachers fill the peer card. "
+        "And evidence is seen, not assumed: what is not observed during the lesson does not count.",
+    "استمارتك باسمك وحدك — لا يمحوها مقيّمٌ آخر، وتظهر درجته بجوار درجتك.":
+        "Your form carries your name alone — no other evaluator overwrites it, "
+        "and their score appears beside yours.",
+    "مشرفُ المادة: ": "Subject supervisor: ",
+    ". ويرصد معه كلُّ مقيّمٍ في نطاقه، والمعتمَدُ متوسّطُ من رصد.":
+        ". Every evaluator within scope scores alongside, and the adopted score is the average of those who scored.",
+    "لا مشرفَ مختصٌّ لهذا التخصص في هذه المدرسة — ":
+        "No specialist supervisor for this subject at this school — ",
+    "فالرصدُ على المقيّمين في نطاقهم: ": "so scoring falls to the evaluators within scope: ",
+    "رصدَ هذه الحصةَ ": "Scored this lesson: ",
+    "هذه الحصة خارج نطاقك فلا تُرصد منك — ترى ما رُصد عليها وتكتب تعليقك":
+        "This lesson is outside your scope so you cannot score it — you see what was scored and write your comment",
+    "لم يرصد أحدٌ هذه الحصة بعد.": "No one has scored this lesson yet.",
     "يتابع مجمعه كلَّه، ويرصد الحصص التي لا مشرفَ لتخصصها":
         "Follows the whole complex, and scores lessons whose subject has no supervisor",
     "تتابع مجمعها كلَّه، وترصد الحصص التي لا مشرفةَ لتخصصها":
