@@ -57,7 +57,21 @@ setTimeout(function(){
   T("المعلمُ صاحبُ الحصة يعدّل", editable("teacher"), true);
   T("المشرفُ لا يعدّل", editable("supervisor"), false);
   T("المديرُ لا يعدّل", editable("principal"), false);
-  T("الوكيلُ لا يعدّل", editable("deputy"), false);
+  /* ⚠️ **نُقض القفلُ للوكيل وحدَه** (قرارُ المستشار ٥ أكتوبر ٢٠٢٦): «أتح
+     تعديلَ الحصص أو حذفَها لمن يدخل من حساب الوكيل التعليمي». وكان القفلُ
+     بقراره هو في ٣٠ سبتمبر. فالشاهدُ ينقلب — **ومعه حدودُه**، فتوسعةٌ بلا
+     حارسٍ تتسع وحدَها: مدرسةٌ أخرى · وحصةٌ معتمدة. */
+  T("الوكيلُ يعدّل حصةَ مدرسته", editable("deputy"), true);
+  ME = {role:"deputy", name:"و", emp:"11111",
+        sector:SEC, complex:CX, school:"__لا مدرسة__"};
+  T("ولا يعدّل حصةَ مدرسةٍ أخرى", canEdit(ctx, b, L), false);
+  var Lap = JSON.parse(JSON.stringify(L)); Lap.approved = {by:"م", at:"x"};
+  ME = {role:"deputy", name:"و", emp:"11111",
+        sector:SEC, complex:CX, school:b.stage};
+  T("ولا يعدّل حصةً معتمدة", canEdit(ctx, b, Lap), false);
+  T("ويملأ خليةً فارغةً في مدرسته", canEdit(ctx, b, null), true);
+  T("ويحذف حصةَ مدرسته", canDrop(L), true);
+  T("ولا يحذف معتمدةً", canDrop(Lap), false);
   T("الزائرُ لا يعدّل", editable("peer"), false);
   T("المستشارُ يعدّل (طريقُ إصلاح)", editable("admin"), true);
   /* معلمٌ آخرُ لا يملك خانةَ غيره */

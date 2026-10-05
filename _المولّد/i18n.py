@@ -2022,6 +2022,10 @@ EN.update({
     "استبدال كشف المعلمين": "Replacing the teacher roster",
     "أُلغي التفريغ — لا مفتاحَ إدارة.": "Wipe cancelled — no admin key.",
     "أُلغي الرفع — لا مفتاحَ إدارة.": "Upload cancelled — no admin key.",
+    "يجدول حصص مدرسته ويعدّلها ويحذفها، ويسنِد المعلمين الزائرين، ويرصدها":
+        "Schedules their school's lessons, edits and deletes them, assigns the visiting teachers, and scores them",
+    "تجدول حصص مدرستها وتعدّلها وتحذفها، وتسنِد المعلمات الزائرات، وترصدها":
+        "Schedules her school's lessons, edits and deletes them, assigns the visiting teachers, and scores them",
     # ── النسخةُ الأخرى (٥ أكتوبر ٢٠٢٦) ──
     "رقمُك مسجَّلٌ في ": "Your number is registered in ",
     " — أغلق هذه وافتحها من الصفحة الرئيسة.":
