@@ -3459,6 +3459,41 @@ addEventListener("visibilitychange", ()=>{
 /* ⚠️ و`pageshow` بـ`persisted` هو **حدثُ الآيفون** بعينه: استئنافٌ من ذاكرة
    الرجوع لا تحميلٌ جديد، فلا يقع `visibilitychange` في بعض الحالات. */
 addEventListener("pageshow", (e)=>{ if(e && e.persisted) freshen(); });
+/* ═════════ تحديثُ الصفحة نفسِها عند نشر بناءٍ أحدث ═════════
+   ⛔ **لا يُطلب من المعلّم أن يُغلق التبويبَ ويفتحه**: من يُصلح عطلاً ليس له
+      يفقد الثقةَ بما يُصلحه. (قرارُ المستشار ٥ أكتوبر ٢٠٢٦: «لن أستطيع
+      إرسالَ هذه الرسالة — فهذا يزيد تشككهم. قم أنت بهذا الحل بنفسك».)
+   ⚠️ **ولا يُسحب الصفحةُ نفسُها للمقارنة**: ١٫٥ ميجابايت من كل جهازٍ كلَّ
+      بضع دقائق. بل ملفٌّ صغيرٌ فيه الختمُ وحدَه (`ver.json` ~٨٠ بايتاً).
+   ⚠️ **ولا يُعاد التحميلُ على عملٍ لم يُحفظ**: يُدفع المعلَّقُ أولاً، ولا
+      يقع الإعادةُ ومؤشّرُ أحدٍ في حقل. فلو أُعيد التحميلُ على معلّمٍ يكتب
+      ضاع سطرُه — وهو العطلُ الذي نُصلحه لا نضاعفه.
+   ⚠️ **ومرّةً واحدةً لكلِّ ختم**: لو تأخّر توزيعُ النشر على الشبكة فعاد
+      الختمُ القديمَ بعد الإعادة، لدار المتصفّحُ في حلقةٍ لا تنتهي. */
+function verCheck(){
+  if(!D.verurl || location.protocol === "file:") return;
+  fetch(D.verurl + "?t=" + Date.now(), {cache: "no-store"})
+    .then(r=>r.ok ? r.json() : null)
+    .then(v=>{
+      if(!v) return;
+      const live = v[NS];
+      if(!live || !D.build || live === D.build) return;
+      let done = "";
+      try{ done = sessionStorage.getItem(KEY + "_vr") || ""; }catch(e){}
+      if(done === live) return;                 /* جُرِّبت لهذا الختم */
+      try{ sessionStorage.setItem(KEY + "_vr", live); }catch(e){}
+      Promise.resolve(syncFlush()).then(()=>{
+        if(isTyping()) return;                  /* لا يُقطع على كاتب */
+        location.reload();
+      });
+    })
+    .catch(()=>{});
+}
+addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible") verCheck();
+});
+setInterval(verCheck, 300000);                  /* كلَّ خمس دقائق */
+
 /* ⚠️ ومن جلس على الجدول ولم يبرح: تجديدٌ كلَّ دقيقةٍ ما دامت الصفحةُ مرئيّةً
    ولا أحدَ يكتب. ومؤقّتُ الآيفون يتوقّف في الخلفية — وهذا مقصودٌ لا عيب. */
 setInterval(()=>{
