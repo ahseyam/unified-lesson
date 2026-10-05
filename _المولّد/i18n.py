@@ -2022,6 +2022,12 @@ EN.update({
     "استبدال كشف المعلمين": "Replacing the teacher roster",
     "أُلغي التفريغ — لا مفتاحَ إدارة.": "Wipe cancelled — no admin key.",
     "أُلغي الرفع — لا مفتاحَ إدارة.": "Upload cancelled — no admin key.",
+    # ── النسخةُ الأخرى (٥ أكتوبر ٢٠٢٦) ──
+    "رقمُك مسجَّلٌ في ": "Your number is registered in ",
+    " — أغلق هذه وافتحها من الصفحة الرئيسة.":
+        " — close this one and open it from the main page.",
+    "نسخة البنات": "the girls' edition", "نسخة البنين": "the boys' edition",
+    "النسخة الأخرى": "the other edition",
     # ── الخليةُ المحجوزة (٥ أكتوبر ٢٠٢٦) ──
     "هذه الخلية سجّلها غيرُك قبلك": "Someone registered this cell before you",
     ".\n\nوما كتبتَه فيها لم يُحفظ — اختر خليةً أخرى. ":
