@@ -4688,6 +4688,9 @@ function ph1(m){
     const n = trashList().length;
     if(n) tab("trash", "سلّة المحذوفات (" + arn(n) + ")");
   }
+  /* ⚠️ ورقةُ الروضة تبويبٌ مستقلّ: صفوفُها (أسبوع × يوم) لا تخصُّصَ فيها،
+     فلا تُدمج في جدول المراحل الثلاث. (٦ أكتوبر ٢٠٢٦) */
+  tab("kg", "رياض الأطفال");
   if(isAdmin()) tab("log", "سجلّ العمليات");        /* ⛔ سجلُّ من فعل ماذا — للمستشار وحده */
   if(isDeputy()) tab("assign", "إسناد الزائرين");
   if(isRoving()) tab("visits", R === "peer" ? "زياراتي المسنَدة" : "خطة زياراتي");
@@ -4755,6 +4758,7 @@ function ph1(m){
         "كشفُ المعلمين تامُّ الإدخال (" + arn(s.total) + ")."));
     }
   }
+  if(c.tab === "kg") return kgGrid(m, c);
   if(c.tab === "log") return logView(m, c);
   if(c.tab === "assign") return assignView(m, c);
   if(c.tab === "trash") return trashView(m, c);
@@ -4766,6 +4770,118 @@ function ph1(m){
 }
 
 /* صفوفُ الورقة: الأسبوع × اليوم × تخصصَي مجموعة ذلك اليوم */
+/* ═════════ ورقةُ رياض الأطفال ═════════
+   ⛔ **لم تكن الروضةُ في الجدول البتّة** — ثلاثُ مراحلَ لكل مجمع ولا خليةَ
+      لها، ومشرفتُها مسجَّلةٌ في سجل الإشراف ولا حصةَ لها تظهر. (٦ أكتوبر ٢٠٢٦)
+   ⚠️ وصفوفُها (أسبوع × يوم) لا (أسبوع × يوم × تخصص): لا دورانَ مشرفين في
+      الروضة، فالمادةُ **حقلٌ في الخلية** تختاره المعلمةُ من قائمة موادها —
+      إذ تُدرّس معلمةُ الصف أكثرَ من مادةٍ في اليوم.
+   ⚠️ والمفتاحُ يحمل تخصصاً ثابتاً (`D.kgspec`) فيبقى منعُ الحجز المزدوج
+      عاملاً على الخلية كما هو في المراحل الثلاث. */
+function kgRowsOf(c){
+  const out = [], only = c.onlyw && c.onlyw !== "كل الأسابيع" ? c.onlyw : null;
+  D.weeks.forEach(wk=>{
+    if(only && wk !== only) return;
+    D.days.forEach(day=>out.push({wk: wk, day: day, dt: dayDate(wk, day)}));
+  });
+  return out;
+}
+function kgGrid(m, c){
+  const cxs = (D.complexes[c.sector] || D.complexlist).filter(x=>(D.kgbands||{})[x]);
+  const rows = kgRowsOf(c);
+  const g = el("div","card");
+  const gh = el("h3");
+  gh.appendChild(el("span",null,"رياض الأطفال · " + c.sector));
+  /* ⛔ **«×» بين رقمين هنديين يُقلب بصرياً** كما تُقلب «·» — فـ«٤ × ٢» تُقرأ
+     «٤٢». وهي العلّةُ نفسُها التي أُصلحت في سطر الحصة. فتُكتب بالكلمات. */
+  gh.appendChild(el("small",null, arn(rows.length) + " صفاً · " + arn(cxs.length)
+    + " روضةً، لكلِّ روضةٍ " + arn(((D.kgbands||{})[cxs[0]]||[]).length) + " حصة"));
+  g.appendChild(gh);
+  const note = el("div","pad note");
+  note.appendChild(el("div",null,
+    "موادُّ الروضة غيرُ موادِّ المراحل الثلاث، فتُختار من قائمتها في الخلية: "
+    + (D.kgsubs||[]).join(" · ") + "."));
+  g.appendChild(note);
+  const wrap = el("div","gwrap"), t = el("table","mx");
+  const h1 = el("tr");
+  h1.appendChild(el("th",null,"الأسبوع واليوم")).rowSpan = 2;
+  cxs.forEach(cx=>{
+    const th = el("th",null, "روضة " + cx);
+    th.colSpan = ((D.kgbands||{})[cx] || []).length; h1.appendChild(th);
+  });
+  t.appendChild(h1);
+  const h2 = el("tr");
+  cxs.forEach(cx=>((D.kgbands||{})[cx] || []).forEach(b=>
+    h2.appendChild(el("th",null, b.per + " · " + b.time))));
+  t.appendChild(h2);
+  rows.forEach(r=>{
+    const tr = el("tr");
+    const td = el("td","cd" + ((r.dt && r.dt.g === todayISO()) ? " today" : ""));
+    td.appendChild(el("b",null, r.wk));
+    td.appendChild(el("i",null, r.day + (r.dt && r.dt.gt ? (RLM + " · " + RLM + r.dt.gt) : "")));
+    tr.appendChild(td);
+    cxs.forEach(cx=>((D.kgbands||{})[cx] || []).forEach(b=>{
+      const cell = el("td","cell");
+      cell.appendChild(kgCell({sector: c.sector, complex: cx}, b, r));
+      tr.appendChild(cell);
+    }));
+    t.appendChild(tr);
+  });
+  wrap.appendChild(t); g.appendChild(wrap); m.appendChild(g);
+}
+function kgCell(c, band, r){
+  const gk = [c.sector, c.complex, band.stage, band.per, r.wk, r.day, D.kgspec].join("|");
+  const w = el("div","cellbox");
+  const cur = ()=>findLesson(gk);
+  const L0 = cur();
+  const ed2 = canEdit({sector: c.sector, complex: c.complex, stages: []}, band, L0);
+  const ensure = ()=>{
+    let x = cur();
+    if(!x){
+      x = {id: uid(), gk: gk, sector: c.sector, complex: c.complex, stage: band.stage,
+           school: band.stage, period: band.per, week: r.wk, day: r.day,
+           date: (r.dt||{}).g || "", datetxt: (r.dt||{}).gt || "", hijri: (r.dt||{}).ht || "",
+           spec: D.kgspec, group: D.kgspec, subject: "", teacher: "", strategy: "",
+           approach: "", klass: "", time: band.time, grade: "", topic: "", pages: "",
+           peer1: "", peer2: "", peer1e: "", peer2e: "",
+           ev1: "", ev2: "", ev3: "", ev4: "", ev5: ""};
+      DB.sched.push(x);
+    }
+    return x;
+  };
+  const put = (k, v)=>{ snap(gk, "تعديل " + k); ensure()[k] = v; save(); };
+  const line = (key, ph, opts)=>{
+    if(ed2){
+      const f = fld(opts ? "sel" : "txt", L0 ? (L0[key] || "") : "",
+                    v=>{ put(key, v); }, opts, ph);
+      f.className = "cin sm"; f.dataset.f = key; w.appendChild(f);
+    } else w.appendChild(el("div","cin sm ro2", (L0 && L0[key]) || "—"));
+  };
+  line("teacher", D.lab_teacher_short || "المعلم");
+  /* ⚠️ المادةُ أولُ ما يُختار بعد الاسم — فهي ما يميّز حصةَ الروضة */
+  line("subject", "المادة", [""].concat(D.kgsubs || []));
+  line("strategy", "الإستراتيجية", [""].concat((D.bank||[]).map(x=>x.name)));
+  line("approach", "الاتجاه التدريسي", [""].concat(D.approaches || []));
+  line("klass", "الفصل");
+  line("time", "وقت البدء");
+  if(L0){
+    const bar = el("div","bar");
+    const go = el("button","b sm","ابدأ الحصة");
+    go.addEventListener("click", ()=>{ CUR = L0.id; PH = 2; shell(); window.scrollTo(0,0); });
+    bar.appendChild(go);
+    if(canDrop(L0)){
+      const dl = el("button","b ghost sm","حذف");
+      dl.addEventListener("click", ()=>{
+        uiAsk("حذفُ حصة الروضة هذه — تذهب إلى سلّة المحذوفات.\n\nأتُتابع؟",
+              "احذفها", "bad").then(ok=>{ if(ok && dropLesson(L0.id)) shell(); });
+      });
+      bar.appendChild(dl);
+    }
+    w.appendChild(bar);
+  }
+  return w;
+}
+
 function rowsOf(c){
   const out = [];
   const only = c.onlyw && c.onlyw !== "كل الأسابيع" ? c.onlyw : null;

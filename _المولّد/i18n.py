@@ -2026,6 +2026,27 @@ EN.update({
         "Schedules their school's lessons, edits and deletes them, assigns the visiting teachers, and scores them",
     "تجدول حصص مدرستها وتعدّلها وتحذفها، وتسنِد المعلمات الزائرات، وترصدها":
         "Schedules her school's lessons, edits and deletes them, assigns the visiting teachers, and scores them",
+    # ── ورقةُ رياض الأطفال (٦ أكتوبر ٢٠٢٦) ──
+    " روضةً، لكلِّ روضةٍ ": " KGs, each with ",
+    "ولرياض الأطفال ورقتها: تبويب «رياض الأطفال» — صفوفها الأسبوع واليوم، والمادة تُختار في الخلية من قائمة موادها هي (حلقة · أركان · مكتبة …) لأن معلمة الصف تُدرّس أكثر من مادة.":
+        "Kindergarten has its own sheet — the “Kindergarten” tab: its rows are the week "
+        "and the day, and the subject is chosen inside the cell from its own list "
+        "(Circle Time · Learning Corners · Library …), because the class teacher "
+        "teaches more than one subject.",
+    "رياض الأطفال": "Kindergarten",
+    "رياض الأطفال · ": "Kindergarten · ",
+    "روضة ": "KG ", " روضةً × ": " KGs × ",
+    "رياض الأطفال- النفل": "Kindergarten - Al Nafl",
+    "رياض الأطفال- عرقة": "Kindergarten - Irqah",
+    "رياض الأطفال- المنار": "Kindergarten - Al Manar",
+    "رياض الأطفال- الياسمين": "Kindergarten - Al Yasmeen",
+    "حلقة": "Circle Time", "أركان": "Learning Corners", "مكتبة": "Library",
+    "ابدأ الحصة": "Start the lesson",
+    "حذفُ حصة الروضة هذه — تذهب إلى سلّة المحذوفات.\n\nأتُتابع؟":
+        "Delete this kindergarten lesson — it goes to the trash.\n\nContinue?",
+    "موادُّ الروضة غيرُ موادِّ المراحل الثلاث، فتُختار من قائمتها في الخلية: ":
+        "Kindergarten subjects differ from the three stages, so they are chosen "
+        "from their own list in the cell: ",
     # ── النسخةُ الأخرى (٥ أكتوبر ٢٠٢٦) ──
     "رقمُك مسجَّلٌ في ": "Your number is registered in ",
     " — أغلق هذه وافتحها من الصفحة الرئيسة.":
