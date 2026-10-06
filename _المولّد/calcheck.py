@@ -71,6 +71,21 @@ def main():
     if cells < FLOOR * len(S.DAYS) * 4:
         bad.append("الدورانُ لم يُقَس كاملاً")
 
+    # ⛔ **وأوقاتُ الروضة لا تساوي أوقاتَ المراحل** (قرارُ المستشار ٦ أكتوبر
+    #    ٢٠٢٦): «ولا يتقاطع مع توقيت حصص الابتدائي والمتوسط والثانوي». فلو
+    #    تساوت بدايتان لم يستطع مقيّمٌ حضورَ الاثنتين، ويُسنَد إليه ما لا يُطاق
+    #    وهو لا يعلم. والاختيارُ الصحيحُ اليومَ يُنسى غداً ما لم يُحرَس.
+    stage_times = {b["time"] for bs in S.BANDS.values() for b in bs}
+    kg_times = [t for _, t in S.KG_PERIODS]
+    clash = [t for t in kg_times if t in stage_times]
+    print("  أوقاتُ الروضة: %s" % " · ".join(kg_times))
+    if clash:
+        bad.append("وقتُ روضةٍ يساوي وقتَ مرحلةٍ أخرى: " + " · ".join(clash))
+    if len(set(kg_times)) != len(kg_times):
+        bad.append("وقتان متساويان داخل الروضة نفسِها")
+    if not kg_times:
+        bad.append("لا أوقاتَ للروضة")
+
     # ٤ — خريطةُ الهجرة لا تمسّ أسبوعاً حيّاً
     live = {c["w"] for c in S.CAL}
     for k, v in (S.WEEK_MIGRATION or {}).items():
