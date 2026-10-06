@@ -1779,6 +1779,11 @@ EN.update({
     "سحبُ ما كتبه غيرُك على أجهزتهم": "Pull what others have written on their devices",
     # ── تخزينُ الخادم: كتلةٌ أو صفوف (٦ أكتوبر ٢٠٢٦) ──
     "تخزينُ الخادم": "Server storage",
+    "تحويلُ القراءة إلى الصفوف.\n\nبعدها تسحب الأجهزةُ ما استجدَّ وحدَه بدل القاعدة كلِّها. والكتلةُ تبقى محفوظةً كما هي، فالرجوعُ بنقرة.\n\nوتُنفَّذ الهجرةُ والمطابقةُ والتحويلُ في خطوةٍ واحدةٍ — فقد تستغرق دقيقة.\n\nأتُتابع؟":
+        "Switch the read to rows.\n\nAfterwards devices pull only what is new instead of the whole database. The blob stays stored as it is, so rolling back is one click.\n\nThe migration, the reconciliation and the switch all run as a single step — so it may take a minute.\n\nContinue?",
+    "تعذّرت المسحة": "The reconciliation sweep failed",
+    "سبقتنا كتابةٌ — يُعاد…": "A write got in first — retrying…",
+    "يُحوَّل…": "Switching…",
     "حالُ القاعدة": "Database state",
     "يُقرأ…": "Reading…",
     "لم يستجب": "No response",

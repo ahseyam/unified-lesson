@@ -34,7 +34,7 @@ SRC = os.path.join(ROOT, "٨ - النموذج الرقمي (تجربة)",
                    "منصة الحصة الموحَّدة — ابن خلدون.html")
 KEY = "MFTH-TAJRIBA-1234567890ab"
 AKEY = "IDARA-TAJRIBA-0987654321zz"
-FLOOR = 20                 # أرضيّةُ الشواهد: فحصٌ أقلُّ منها لم يكتمل
+FLOOR = 23                 # أرضيّةُ الشواهد: فحصٌ أقلُّ منها لم يكتمل
 
 SHIM = r"""
 import worker from "./worker.js";
@@ -47,13 +47,42 @@ const env = { STORE_KEY: process.env.STORE_KEY || "", ADMIN_KEY: process.env.ADM
   D1: makeD1(),
   DB: { get: async (k) => (KV.has(k) ? KV.get(k) : null), put: async (k, v) => { KV.set(k, v); } } };
 const LOG = [];
+let MODE_TRIES = 0, RACED = false;
 http.createServer(async (q, s) => {
   const chunks = [];
   for await (const c of q) chunks.push(c);
   const body = Buffer.concat(chunks).toString("utf8");
+  /* ⚠️ **تُزرع كتابةٌ تسبق أولَ تحويل**: الخادمُ يردُّ التحويلَ إن سبقته
+     كتابةٌ على الكتلة (وهو صوابُه)، والعميلُ يجب أن يُعيد الدورةَ لا أن
+     يُعلن الهزيمة. ولا يُقاس ذلك إلا بردٍّ مزروعٍ نعرف جوابَه. */
   if (q.url.indexOf("/__log") === 0) {
     s.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
-    s.end(JSON.stringify(LOG)); return;
+    s.end(JSON.stringify({log: LOG, modeTries: MODE_TRIES})); return;
+  }
+  let bumped = false;
+  try {
+    const b = JSON.parse(body || "{}");
+    if (b.__mode === "rows") { MODE_TRIES++; if (MODE_TRIES === 1) bumped = true; }
+  } catch (e) {}
+  /* ⚠️ **وعلى المحاولة الثانيةِ تُزرع كتابةٌ في النافذة بعينها**: تُكتب حصةٌ
+     في الكتلة **مباشرةً** (بلا مرورٍ بالخادم فلا يراها عدّادُه) بعد المسحة
+     وقبل التحويل — وهي الحالةُ التي لا يُغلقها حارسٌ، فيُغلقها **اللحاقُ**
+     بعد التحويل. فإن لم يلحق، ضاعت حصةُ معلّمٍ سجّلها في تلك الثانية. */
+  if (MODE_TRIES === 2 && !RACED) {
+    RACED = true;
+    const row = env.D1._db.prepare("SELECT v FROM store WHERE k = ?").get("platform:ikm_db");
+    if (row && row.v) {
+      const b = JSON.parse(row.v);
+      b.sched.push({ id: "RACE1", gk: "سباق|١", teacher: "أ. سجّل في النافذة" });
+      b.prep = b.prep || {}; b.prep["RACE1"] = { goal: "تحضيرُ النافذة" };
+      env.D1._db.prepare("UPDATE store SET v = ? WHERE k = ?").run(JSON.stringify(b), "platform:ikm_db");
+    }
+  }
+  if (bumped) {
+    LOG.push(["POST:تحويل-مردود", 0, 409]);
+    s.writeHead(409, { "Content-Type": "application/json;charset=utf-8", "Access-Control-Allow-Origin": "*" });
+    s.end(JSON.stringify({ ok: false, error: "جرت 1 كتابةً على الكتلة بعد آخر هجرة — أعد «هجرةَ البيانات» ثم حوِّل" }));
+    return;
   }
   const req = new Request("http://x" + q.url, { method: q.method, headers: q.headers,
     body: (q.method === "GET" || q.method === "HEAD") ? undefined : body });
@@ -97,6 +126,9 @@ setTimeout(async function(){
   pending = true; lastSent = "";
   A("زرعُ قاعدةٍ على قدِّ الحقيقية", await pushNow(),
     DB.sched.length + " حصة · " + Object.keys(DB.prep).length + " تحضيراً");
+  /* ⚠️ **الأعدادُ نسبيّةٌ لا مكتوبةٌ بيد**: كلُّ زيادةٍ في الزرع كانت تُسقط
+     أربعةَ شواهدَ سليمةً، فيُظنُّ العطلُ في الشفرة وهو في الحارس. */
+  var N0 = DB.sched.length;
 
   /* ① جهازٌ أوّلُ يكتب حصّتَين وتحضيراً — والخادمُ ما زال بالكتلة */
   DB.sched = DB.sched.concat([{id:"A1", gk:"ق|١", teacher:"أ. الأول"}, {id:"A2", gk:"ق|٢", teacher:"أ. الأول"}]);
@@ -105,23 +137,35 @@ setTimeout(async function(){
   A("دفعةُ الكتلة نجحت", await pushNow());
   A("والترقيمُ صفرٌ في نمط الكتلة", seqOf() === 0, seqOf());
 
-  /* ② هجرةٌ ثم مسحةٌ ختاميةٌ ثم تحويل */
-  var g1 = await post({kind:"platform", id:SID, __migrate:true, limit:400});
-  var g2 = {ok:true};
-  /* ⚠️ والهجرةُ أشواطٌ: أربعُ مئةٍ في الشوط، فقاعدةُ ٥٣٥ صفّاً شوطان */
-  while(g1.ok && !g1.done) g1 = await post({kind:"platform", id:SID, __migrate:true, limit:400});
-  A("الهجرةُ تمّت بأشواط", g1.ok && g1.done && g2.ok, (g1.total||0) + " صفّاً جملةً");
-  /* ومسحةٌ ختاميةٌ: ما كُتب وقتَ الهجرة يُلحَق، وما لم يتغيّر لا يُكتب */
-  var sw = await post({kind:"platform", id:SID, __migrate:true, limit:4000, sweep:true});
-  A("والمسحةُ الختاميةُ تمرُّ", sw.ok && sw.done, (sw.wrote||0) + " صفّاً أُلحق");
-  var md = await post({kind:"platform", id:SID, __mode:"rows", admin:_AK});
-  A("وتحوّل التخزينُ إلى الصفوف", md.ok && md.mode === "rows", md.error || md.mode);
+  /* ② ⛔ **التحويلُ يُنادى كما يناديه المستشار**: `rowsMode` الحقيقيةُ لا
+     طلبٌ مباشر — فالدورةُ (هجرةٌ · مسحةٌ · تحويلٌ · إعادةٌ عند الردّ · لحاقٌ)
+     شفرةٌ جديدةٌ تمرُّ عليها بياناتُ معلمين، فلا تُفترض بل تُقاس. */
+  var _dlg = null, _seen = [];
+  uiAsk = function(){ return Promise.resolve(true); };
+  askAdmin = function(){ return Promise.resolve(_AK); };
+  uiDialog = function(m, k){ _seen.push([String(m).slice(0,60), k]); if(_dlg) _dlg([m,k]); };
+  var waitDlg = new Promise(function(res){ _dlg = res; });
+  rowsMode("rows");
+  var dl = await Promise.race([waitDlg, new Promise(function(r){ setTimeout(function(){ r(["مهلة","timeout"]); }, 25000); })]);
+  A("وتحوّل التخزينُ بضغطةٍ واحدة", dl[1] === "ok", dl[0]);
+  var md = await (await fetch(_U + "?kind=platform&id=" + SID + "&key=__KEY__&stat=1")).json();
+  A("والنمطُ صار صفوفاً على الخادم", md.ok && md.stat && md.stat.mode === "rows",
+    md.stat ? md.stat.mode : JSON.stringify(md).slice(0,60));
+  var tries = (await (await fetch(_U.replace(/\/$/, "") + "/__log")).json()).modeTries;
+  A("وقد رُدَّ التحويلُ مرةً فأُعيدت الدورةُ ولم تُعلَن هزيمة", tries >= 2, tries + " محاولة");
+  /* ⛔ وحصةٌ سُجّلت في النافذة بين المسحة والتحويل: يلحقها اللحاقُ بعده */
+  setSeq(0); DB = {sched:[], prep:{}, obs:{}, peer:{}, rot:{}, __seq:0}; lastSent = ""; pending = false;
+  await pullNow();
+  A("وحصةٌ سُجّلت في نافذة التحويل لا تضيع على صاحبها",
+    DB.sched.some(function(x){ return x.id === "RACE1"; }) && !!DB.prep["RACE1"],
+    DB.sched.length + " حصة");
 
   /* ③ أولُ سحبةٍ كاملةٌ وتُعطي ترقيماً */
   setSeq(0);
   A("وأولُ سحبةٍ تنجح", await pullNow());
   A("وتُعطي ترقيماً", seqOf() > 0, seqOf());
-  A("ولا تُفقد الحصتان", DB.sched.length === 402 && !!DB.prep["A1"], DB.sched.length + " حصة");
+  A("ولا تُفقد الحصتان", DB.sched.length === N0 + 3 && !!DB.prep["A1"],
+    DB.sched.length + " حصة (المنتظَر " + (N0 + 3) + ": المزروعةُ + حصتان + حصةُ النافذة)");
 
   /* ④ سحبةٌ فارقةٌ بلا جديد: تُعيد «لا جديد» فلا يُعاد الرسم */
   A("وسحبةٌ بلا جديدٍ تُعيد «لا جديد»", (await pullNow()) === false);
@@ -138,7 +182,7 @@ setTimeout(async function(){
   var keep = JSON.stringify(DB);
   DB = {sched:[], prep:{}, obs:{}, peer:{}, rot:{}, __seq:0}; lastSent = ""; pending = false;
   await pullNow();
-  A("وجهازٌ جديدٌ يرى القاعدةَ كلَّها", DB.sched.length === 403, DB.sched.length + " حصة");
+  A("وجهازٌ جديدٌ يرى القاعدةَ كلَّها", DB.sched.length === N0 + 4, DB.sched.length + "/" + (N0 + 4) + " حصة");
   A("ويرى تحضيراتِها", !!DB.prep["A1"] && !!DB.prep["A3"]);
 
   /* ⑦ وخليةٌ محجوزةٌ تُردُّ عليه ويُزال ما كتبه */
@@ -147,7 +191,7 @@ setTimeout(async function(){
   pending = true; lastSent = "";
   await pushNow();
   await new Promise(r=>setTimeout(r, 400));
-  A("وخليةٌ محجوزةٌ تُزال من الجهاز", !DB.sched.some(x=>x.id === "X9") && DB.sched.length === 403, DB.sched.length + " حصة");
+  A("وخليةٌ محجوزةٌ تُزال من الجهاز", !DB.sched.some(x=>x.id === "X9") && DB.sched.length === N0 + 4, DB.sched.length + "/" + (N0 + 4) + " حصة");
 
   /* ⑧ الجهازُ الثاني يحذف A2 حذفاً صريحاً */
   DB.__deleted = ["A2"];
@@ -164,8 +208,8 @@ setTimeout(async function(){
   A("وسحبتُه الفارقةُ تأتي بجديد", await pullNow());
   A("والمحذوفُ يسقط عنده بـgone لا بالغياب", !DB.sched.some(x=>x.id === "A2"), DB.sched.length + " حصة");
   A("ويسقط تحضيرُه معه", !DB.prep["A2"]);
-  A("ولا يسقط غيرُه", DB.sched.length === 402 && !!DB.prep["A1"] && !!DB.prep["A3"],
-    DB.sched.length + " حصة");
+  A("ولا يسقط غيرُه", DB.sched.length === N0 + 3 && !!DB.prep["A1"] && !!DB.prep["A3"],
+    DB.sched.length + "/" + (N0 + 3) + " حصة");
 
   /* ⑩ ⛔ **والترقيمُ ليس بياناً**: لو دخل في لقطةِ القاعدة لرأى `pushNow`
      أن القاعدةَ تغيّرت بعد كلِّ سحبةٍ (والسحبةُ تُحدّث الترقيمَ دائماً)،
@@ -182,9 +226,9 @@ setTimeout(async function(){
   var bk = await post({kind:"platform", id:SID, __mode:"blob", admin:_AK});
   setSeq(0);
   await pullNow();
-  A("والرجوعُ إلى الكتلة يُخدَم", bk.ok && DB.sched.length >= 400, DB.sched.length + " حصة");
+  A("والرجوعُ إلى الكتلة يُخدَم", bk.ok && DB.sched.length >= N0, DB.sched.length + " حصة");
 
-  window.__LOG = JSON.stringify(await (await fetch(_U.replace(/\/$/, "") + "/__log")).json());
+  window.__LOG = JSON.stringify((await (await fetch(_U.replace(/\/$/, "") + "/__log")).json()).log);
   localStorage.clear();
   document.title = "DONE"; window.__OUT = JSON.stringify(R);
  }catch(e){ document.title = "ERR|" + e.message; window.__OUT = JSON.stringify(R); }

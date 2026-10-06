@@ -313,8 +313,54 @@ await seedBlob(e2, blobTxt);
 r = await jj(await P(e2, { kind: "platform", id: "ikm_db", __mode: "rows", admin: ADM }));
 A("ولا تحويلَ قبل الهجرة", r.ok === false, r.error);
 
+/* ═══ ⑯ ⛔ **المسحةُ مطابقةٌ تامّةٌ لا إضافة** ═══
+   كشفته المقابلةُ على القاعدة الحيّة قبل التحويل: خمسُ حصصٍ حذفها المعلمون
+   **أثناء** الهجرة بقيت حيّةً في الصفوف وهي في سلّة محذوفات الكتلة — ولو
+   حُوِّل النمطُ لعادت، ولحجزت خلاياها على غيرهم. */
+const e3 = mkEnv(null);
+await seedBlob(e3, blobTxt);
+let q3;
+for (;;) { q3 = await jj(await P(e3, { kind: "platform", id: "ikm_db", __migrate: true, limit: 9000 })); if (q3.done || !q3.ok) break; }
+A("هاجرت الكتلةُ إلى بيئةٍ نظيفة", q3.ok && q3.done, (q3.total || 0) + " صفّاً");
+/* معلّمٌ يحذف حصّةً **بعد** أن هاجرت */
+const b3 = JSON.parse(blobTxt);
+/* ⚠️ وتُختار حصةٌ **لها تحضيرٌ**: ليست كلُّ حصةٍ محضَّرةً، فاختيارُ واحدةٍ
+   بلا تحضيرٍ يجعل الشاهدَ يقيس سجلاً واحداً ويظنُّ العطلَ في الشفرة. */
+const victim = (b3.sched.find((x) => x && x.id && (b3.prep || {})[x.id]) || b3.sched[3]).id;
+b3.sched = b3.sched.filter((x) => x.id !== victim);
+delete b3.prep[victim];
+await seedBlob(e3, JSON.stringify(b3));
+const sw3 = await jj(await P(e3, { kind: "platform", id: "ikm_db", __migrate: true, limit: 9000, sweep: true }));
+A("والمسحةُ تُشاهد ما خرج من الكتلة محذوفاً", sw3.ok && sw3.stray === 2,
+  "شواهدُ حذفٍ " + sw3.stray + " (المنتظَر ٢: الحصةُ وتحضيرُها)");
+const f3 = await jj(await G(e3, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+A("فلا يعود المحذوفُ في الصفوف", !(f3.data.sched || []).some((x) => x.id === victim), victim);
+A("ولا يبقى تحضيرُه", !(victim in (f3.data.prep || {})));
+A("ويبقى سواه", (f3.data.sched || []).length === b3.sched.length,
+  (f3.data.sched || []).length + "/" + b3.sched.length);
+r = await jj(await P(e3, { kind: "platform", id: "ikm_db", __mode: "rows", admin: ADM }));
+A("ويُقبل التحويلُ بعد مسحةٍ تامّة", r.ok && r.mode === "rows", r.error || r.mode);
+
+/* ═══ ⑰ وسقفٌ يمنع كارثة: كتلةٌ نقصت نصفَها لا تُشاهِد القاعدةَ محذوفةً ═══ */
+const e4 = mkEnv(null);
+await seedBlob(e4, blobTxt);
+let q4;
+for (;;) { q4 = await jj(await P(e4, { kind: "platform", id: "ikm_db", __migrate: true, limit: 9000 })); if (q4.done || !q4.ok) break; }
+const b4 = JSON.parse(blobTxt);
+b4.sched = b4.sched.slice(0, 40);                 /* ٣٥٧ حصةً تختفي فجأة */
+await seedBlob(e4, JSON.stringify(b4));           /* ⛔ ولولا الزرعُ لم يُقَس شيء */
+const sw4 = await jj(await P(e4, { kind: "platform", id: "ikm_db", __migrate: true, limit: 9000, sweep: true }));
+A("وكتلةٌ نقصت فجأةً تُبلِّغ ولا تُشاهِد شيئاً محذوفاً",
+  sw4.ok && sw4.stray > sw4.strayCap && !!sw4.why,
+  "خارجُ الكتلة " + (sw4.stray || 0) + " · السقف " + sw4.strayCap + " · " + (sw4.why || "بلا سبب"));
+const f4 = await jj(await G(e4, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+A("فتبقى الحصصُ كلُّها في الصفوف", (f4.data.sched || []).length === (blob.sched || []).length,
+  (f4.data.sched || []).length + "/" + (blob.sched || []).length);
+r = await jj(await P(e4, { kind: "platform", id: "ikm_db", __mode: "rows", admin: ADM }));
+A("ويُمنع التحويلُ حتى تُراجَع", r.ok === false && /مسحةٌ ختاميةٌ/.test(r.error || ""), r.error);
+
 /* ⚠️ أرضيّةُ الشواهد: فحصٌ انقطع في منتصفه يُعلن نجاحاً كاذباً */
-const FLOOR = 40;
+const FLOOR = 50;
 let w = R.filter(x => !x[0]).length;
 if (R.length < FLOOR) { console.log("  ⛔ " + R.length + " شاهداً والأرضيّةُ " + FLOOR + " — فحصٌ لم يكتمل"); w++; }
 console.log("\n  " + (w ? "⛔ سقط " + w + " من " + R.length : "✓ " + R.length + " شاهداً كلُّها تمرّ"));
@@ -364,8 +410,8 @@ FAULTS = [
      '          if (false) {\n            return json({ ok: true, store: s.kind, mode: "rows", seq: w.seq,',
      "لا تُعيد القاعدة"),
     ("نزعُ حارسِ الصفوف المتخلّفة",
-     'if ((m.blobw || 0) !== (m.swept === undefined ? -1 : m.swept)) {',
-     "if (false) {", "صفوفٍ متخلّفة"),
+     "            if ((m.blobw || 0) !== sw) {",
+     "            if (false) {", "صفوفٍ متخلّفة"),
     ("نزعُ عدّادِ كتاباتِ الكتلة",
      '"INSERT INTO meta (db, blobw) VALUES (?, 1) ON CONFLICT(db) DO UPDATE SET blobw = meta.blobw + 1")',
      '"INSERT INTO meta (db, blobw) VALUES (?, 0) ON CONFLICT(db) DO UPDATE SET blobw = meta.blobw")',
@@ -373,6 +419,12 @@ FAULTS = [
     ("نزعُ تسجيلِ المسحةِ الختامية",
      "    await d1.prepare(\"UPDATE meta SET swept = blobw WHERE db = ?\").bind(db).run();",
      "    void 0;", "ويُحوَّل بمفتاح الإدارة"),
+    ("نزعُ مطابقةِ الحذف من المسحة",
+     "      for (const part of chunk(tx, 50)) await d1.batch(part);\n      stray = live.length;",
+     "      stray = live.length;", "فلا يعود المحذوفُ"),
+    ("نزعُ سقفِ المطابقة",
+     "if (live.length && live.length <= strayCap) {", "if (live.length) {",
+     "تُبلِّغ ولا تُشاهِد"),
     ("جعلُ الترقيمِ ثابتاً لا يُزاد",
      'ON CONFLICT(db) DO UPDATE SET seq = meta.seq + 1")\n    .bind(db));',
      'ON CONFLICT(db) DO UPDATE SET seq = meta.seq")\n    .bind(db));', "المستجدَّ وحدَه"),

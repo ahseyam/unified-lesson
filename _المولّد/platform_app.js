@@ -2318,59 +2318,108 @@ function storeCard(m){
 }
 
 /* ⚠️ الهجرةُ أشواطٌ لا طلبٌ واحد: طلبٌ يحمل ألفَي صفٍّ يتجاوز حدَّ المعالجة
-   — وهو العطبُ نفسُه الذي نُزيله. فأربعُ مئةٍ في الشوط، والموضعُ محفوظٌ
-   على الخادم فتُستأنف من حيث توقّفت. */
-function rowsMigrate(){
+   — وهو العطبُ نفسُه الذي نُزيله. فستُّ مئةٍ في الشوط، والموضعُ محفوظٌ على
+   الخادم فتُستأنف من حيث توقّفت. */
+function migPost(o){
+  return fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body: apiBody(Object.assign({kind:"platform", id:SID}, o))}).then(r=>r.json());
+}
+/* أشواطٌ حتى تنتهي؛ ثم مسحةٌ **مطابقةٌ** إن طُلبت */
+function migRun(sweep, say){
   let n = 0, rounds = 0;
-  setSyn("تُهاجَر البيانات…");
-  const step = (sweep)=>fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body: apiBody({kind:"platform", id:SID, __migrate:true, limit:400, sweep:!!sweep})})
-    .then(r=>r.json())
-    .then(r=>{
-      if(!(r && r.ok)){
-        setSyn("");
-        uiDialog(TR("⛔ لم تُنفَّذ الهجرة.\n\n") + ((r && r.error) || TR("خادمُك يعمل بشفرةٍ قديمةٍ لا تعرف الصفوف — انشر النسخةَ الجديدةَ ثم أعد المحاولة.")), "bad");
-        return false;
-      }
-      n += r.wrote || 0; rounds++;
-      setSyn("تُهاجَر… " + arn(n) + " صفّاً");
-      if(!r.done && rounds < 80) return step(false);
-      /* ⚠️ ومسحةٌ ختاميةٌ: ما كُتب وقت الهجرة يُلحَق، وما لم يتغيّر لا يُكتب */
-      if(!sweep) return step(true);
-      setSyn("");
-      logAct("هجرةُ التخزين إلى الصفوف", arn(n) + " صفّاً", null);
-      save();
-      uiDialog(TR("✓ تمّت الهجرة: ") + arn(n) + TR(" صفّاً.\n\nولم يتغيّر شيءٌ عند المعلمين بعد — القاعدةُ المخدومةُ هي الكتلةُ نفسُها. والخطوةُ الثانيةُ («تحويلُ القراءة») هي التي تُفعّل الصفوف."), "ok");
-      shell();
-      return true;
-    })
-    .catch(e=>{ setSyn(""); uiDialog(TR("تعذّر الاتصال: ") + e.message, "bad"); return false; });
-  step(false);
+  const step = ()=>migPost({__migrate:true, limit:600}).then(r=>{
+    if(!(r && r.ok)) throw new Error((r && r.error)
+      || TR("خادمُك يعمل بشفرةٍ قديمةٍ لا تعرف الصفوف — انشر النسخةَ الجديدةَ ثم أعد المحاولة."));
+    n += r.wrote || 0; rounds++;
+    if(say) setSyn(TR("تُهاجَر… ") + arn(n) + TR(" صفّاً"));
+    if(!r.done && rounds < 90) return step();
+    if(!sweep) return {n:n, sw:null};
+    return migPost({__migrate:true, limit:9000, sweep:true}).then(sw=>{
+      if(!(sw && sw.ok)) throw new Error((sw && sw.error) || TR("تعذّرت المسحة"));
+      /* ⚠️ سقفُ المطابقة: صفوفٌ خارج الكتلة أكثرُ من المسموح — لا تُشاهَد
+         محذوفةً ولا تُعتمد المسحة. وهو حارسٌ لا عطل. */
+      if(sw.why) throw new Error(TR(sw.why));
+      return {n:n, sw:sw};
+    });
+  });
+  return step();
 }
 
+function rowsMigrate(){
+  setSyn(TR("تُهاجَر البيانات…"));
+  migRun(true, true).then(r=>{
+    setSyn("");
+    logAct("هجرةُ التخزين إلى الصفوف", arn(r.n) + " صفّاً", null);
+    save();
+    uiDialog(TR("✓ تمّت الهجرة: ") + arn(r.n)
+      + TR(" صفّاً.\n\nولم يتغيّر شيءٌ عند المعلمين بعد — القاعدةُ المخدومةُ هي الكتلةُ نفسُها. والخطوةُ الثانيةُ («تحويلُ القراءة») هي التي تُفعّل الصفوف."), "ok");
+    shell();
+  }).catch(e=>{ setSyn(""); uiDialog(TR("⛔ لم تُنفَّذ الهجرة.\n\n") + e.message, "bad"); });
+}
+
+/* ⛔ **والتحويلُ خطوةٌ واحدةٌ مغلقةٌ لا خطوتان** — قيسَ على القاعدة الحيّة في
+   ٦ أكتوبر ٢٠٢٦: المعلمون يكتبون **خمسَ كتاباتٍ في الدقيقة**، وكلُّ كتابةٍ
+   على الكتلة تجعل الصفوفَ متخلّفةً فيردُّ الخادمُ التحويلَ (وهو صوابُه).
+   فلو كان زرّان — هجرةٌ ثم تحويل — ردَّ الخادمُ الثانيَ أبداً، لأن بين
+   ضغطتَي اليد عشراتِ الثواني.
+   ⚠️ فالضغطةُ الواحدة تُجري: أشواطَ الهجرة · ثم مسحةً مطابقةً · ثم التحويلَ
+      **فوراً** — فالنافذةُ ثانيةٌ لا دقائق. وإن سبقتها كتابةٌ رُدَّ التحويلُ
+      فأُعيدت الدورةُ كلُّها، حتى تُصادَف ثانيةٌ هادئة.
+   ⚠️ **ثم لحاقٌ بعد التحويل**: مرورٌ أخيرٌ على الكتلة **يُضيف ولا يحذف** —
+      فما كُتب في تلك الثانية يلحق بالصفوف ولا يضيع على صاحبه. والكتلةُ بعد
+      التحويل مجمَّدةٌ، فلا جديدَ فيها بعده. */
 function rowsMode(want){
   const toRows = want === "rows";
   uiAsk(toRows
-    ? TR("تحويلُ القراءة إلى الصفوف.\n\nبعدها تسحب الأجهزةُ ما استجدَّ وحدَه بدل القاعدة كلِّها. والكتلةُ تبقى محفوظةً كما هي، فالرجوعُ بنقرة.\n\nأتُتابع؟")
+    ? TR("تحويلُ القراءة إلى الصفوف.\n\nبعدها تسحب الأجهزةُ ما استجدَّ وحدَه بدل القاعدة كلِّها. والكتلةُ تبقى محفوظةً كما هي، فالرجوعُ بنقرة.\n\nوتُنفَّذ الهجرةُ والمطابقةُ والتحويلُ في خطوةٍ واحدةٍ — فقد تستغرق دقيقة.\n\nأتُتابع؟")
     : TR("الرجوعُ إلى الكتلة الواحدة.\n\nتُخدَم الكتلةُ المحفوظةُ من جديد.\n\n⚠️ وما سجّله المعلمون **بعد** التحويل إلى الصفوف موجودٌ في الصفوف لا في الكتلة — فخُذ نسخةً احتياطيةً أولاً إن كنت ستعود.\n\nأتُتابع؟"),
     toRows ? TR("حوِّل") : TR("ارجع")).then(ok=>{
     if(!ok) return;
     askAdmin(toRows ? "تحويل التخزين إلى الصفوف" : "الرجوع إلى الكتلة").then(adm=>{
       if(!adm){ uiDialog(TR("أُلغي — لا مفتاحَ إدارة."), "warn"); return; }
-      fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
-          body: apiBody({kind:"platform", id:SID, __mode:want, admin:adm})})
-        .then(r=>r.json())
-        .then(r=>{
-          if(!(r && r.ok)){ uiDialog(TR("⛔ لم يُحوَّل.\n\n") + ((r && r.error) || ""), "bad"); return; }
-          /* ⚠️ والترقيمُ يُصفَّر عند كل تحويل: نمطٌ آخرُ وترقيمٌ آخر، فلو
-             بقي القديمُ طُلب «ما بعده» على عدّادٍ ليس له — فعادت القاعدةُ
-             ناقصةً بلا خطأ. والصفرُ يعني «أعطني الكاملة». */
-          setSeq(0);
-          logAct("تحويل التخزين", toRows ? "إلى الصفوف" : "إلى الكتلة", null);
-          save();
-          pullNow().then(()=>{ uiDialog(TR("✓ صار التخزينُ: ") + TR(toRows ? "صفوفاً" : "كتلةً واحدة"), "ok"); shell(); });
-        })
-        .catch(e=>uiDialog(TR("تعذّر الاتصال: ") + e.message, "bad"));
+      const flip = ()=>migPost({__mode:want, admin:adm});
+      const done = (r)=>{
+        /* ⚠️ والترقيمُ يُصفَّر عند كل تحويل: نمطٌ آخرُ وترقيمٌ آخر، فلو
+           بقي القديمُ طُلب «ما بعده» على عدّادٍ ليس له — فعادت القاعدةُ
+           ناقصةً بلا خطأ. والصفرُ يعني «أعطني الكاملة». */
+        setSeq(0);
+        logAct("تحويل التخزين", toRows ? "إلى الصفوف" : "إلى الكتلة", null);
+        save();
+        setSyn("");
+        pullNow().then(()=>{
+          uiDialog(TR("✓ صار التخزينُ: ") + TR(toRows ? "صفوفاً" : "كتلةً واحدة"), "ok");
+          shell();
+        });
+      };
+      const fail = (m)=>{ setSyn(""); uiDialog(TR("⛔ لم يُحوَّل.\n\n") + m, "bad"); };
+
+      if(!toRows){
+        flip().then(r=>{ if(r && r.ok) done(r); else fail((r && r.error) || ""); })
+              .catch(e=>fail(e.message));
+        return;
+      }
+      /* إلى الصفوف: دورةٌ تُعاد حتى تُصادف ثانيةً لا كتابةَ فيها */
+      const cycle = (left)=>{
+        setSyn(TR("تُهاجَر البيانات…"));
+        return migRun(true, true).then(()=>{
+          setSyn(TR("يُحوَّل…"));
+          return flip();
+        }).then(r=>{
+          if(r && r.ok) return r;
+          const why = (r && r.error) || "";
+          /* ردٌّ سببُه كتابةٌ سبقتنا: تُعاد الدورةُ لا تُعلَن هزيمة */
+          if(left > 0 && /كتابةً على الكتلة|مسحةٌ ختاميةٌ/.test(why)){
+            setSyn(TR("سبقتنا كتابةٌ — يُعاد…"));
+            return cycle(left - 1);
+          }
+          throw new Error(why);
+        });
+      };
+      cycle(6)
+        /* ⚠️ لحاقٌ بعد التحويل: إضافةٌ محضةٌ تلتقط ما كُتب في النافذة */
+        .then(()=>migPost({__migrate:true, limit:9000}).catch(()=>null))
+        .then(()=>done())
+        .catch(e=>fail(e.message));
     });
   });
 }
