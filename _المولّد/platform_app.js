@@ -4371,14 +4371,47 @@ function issue(L,P){
      «من يزورنا» للمدرسة، و«أين أزور» للمشرف.
    · ولا أربعاء، والأسبوعُ الرابعُ ثلاثةُ أيامٍ لا أربعة — كما في الأصل. */
 let GS = null;
+/* ⛔ **المشرفُ كان يرى المجمعاتِ كلَّها في المرشِّح** — وسجلُّ الإشراف يحدّد
+   مجمعاتِه، فيفتح مجمعاً لا يزوره ويبحث فيه عن حصصه فلا يجدها، أو يظنُّ
+   أنها عليه. (طلبُ المستشار ٦ أكتوبر ٢٠٢٦: «أريد ألا يظهر للمشرف إلا
+   المجمعات التابعة له فقط».)
+   ⚠️ **ومصدرٌ واحدٌ لا اثنان**: تُقرأ هنا، ومنها المرشِّحُ ومنها افتراضُ
+      السياق — فلو كُتبت في موضعين لافترقتا يوماً ورأى المرشِّحُ ما لا يراه
+      السياق. ومن لا سجلَّ له (أو سجلُّه بلا مجمعات) يرى الكلَّ كما كان،
+      فالتضييقُ لا يُقفل على أحدٍ بابَه.
+   ⚠️ ويبقى ترتيبُ القائمة ترتيبَ المنصة لا ترتيبَ السجلّ، فلا يختلف موضعُ
+      المجمع بين مشرفٍ وآخر. */
+/* ⛔ **والقطاعُ مثلُ المجمع**: ضيّقتُ المجمعاتِ فبقي المشرفُ يستطيع فتحَ قطاعٍ
+   ليس في سجلّه — فمنال سجلُّها «وطني» وحدَه وكانت تفتح «عالمي» وترى مجمعاتٍ
+   لا حصةَ لها فيها. وهو نصفُ العلاج، ونصفُ العلاج يُطمئن ولا يُبرئ. */
+function mySectors(){
+  const all = D.sectors || [];
+  if(!ME || ME.role !== "supervisor") return all;
+  const r = supByEmp(ME.emp);
+  const mine = (r && r.sectors) || [];
+  if(!mine.length) return all;
+  const out = all.filter(x=>mine.indexOf(x) >= 0);
+  return out.length ? out : all;
+}
+function myComplexes(sector){
+  const all = D.complexes[sector] || D.complexlist || [];
+  if(!ME || ME.role !== "supervisor") return all;
+  const r = supByEmp(ME.emp);
+  const mine = (r && r.complexes) || [];
+  if(!mine.length) return all;
+  const out = all.filter(x=>mine.indexOf(x) >= 0);
+  return out.length ? out : all;
+}
 function gctx(){
   if(!GS){
     try{ GS = JSON.parse(localStorage.getItem(KEY+"_ctx")||"null"); }catch(e){}
     GS = GS || {};
   }
   /* ── النطاقُ يُورَث من الدخول: المدرسةُ للمدير والوكيل، والتخصصُ لمن يتنقّل ── */
-  if(!GS.sector) GS.sector = (ME && ME.sector) || D.sectors[0];
-  const cl = D.complexes[GS.sector] || D.complexlist;
+  const secs = (typeof mySectors === "function") ? mySectors() : (D.sectors || []);
+  if(!GS.sector || secs.indexOf(GS.sector) < 0)
+    GS.sector = (ME && ME.sector && secs.indexOf(ME.sector) >= 0) ? ME.sector : secs[0];
+  const cl = myComplexes(GS.sector);
   if(!GS.complex || cl.indexOf(GS.complex) < 0) GS.complex = (ME && ME.complex &&
       cl.indexOf(ME.complex) >= 0) ? ME.complex : cl[0];
   if(!Array.isArray(GS.stages)) GS.stages = [];
@@ -4585,14 +4618,14 @@ function ph1(m){
   const ws = lab("نوع التعليم");
   ws.appendChild(fld("sel", c.sector, v=>{
     setctx("sector", v);
-    const l = D.complexes[v] || [];
+    const l = myComplexes(v);
     if(l.indexOf(c.complex) < 0) setctx("complex", l[0] || "");
     setctx("stages", []); shell();
-  }, D.sectors));
+  }, mySectors()));
   gr.appendChild(ws);
   const wc = lab("المجمع التعليمي");
   wc.appendChild(fld("sel", c.complex, v=>{ setctx("complex", v); setctx("stages", []); shell(); },
-                     D.complexes[c.sector] || D.complexlist));
+                     myComplexes(c.sector)));
   gr.appendChild(wc);
   /* ⛔ التخصصُ مرشِّحٌ لكل من يتنقّل — لا للمعلم وحده. كان المشرفُ يرى المجمعَ
      كلَّه ويبحث بيده: «أليس من المفترض أن يوجد زر خاص باختيار تخصص المشرف
@@ -4787,7 +4820,8 @@ function kgRowsOf(c){
   return out;
 }
 function kgGrid(m, c){
-  const cxs = (D.complexes[c.sector] || D.complexlist).filter(x=>(D.kgbands||{})[x]);
+  /* ⚠️ وورقةُ الروضة تتبع القاعدةَ نفسَها: مشرفةُ الروضة لمجمعاتها لا لغيرها */
+  const cxs = myComplexes(c.sector).filter(x=>(D.kgbands||{})[x]);
   const rows = kgRowsOf(c);
   const g = el("div","card");
   const gh = el("h3");
