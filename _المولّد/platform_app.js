@@ -1392,8 +1392,19 @@ function login(){
     opts(selComplex, D.complexes[selSector.value] || D.complexlist, true);
     fillSchool();
   };
-  const fillSchool = ()=> opts(selSchool, (D.bands[selComplex.value] || [])
-      .map(b=>b.stage).filter((v,i,a)=>a.indexOf(v) === i), true);
+  /* ⛔ **ولا تُختار المدرسةُ عن الداخل**: كانت تبدأ على أولِ مدرسةٍ في المجمع
+     («رياض الأطفال- النفل»)، فمن ضغط «دخول» بلا انتباهٍ دخل على مدرسةٍ ليست
+     له — والمديرُ والوكيلُ يُربطان بها ربطاً. فتبدأ خاليةً، ويمنع الدخولَ
+     تنبيهٌ حتى يختار. (٦ أكتوبر ٢٠٢٦) */
+  const fillSchool = ()=>{
+    const list = (D.bands[selComplex.value] || [])
+        .map(b=>b.stage).filter((v,i,a)=>a.indexOf(v) === i);
+    const cur = list.indexOf(selSchool.value) >= 0 ? selSchool.value : "";
+    selSchool.innerHTML = "";
+    const b0 = el("option", null, "—"); b0.value = ""; selSchool.appendChild(b0);
+    list.forEach(v=>{ const o = el("option",null,v); o.value = v; selSchool.appendChild(o); });
+    selSchool.value = cur;
+  };
   opts(selSector, D.sectors); opts(selSpec, D.specs); fillComplex();
   selSector.addEventListener("change", fillComplex);
   selComplex.addEventListener("change", fillSchool);
@@ -1401,10 +1412,17 @@ function login(){
   const showScope = ()=>{
     const sc = picked ? picked.scope : "";
     scope.style.display = sc ? "" : "none";
-    /* ⛔ المدير والوكيل: مدرسةٌ واحدةٌ تُثبَّت. والمشرفُ والزائرُ والمعلم: تخصص. */
-    selSector.__lab.style.display  = (sc === "school" || sc === "complex") ? "" : "none";
-    selComplex.__lab.style.display = (sc === "school" || sc === "complex") ? "" : "none";
-    selSchool.__lab.style.display  = sc === "school" ? "" : "none";
+    /* ⛔ **والمعلمُ يُسأل عن مدرسته كما يُسأل عن تخصصه** (طلبُ المستشار ٦
+       أكتوبر ٢٠٢٦): كان يُسأل عن التخصص وحدَه، فيُفتح له جدولُ أولِ مجمعٍ
+       في القائمة لا مجمعِه، فيبحث عن مدرسته بين أربعةِ مجمعاتٍ قبل أن يجد
+       خانتَه. وكشفُ المعلمين — وفيه مجمعُ كلِّ معلّمٍ ومدرستُه — **لم يُرفع
+       بعد**، فلا شيءَ يُخبر المنصةَ بها غيرُه هو.
+       ⚠️ والزائرُ لا يُسأل: زياراتُه مُسنَدةٌ إليه برقمه، لا بمدرسته.
+       ⚠️ والمشرفُ لا يُسأل: نطاقُه من سجلّ الإشراف لا من اختياره. */
+    const teach = picked && picked.k === "teacher";
+    selSector.__lab.style.display  = (sc === "school" || sc === "complex" || teach) ? "" : "none";
+    selComplex.__lab.style.display = (sc === "school" || sc === "complex" || teach) ? "" : "none";
+    selSchool.__lab.style.display  = (sc === "school" || teach) ? "" : "none";
     selSpec.__lab.style.display    = sc === "spec" ? "" : "none";
     whoAmI();
   };
@@ -1491,8 +1509,19 @@ function login(){
          و«أخرى» تُترك فارغةً يختارها صاحبُها — لا يُخمَّن له تخصص. */
       const sp = (D.specmap || {})[r.s] || "";
       if(sp && D.specs.indexOf(sp) >= 0) selSpec.value = sp;
+      /* ⚠️ وفي الكشف قطاعُ المعلّمِ (`k`) ومجمعُه (`c`) ومرحلتُه (`g`) — فتُملأ
+         الأربعةُ لا المجمعُ وحدَه، ويبقى له تغييرُها. وكان القطاعُ لا يُضبط،
+         فمن كان مجمعُه في القطاع الآخر لم يُملأ له شيء. */
+      if(r.k && (D.sectors || []).indexOf(r.k) >= 0 && selSector.value !== r.k){
+        selSector.value = r.k; fillComplex();
+      }
       if(D.complexes[selSector.value] && D.complexes[selSector.value].indexOf(r.c) >= 0){
         selComplex.value = r.c; fillSchool();
+      }
+      if(r.g){
+        const sch = [...selSchool.options].map(o=>o.value)
+                      .find(x=>stageBase(x) === stageBase(r.g));
+        if(sch) selSchool.value = sch;
       }
       found.textContent = r.n + " — " + TR(r.s) + (sp && sp !== r.s ? " (" + TR(sp) + ")" : "")
                         + " · " + r.g + " · مجمع " + r.c + " · " + r.k
@@ -1526,6 +1555,11 @@ function login(){
       ME.spec = selSpec.value;
       const cx = selComplex.value;
       if(cx) ME.complex = cx;
+      /* ⚠️ والمعلمُ يحمل مدرستَه معه، فيفتح جدولُه عليها لا على أولِ مجمع */
+      if(pick === "teacher"){
+        if(!selSchool.value) return alert("اختر مدرستك — عليها يُبنى كلُّ ما تراه.");
+        ME.sector = selSector.value; ME.school = selSchool.value;
+      }
     } else if(sc === "sup"){
       /* ⛔ نطاقُ المشرف من سجلّه لا من اختياره — وقد تحقّق منه empError */
       const r = supByEmp(ME.emp);
@@ -1775,7 +1809,9 @@ function shell(){
   if(LOGO){ const g=document.createElement("img"); g.src="data:image/jpeg;base64,"+LOGO; left.appendChild(g); }
   const ttl = el("div");
   ttl.appendChild(el("h1",null,"منصة الحصة الموحَّدة"));
-  ttl.appendChild(el("div",null,D.school)).style.cssText="font-family:JZL,SK;font-size:14px;opacity:.9";
+  /* ⚠️ اسمُ المدرسة بصنفٍ لا بنمطٍ سطريّ: على الجوال يُخفى (وهو في التذييل
+     وفي الشريط الجانبي)، والنمطُ السطريُّ لا يُخفيه تنسيقٌ مهما بلغ. */
+  ttl.appendChild(el("div","sch", D.school));
   left.appendChild(ttl);
   /* تنقّلٌ بين المراحل من الهيدر: السابق والتالي ضمن مراحل هذا الدور */
   const seq = navItems().map(p=>p.id);
@@ -1793,7 +1829,10 @@ function shell(){
   me.appendChild(langBtn());
   /* تنبيهاتُ المقيّمين الخمسة — ومديرُ المنصة معهم */
   if(isEval()) me.appendChild(notifBtn());
-  me.appendChild(el("span",null,TR(roleTitle()) + " · " + ME.name));
+  /* ⚠️ الدورُ والاسمُ عنصران لا نصٌّ موصول: الدورُ يُخفى على الجوال (وهو
+     مكتوبٌ في رأس الشريط الجانبي)، فيوفّر سطراً كاملاً من الترويسة. */
+  me.appendChild(el("span","rl", TR(roleTitle())));
+  me.appendChild(el("span","nm", ME.name));
   const sv = el("span"); sv.id="syn"; sv.style.cssText="font-size:13px;color:#bfe3c9"; me.appendChild(sv);
   const ob = el("button",null,"خروج");
   ob.addEventListener("click", ()=>{ localStorage.removeItem(KEY+"_me"); ME=null; login(); });
@@ -1981,8 +2020,19 @@ function shell(){
     const p = phaseFor(D.phases.find(x=>x.id===PH));
     /* ⛔ الشرحُ يُقرأ مرّةً ثم يُزاحم العمل: فيُطوى بزرٍّ ويُحفظ الاختيارُ
        في الجهاز. ويبقى العنوانُ ظاهراً فيُفتح متى احتيج إليه. */
+    /* ⛔ **الشرحُ كان مفتوحاً افتراضاً، فيدفع أولَ حقلِ إدخالٍ إلى ١٦٠٠ بكسل**
+       — أي شاشتين من تمرير الإصبع قبل أن يكتب المعلمُ حرفاً. (قِيس على ٣٢٠
+       و٣٩٠ و٤٣٠ في ٦ أكتوبر ٢٠٢٦، بعد بلاغ المستشار عن الجوال.)
+       ⚠️ فالافتراضُ على الشاشات الضيّقة **مطويّ**، والعنوانُ باقٍ وزرُّ العرض
+          بجواره. وعلى الحاسب يبقى مفتوحاً كما كان — فالمساحةُ هناك متاحة.
+       ⚠️ **واختيارُ المستخدم يسبق الافتراضَ دائماً**: من طوى أو عرض مرّةً
+          حُفظ له، فلا يُعاد فرضُ شيءٍ عليه. */
     let fold = false;
-    try{ fold = localStorage.getItem(KEY + "_whyfold") === "1"; }catch(e){}
+    try{
+      const _v = localStorage.getItem(KEY + "_whyfold");
+      if(_v === "1" || _v === "0") fold = (_v === "1");
+      else fold = !!(window.matchMedia && matchMedia("(max-width:760px)").matches);
+    }catch(e){}
     const why = el("div","why" + (fold ? " min" : ""));
     const fb2 = el("button","fold", fold ? "اعرض الشرح" : "اطوِ الشرح");
     fb2.addEventListener("click", ()=>{
@@ -4687,6 +4737,17 @@ function gctx(){
   else if(typeof isCxMgr === "function" && isCxMgr() && ME.complex){
     GS.sector = ME.sector || GS.sector;
     GS.complex = ME.complex;
+  }
+  /* ⚠️ **والمعلمُ يفتح على مدرسته التي اختارها عند الدخول** — ترشيحاً أوّلياً
+     **لا قيداً**: يُضبط مرّةً واحدةً ثم يبقى له أن يُغيّره من المربّعات، فقد
+     تُسنَد إليه حصةٌ في مدرسةٍ أخرى. ولولا العلامةُ لأُعيد فرضُه كلَّما فُتحت
+     الشاشة، فلا يستقرُّ له تغيير. */
+  else if(ME && ME.role === "teacher" && ME.school && !GS.__home){
+    GS.sector = ME.sector || GS.sector;
+    GS.complex = ME.complex || GS.complex;
+    GS.stages = [ME.school];
+    GS.__home = true;
+    try{ localStorage.setItem(KEY+"_ctx", JSON.stringify(GS)); }catch(e){}
   }
   /* والمشرفُ يفتح على خطته لا على جدولٍ لا يملك فيه خانة */
   if(!GS.tab && ME && ME.role === "supervisor") GS.tab = "visits";

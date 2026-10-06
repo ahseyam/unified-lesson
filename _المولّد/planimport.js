@@ -29,12 +29,13 @@ function planFields(){
       if(!r.k) return;
       const K = "f_" + r.k;
       if(r.t === "line" || r.t === "area" || r.t === "select")
-        out.push({root: r.k, lab: r.label, kind: r.t, key: K, items: r.items || null});
+        out.push({root: r.k, lab: r.label, base: r.label, kind: r.t, key: K, items: r.items || null});
       else if(r.t === "lines")
         for(let i = 1; i <= (r.n || 1); i++)
-          out.push({root: r.k, lab: r.label + " (" + arn(i) + ")", kind: "line", key: K + "_" + i});
+          out.push({root: r.k, lab: r.label + " (" + arn(i) + ")", base: r.label, idx: i,
+                    kind: "line", key: K + "_" + i});
       else if(r.t === "ticks" || r.t === "ticks_note"){
-        out.push({root: r.k, lab: r.label, kind: "ticks", key: K, items: r.items || []});
+        out.push({root: r.k, lab: r.label, base: r.label, kind: "ticks", key: K, items: r.items || []});
         if(r.t === "ticks_note")
           out.push({root: r.k, lab: r.label + " — " + (r.note || "كيف"), kind: "line", key: K + "_note"});
       }
@@ -126,9 +127,21 @@ function planPrompt(L, P){
     "   «مراعاة الفروق الفردية» بلا مهمّةٍ مكتوبة.",
     "");
 
-  head.push("⛔ أجب بهذه الصيغة حرفياً: سطرٌ لكل حقل يبدأ بـ### ثم اسمُ الحقل ثم نقطتان.",
+  /* ⛔ **اللصقُ كان يفشل إذا أجاب المساعدُ بالإنجليزية** — بلاغُ أ. محمد
+     أبو نار عبر وكيل عرقة عالمي (٦ أكتوبر ٢٠٢٦). والسببُ أن التوزيعَ كان
+     يُطابق **اسمَ الحقل العربيَّ** وحدَه: فمساعدٌ يكتب تحضيراً إنجليزياً
+     يُترجم أسماءَ الحقول معه، فلا يُطابق شيء. وقِيس العطبُ قبل علاجه:
+     بجوابٍ إنجليزيٍّ ضاعت **٢٨ خانةً من ٧٦ صامتةً** — والأسوأُ أنها لا تفشل
+     فشلاً بيّناً بل تمتلئ ناقصةً فيظنُّها المعلمُ تامّة.
+     ⚠️ فصار لكلِّ حقلٍ **رمزٌ لاتينيٌّ لا يُترجَم** يُكتب بين قوسين معقوفين،
+        وبه يقع التوزيعُ أيّاً كانت لغةُ الجواب. والاسمُ يبقى للقراءة. */
+  head.push("⛔ أجب بهذه الصيغة حرفياً: سطرٌ لكل حقل يبدأ بـ### ثم اسمُ الحقل، ثم رمزُه",
+    "   بين قوسين معقوفين، ثم نقطتان، ثم القيمة.",
+    "⛔ والرمزُ بين [ ] يُنسخ كما هو ولا يُترجَم ولا يُحذَف — به تُوزَّع إجابتُك على الخانات.",
     "ولا تكتب مقدّمةً ولا خاتمةً ولا شرحاً خارج الأسطر.",
     "وما كان اختياراً من قائمةٍ فاكتب أحدَ خياراتها كما هو.",
+    "ويجوز أن تكتب قيمَ الحقول بالعربية أو بالإنجليزية بحسب لغة تدريس المادة —",
+    "   ولا يتغيّر بذلك شيءٌ من الصيغة ولا من الرموز.",
     "");
 
   const body = F.map(f=>{
@@ -136,7 +149,7 @@ function planPrompt(L, P){
     if(f.kind === "ticks") hint = "  (اختر من: " + (f.items || []).join(" · ") + ")";
     else if(f.kind === "select") hint = "  (اختر من: " + (f.items || []).join(" · ") + ")";
     else if(f.kind === "num") hint = "  (رقمٌ بالدقائق)";
-    return "### " + f.lab + ":" + hint;
+    return "### " + f.lab + " [" + f.key + "]:" + hint;
   });
   return head.concat(body).join("\n");
 }
@@ -145,19 +158,29 @@ function planPrompt(L, P){
 /* ── قراءةُ الجواب: يُقبل «###» وتُتسامَح المسافاتُ والنقطتان ── */
 function planParse(txt){
   const lines = String(txt || "").replace(/\r/g, "").split("\n");
-  const out = {}; let cur = null;
+  const out = {}, codes = {}; let cur = null;
   lines.forEach(ln=>{
     const m = ln.match(/^\s*#{2,}\s*(.+?)\s*[:：]\s*(.*)$/);
     if(m){
+      let lab = m[1];
+      /* ⚠️ الرمزُ بين [ ] إن وُجد: هو المرساةُ التي لا تُترجَم. ويُنزع من
+         الاسم قبل مطابقته، فجوابٌ قديمٌ بلا رمزٍ يُطابَق بالاسم كما كان. */
+      let code = "";
+      const cm = lab.match(/\[\s*([A-Za-z0-9_#]+)\s*\]\s*$/);
+      if(cm){ code = cm[1]; lab = lab.slice(0, cm.index); }
       /* ⛔ التلميحُ بين قوسين يُحذف، **ورقمُ السطر لا**: كان
          «أسئلة الوحدة (١)» يصير «أسئلة الوحدة» فلا يطابق حقلاً، وضاعت
          ستةُ حقولِ أسطرٍ صامتةً — كشفه فحصُ التوزيع لا العين. */
-      cur = m[1].replace(/\s*\((?:\s*(?:اختر|choose|رقم|a number)[^)]*)\)\s*$/, "").trim();
+      cur = lab.replace(/\s*\((?:\s*(?:اختر|choose|رقم|a number)[^)]*)\)\s*$/, "").trim();
       out[cur] = (m[2] || "").trim();
+      if(code) codes[cur] = code;
     } else if(cur && ln.trim()){
       out[cur] = (out[cur] ? out[cur] + "\n" : "") + ln.trim();
     }
   });
+  /* ⚠️ الرموزُ تُعلَّق على الخريطة **غيرَ معدودة**: `Object.keys` يبقى أسماءَ
+     الحقول وحدَها، فلا يتغيّر عقدُ الدالّة على من يقرؤها. */
+  try{ Object.defineProperty(out, "__codes", {value: codes, enumerable: false}); }catch(e){}
   return out;
 }
 
@@ -175,13 +198,33 @@ function planNorm(s){
 }
 
 /* ── التوزيعُ على الخانات: يُرجع ما سيُملأ وما يُستبدل وما لم يُفهم ── */
+/* ⚠️ **ثلاثُ مراسٍ لا واحدة**، بهذا الترتيب:
+   ① الرمزُ اللاتينيُّ بين [ ] — لا يُترجَم، فيصحُّ بأي لغةٍ أجاب المساعد.
+   ② الاسمُ العربيُّ — لمن نسخ أمراً قديماً قبل إضافة الرموز.
+   ③ الاسمُ الإنجليزيُّ من معجم الواجهة — لمن ترجم المساعدُ عنوانَه وحذف الرمز.
+      ويُبنى للحقول المرقَّمة تركيباً («أسئلة الوحدة (١)» ⇐ «Unit questions (1)»)،
+      ولا يُسجَّل اسمٌ إنجليزيٌّ **مشتركٌ بين حقلين** فيُخلط بينهما. */
 function planPlan(P, map){
-  const F = planFields(), byLab = {};
-  F.forEach(f=>{ byLab[planNorm(f.lab)] = f; });
+  const F = planFields(), byLab = {}, byKey = {}, en = {}, dupEN = {};
+  const I = (typeof I18N !== "undefined" && I18N) ? I18N : {};
+  F.forEach(f=>{
+    byLab[planNorm(f.lab)] = f;
+    byKey[f.key] = f;
+    let e = I[f.lab] || "";
+    if(!e && f.base && I[f.base])
+      e = I[f.base] + (f.idx ? " (" + f.idx + ")" : "");
+    if(e){
+      const n = planNorm(e);
+      if(en[n] && en[n] !== f) dupEN[n] = true;
+      else en[n] = f;
+    }
+  });
+  const codes = map.__codes || {};
   const fill = [], over = [], unknown = [];
   Object.keys(map).forEach(lab=>{
     const val = (map[lab] || "").trim();
-    const f = byLab[planNorm(lab)];
+    const nl = planNorm(lab);
+    const f = byKey[codes[lab]] || byLab[nl] || (dupEN[nl] ? null : en[nl]);
     if(!f){ if(val) unknown.push(lab); return; }
     if(!val) return;
     const had = f.kind === "ticks"
@@ -330,7 +373,15 @@ function importPanel(m, L, P){
     }
     const plan = planPlan(P, map);
     if(!plan.fill.length && !plan.over.length){
-      out.appendChild(el("div","msg bad","لم يطابق أيُّ حقلٍ أسماءَ الخانات — راجع الصيغة."));
+      /* ⛔ **ولا يُترك المعلمُ بـ«راجع الصيغة»**: الغالبُ أن المساعدَ ترجم
+         أسماءَ الحقول وحذف رموزَها — فيُقال له السببُ والمخرَج. */
+      const w = el("div","msg bad");
+      w.appendChild(el("b",null,"لم يطابق أيُّ حقلٍ أسماءَ الخانات"));
+      w.appendChild(el("span",null,
+        "والغالبُ أن المساعدَ غيّر أسماءَ الحقول أو حذف رموزَها بين [ ]. "
+        + "انسخ الأمرَ من جديد — فهو يحمل لكلِّ حقلٍ رمزاً يُوزَّع به مهما كانت لغةُ الجواب — "
+        + "ثم اطلب منه إعادةَ الجواب بالصيغة نفسِها مع إبقاء ما بين [ ] كما هو."));
+      out.appendChild(w);
       return;
     }
     const s = el("div","msg ok");

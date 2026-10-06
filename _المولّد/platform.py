@@ -1065,6 +1065,48 @@ footer .sig i{display:block;font-style:normal;font-family:SK;font-size:11.5px;co
  .row2{grid-template-columns:1fr}.stg{grid-template-columns:1fr}.g7{grid-template-columns:repeat(2,1fr)}}
 @media print{body{background:#fff}nav,.bar,.score,.noprint,.why .docs{display:none!important}
  .card{break-inside:avoid;border-radius:0}}
+
+/* ⚠️ **وموضعُها آخرُ الورقة قصداً**: وُضعت أولَ مرّةٍ في وسطها
+   فغلبتها قواعدُ أساسيةٌ بعدها بالترتيب لا بالتخصيص (`.card>h3` بقي
+   ١٦٫٥بك وقد كُتب له ١٥). والأسبقيّةُ عند تساوي التخصيص للأخير. */
+/* ⛔ **الخطُّ كان مكتوباً لشاشة حاسبٍ وحدَها.** بلاغُ المستشار ٦ أكتوبر
+   ٢٠٢٦: «مبالغٌ في حجم الخطوط، فلا تظهر الصفحةُ بشكلٍ يناسب الاستعراض».
+   وقِيس على ٣٢٠ و٣٩٠ و٤٣٠ بإطارٍ مضمَّنٍ بعرضٍ مضبوط: المتنُ ١٧بك بسطرٍ
+   ١٫٧، والعنوانُ ٢٣بك يلتفُّ سطرين — فالترويسةُ وحدَها **٢٦٢ إلى ٤٢٧
+   بكسلاً من ٨٤٤**، والشريطُ الجانبيُّ فوق المتن ٣٦٤، فأولُ حقلِ إدخالٍ عند
+   **١٦٠٠ بكسل**: شاشتان من التمرير قبل أن يكتب المعلمُ حرفاً. والمنصةُ
+   للإدخال لا للتصفّح.
+   ⚠️ **ولا يُمَسُّ خطُّ حقول الإدخال**: ما دون ١٦بك يجعل iOS يُكبّر الصفحةَ
+      عند اللمس فينكسر العرضُ — وهو مضبوطٌ في كتلة اللمس أعلاه، ولا تُنقض هنا.
+   ⚠️ **ولا تُمَسُّ أهدافُ اللمس**: الارتفاعاتُ الدنيا (٣٤ · ٣٦ · ٤٤) قياسُ
+      إصبعٍ لا قياسُ خطّ، فتبقى كما هي ويحرسها `respcheck`. */
+@media (max-width:760px){
+ body{font-size:15.5px;line-height:1.6}
+ .top{padding:9px 0}
+ .top .row{gap:10px}
+ .top h1{font-size:17px;white-space:nowrap}
+ .top img{height:32px}
+ .top .sch{display:none}           /* اسمُ المدرسة — في التذييل والشريط */
+ .top .me{font-size:13.5px;padding:4px 11px;gap:8px}
+ .top .me .rl{display:none}        /* الدورُ — في رأس الشريط الجانبي */
+ .top .me button{font-size:13px}
+ .pnav button{font-size:13.5px;padding:5px 11px}
+ .side .sh{padding:8px 12px}
+ .side .sh b{font-size:14.5px}
+ .side .sh i{font-size:11.5px}
+ .card>h3{font-size:15px;padding:8px 13px}
+ .why{padding:11px 13px}
+ .why h2{font-size:17px}
+ .why p,.why ol{font-size:14.5px}
+ /* ⛔ **زرُّ الطيّ كان يتراكب على العنوان**: موضعُه مطلقٌ في زاوية البطاقة،
+    والعنوانُ على الجوال أعرضُ من مكانه فيمرُّ تحته — ظهر في اللقطة لا في
+    النصّ. فيصير في مجرى المحتوى سطراً مستقلّاً فوق العنوان. */
+ .why .fold{position:static;display:block;margin:0 0 7px auto}
+ /* وتذييلُ الشريط («مدارس ابن خلدون» والختم) مكرَّرٌ في تذييل الصفحة —
+    وعلى الجوال يقع **فوق** المتن فيُزاحمه بلا فائدة. */
+ .side .sf{display:none}
+ .stbox{padding:9px 12px}
+}
 """
 
 with open(os.path.join(HERE, "platform_app.js"), encoding="utf-8") as f:

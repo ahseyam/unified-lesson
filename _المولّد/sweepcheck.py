@@ -95,7 +95,14 @@ allok = True
 for lbl, src in SRC.items():
     p = PRB.probe("sweep_probe.html")
     open(p, "w", encoding="utf-8").write(open(src, encoding="utf-8").read() + BOOT)
+    # ⛔ **العرضُ يُحدَّد ولا يُترك للافتراض**: نافذةُ كروم بلا رأسٍ عرضُها
+    #    **٧٥٦ بكسلاً** افتراضاً — أي **داخلَ حدِّ الجوال (٧٦٠) بأربعة بكسلات**.
+    #    فكان هذا الحارسُ يقيس تخطيطَ الجوال وهو يحسبه تخطيطَ الحاسب، بلا أن
+    #    يعلم أحد. وظهر ذلك في ٦ أكتوبر ٢٠٢٦ حين صارت بطاقةُ الشرح مطويّةً
+    #    افتراضاً على الجوال: سقطت ستُّ شاشاتٍ «خاوية» وهي سليمةٌ على الحاسب.
+    #    ⚠️ ومحتوى الجوال يقيسه `mobcheck` بعرضٍ مضبوطٍ في إطارٍ مضمَّن.
     out = subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--no-sandbox",
+                          "--window-size=1200,900",
                           "--virtual-time-budget=40000", "--dump-dom", "file://" + p],
                          capture_output=True, text=True).stdout
     m = re.search(r'<pre id="dump">(.*?)</pre>', out, re.S)

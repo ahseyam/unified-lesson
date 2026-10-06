@@ -2394,6 +2394,14 @@ EN.update({
         "Check the assistant answered in the format the prompt asks for, or copy the prompt again.",
     "لم يطابق أيُّ حقلٍ أسماءَ الخانات — راجع الصيغة.":
         "No field matched the form's names — check the format.",
+    # ── ولا يُترك المعلمُ بـ«راجع الصيغة»: تُقال العلّةُ والمخرَج (٦ أكتوبر ٢٠٢٦) ──
+    "لم يطابق أيُّ حقلٍ أسماءَ الخانات": "No field matched the form's field names",
+    "والغالبُ أن المساعدَ غيّر أسماءَ الحقول أو حذف رموزَها بين [ ]. ":
+        "Most likely the assistant changed the field names or dropped their [codes]. ",
+    "انسخ الأمرَ من جديد — فهو يحمل لكلِّ حقلٍ رمزاً يُوزَّع به مهما كانت لغةُ الجواب — ":
+        "Copy the prompt again — it carries a code for every field that routes the answer whatever language it is written in — ",
+    "ثم اطلب منه إعادةَ الجواب بالصيغة نفسِها مع إبقاء ما بين [ ] كما هو.":
+        "then ask it to repeat the answer in the same format, keeping whatever is inside [ ] exactly as it is.",
     "استيراد تحضير": "Plan import",
     # ── رسائلُ الملفّ ──
     "ملفُّ PDF لا يُقرأ هنا: نصُّ العربية فيه يخرج مشوَّهاً فيملأ الخاناتِ بخطأ.\n\n":

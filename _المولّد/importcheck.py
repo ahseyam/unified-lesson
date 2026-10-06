@@ -40,6 +40,25 @@ setTimeout(function(){
   var plan = planPlan(P, map);
   var n = planApply(P, plan.fill.concat(plan.over));
 
+  /* ⛔ **واللصقُ كان يفشل إذا أجاب المساعدُ بالإنجليزية** (بلاغُ أ. محمد أبو
+     نار عبر وكيل عرقة عالمي — ٦ أكتوبر ٢٠٢٦): التوزيعُ كان يُطابق الاسمَ
+     العربيَّ وحدَه، فضاعت **٢٨ خانةً من ٧٦ صامتةً** — ولم تفشل فشلاً بيّناً
+     بل امتلأت ناقصةً. فصارت للتوزيع ثلاثُ مراسٍ، وتُقاس الثلاثُ هنا. */
+  var en = [], tr = [], noc = [];
+  F.forEach(function(f, i){
+    var v = f.kind === "ticks" ? ((f.items||[])[0]||"")
+          : f.kind === "select" ? ((f.items||[])[1]||(f.items||[])[0]||"")
+          : f.kind === "num" ? String(5 + (i % 20)) : "قيمة#" + f.key;
+    if(!v) return;
+    en.push("### " + ((typeof I18N !== "undefined" && I18N[f.lab]) || f.lab) + " [" + f.key + "]: " + v);
+    tr.push("### Lesson plan item number " + (i+1) + " [" + f.key + "]: " + v);
+    noc.push("### Lesson plan item number " + (i+1) + ": " + v);
+  });
+  function fills(txt){ var Q = {}; var pl = planPlan(Q, planParse(txt)); return pl.fill.length; }
+  var SENT = Object.keys(want).length;
+  var lang = {sent: SENT, en: fills(en.join("\n")), code: fills(tr.join("\n")),
+              none: fills(noc.join("\n"))};
+
   /* ── المقارنة: ما وصل إلى كل مفتاح؟ ── */
   var bad = [], okn = 0;
   Object.keys(want).forEach(function(k){
@@ -60,7 +79,7 @@ setTimeout(function(){
   document.title = "OK";
   window.__OUT = JSON.stringify({fields: F.length, sent: Object.keys(want).length,
     applied: n, ok: okn, bad: bad.slice(0,8), unknown: plan.unknown.slice(0,5),
-    stray: stray.slice(0,8)});
+    stray: stray.slice(0,8), lang: lang});
  }catch(e){ document.title = "ERR|" + e.message + " @ " + (e.stack||"").split("\n")[1]; }
 }, 300);
 </script>
@@ -83,5 +102,23 @@ for k, got, wanted in r["bad"]:
 if r["unknown"]: print("    ⛔ لم تُفهم:", r["unknown"])
 if r["stray"]:   print("    ⛔ كُتب في مفتاحٍ لم يُرسَل إليه:", r["stray"])
 good = r["ok"] == r["sent"] and not r["bad"] and not r["unknown"] and not r["stray"]
-print("\n  %s" % ("✓ كلُّ قيمةٍ في خانتها" if good else "⛔ فيه خلط"))
+
+# ── ولغةُ الجواب لا تُسقط خانة ──
+L = r.get("lang") or {}
+sent = L.get("sent", 0)
+print("\n  ── جوابُ المساعد بالإنجليزية (بلاغُ أ. محمد أبو نار ٦ أكتوبر) ──")
+rows = [("أسماءٌ إنجليزيةٌ من المعجم", L.get("en"), sent),
+        ("ترجمةٌ غريبةٌ والرمزُ باقٍ", L.get("code"), sent)]
+for lab, got, want in rows:
+    ok = got == want
+    good &= ok
+    print("    %s %-28s %s من %s" % ("✓" if ok else "⛔", lab, got, want))
+# ⚠️ وحالةٌ تُقاس لتبقى مفهومة: بلا رمزٍ وبلا اسمٍ معروفٍ لا يُطابق شيء —
+#    وهي مستحيلةٌ بالأمر الجديد (فهو يحمل الرموز)، وتُذكر لئلّا يُظنَّ أن
+#    التوزيع يُخمّن. ورسالةُ المنصة تقول للمعلم: أعد نسخَ الأمر.
+print("    ⓘ %-28s %s من %s (بلا رمزٍ ولا اسمٍ معروف — تُردّ برسالةٍ تشرح)"
+      % ("ترجمةٌ غريبةٌ بلا رمز", L.get("none"), sent))
+if not sent:
+    print("    ⛔ لم يُقَس شيءٌ من اللغات — فحصٌ ناقص"); good = False
+print("\n  %s" % ("✓ كلُّ قيمةٍ في خانتها، أيّاً كانت لغةُ الجواب" if good else "⛔ فيه خلط"))
 sys.exit(0 if good else 1)
