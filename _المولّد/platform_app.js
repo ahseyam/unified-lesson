@@ -481,8 +481,49 @@ const SYNC_WAIT = 12000;
 /* ⚠️ `__schema` علامةٌ محليةٌ لا بيانات — تُستثنى من الحمولة كي لا تُعامَل
    مفتاحاً سادساً يُهمله دمجُ الخادم. */
 function dbSnapshot(){
-  try{ const {__schema, ...rest} = DB; return JSON.stringify(rest); }
+  try{ const {__schema, __seq, ...rest} = DB; return JSON.stringify(rest); }
   catch(e){ return ""; }
+}
+
+/* ═════════ ترقيمُ المزامنة ═════════
+   ⛔ **كانت القاعدةُ كلُّها تُنزَّل كلَّ دقيقةٍ على كل جهاز** — ١٫٦ ميجابايت
+      في كل سحبة، ومثلُها في ردِّ كل حفظة. فعشرون معلّماً جلسوا على الجدول
+      ساعةً حمّلوا ميجابايتَين وأربعين. وهو ما أسقط الخادمَ ٥٠٣ في ٦ أكتوبر
+      ٢٠٢٦، وعُولج عَرَضُه وبقي أصلُه.
+   ⚠️ فصار لكلِّ سجلٍّ على الخادم **ترقيمٌ** يُزاد مع كل تغيير، ويحمل الجهازُ
+      آخرَ ترقيمٍ رآه فيسأل «ما بعده؟» — فيعود الجوابُ خاوياً في الغالب،
+      ومئتَي بايتٍ إن كان جديد.
+   ⚠️ و**يسكن داخل `DB`** لا في مفتاحٍ مستقلّ: لو خُزِّن وحدَه لأمكن أن يُحفظ
+      الترقيمُ وتفشل حفظةُ القاعدة (امتلاءُ المساحة)، فيُفتح الجهازُ بقاعدةٍ
+      قديمةٍ وترقيمٍ جديدٍ — فلا يُطلب ما فاته أبداً. فهما يُكتبان كتابةً
+      واحدةً أو لا يُكتبان.
+   ⚠️ و**صفرٌ يعني «لا أساس»**: فتُطلب القاعدةُ كاملةً. وهو حالُ أولِ فتحٍ
+      وحالِ خادمٍ لم تُحوَّل قاعدتُه إلى الصفوف بعد. */
+function seqOf(){ const n = +(DB.__seq || 0); return n > 0 ? n : 0; }
+function setSeq(n){ DB.__seq = +n > 0 ? +n : 0; }
+
+/* ⚠️ **الحذفُ شاهدٌ لا غياب**: القراءةُ الفارقةُ لا تعرف ما غاب، فالخادمُ
+   يُسمّي المحذوفَ في `gone` ليُحذف هنا. ولولاه بقي المحذوفُ على الأجهزة
+   التي رأته مرةً — فيراه صاحبُه محجوزاً وهو ليس في المخزن. */
+function dropGone(g){
+  if(!g) return 0;
+  let n = 0;
+  if(Array.isArray(g.sched) && g.sched.length){
+    const out = {}; g.sched.forEach(id=>{ out[id] = 1; });
+    const was = (DB.sched || []).length;
+    DB.sched = (DB.sched || []).filter(x=>!(x && out[x.id]));
+    n += was - DB.sched.length;
+  }
+  ["prep","obs","peer","rot"].forEach(k=>{
+    (g[k] || []).forEach(kk=>{ if(DB[k] && (kk in DB[k])){ delete DB[k][kk]; n++; } });
+  });
+  return n;
+}
+function cameIn(d, g){
+  let n = (d && d.sched ? d.sched.length : 0);
+  ["prep","obs","peer","rot"].forEach(k=>{ n += d && d[k] ? Object.keys(d[k]).length : 0; });
+  ["sched","prep","obs","peer","rot"].forEach(k=>{ n += g && g[k] ? g[k].length : 0; });
+  return n;
 }
 
 /* ⛔ **لا تُستبدل شجرةُ البيانات أبداً.** كانت المزامنةُ تفعل `DB = r.data`
@@ -561,7 +602,10 @@ function pushNow(){
   const full = (++pushSeq % 10 === 0);
   const d = full ? null : deltaOf(lastSent);
   const sent = d || JSON.parse(body);
-  return fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: apiBody({kind:"platform", id:SID, data: sent})})
+  /* ⚠️ `v:2` إعلانُ نسخةِ العقد: خادمٌ يعرفها لا يُرجع القاعدةَ في ردِّ
+     الكتابة (١٫٦ م.ب لا حاجةَ بها)، وخادمٌ لا يعرفها يُهمل الحقلَ ويُرجعها
+     كما كان. فالعميلُ يعمل على الخادمَين، ولا يتوقّف نشرُه على نشرِه. */
+  return fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: apiBody({kind:"platform", id:SID, v:2, data: sent})})
     .then(r=>{
       if(r.status === 429 || r.status === 503) throw new Error("limit");
       return r.json();
@@ -582,11 +626,20 @@ function pushNow(){
                + "وقد حُدِّث جدولُك بما عند الجميع."), "bad");
         setTimeout(()=>{ try{ pull().then(()=>shell()); }catch(e){} }, 0);
       }
+      /* خادمٌ قديمٌ (أو كتلةٌ لم تُحوَّل) يُرجع القاعدةَ — فتُدمج كما كانت */
       if(r && r.ok && r.data){
         mergeDB(r.data);
         try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){}
       }
+      if(r && r.ok && r.seq) setSeq(r.seq);
       lastSent = dbSnapshot(); pending = false; writeFails = 0;
+      /* ⚠️ **ولا يُفقَد ما كان ردُّ الكتابة يأتي به**: كان الحفظُ يُري
+         صاحبَه آخرَ ما عند الجميع لأن الردَّ يحمل القاعدة. فلمّا خفَّ الردُّ
+         صارت بعدَه **سحبةٌ فارقةٌ** — مئتا بايتٍ تؤدّي ما أدّته ميجابايت.
+         ولا تجري مع خادمٍ قديمٍ: ردُّه حمل القاعدةَ فعلاً. */
+      if(r && r.ok && !r.data && seqOf() > 0){
+        pullNow().then(got=>{ if(got && PH !== 2 && !isTyping()){ try{ render(); }catch(e){} } });
+      }
       setSyn("حُفظ للجميع ✓", "oksyn");
       setTimeout(()=>setSyn(""), 2500);
       return true;
@@ -615,7 +668,7 @@ addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "hidd
 addEventListener("pagehide", ()=>{
   if(!api() || !pending) return;
   try{ navigator.sendBeacon(api(),
-       new Blob([apiBody({kind:"platform", id:SID, data:DB})], {type:"text/plain"})); }catch(e){}
+       new Blob([apiBody({kind:"platform", id:SID, v:2, data:DB})], {type:"text/plain"})); }catch(e){}
 });
 addEventListener("beforeunload", (e)=>{
   if(api() && pending){ syncFlush(); }
@@ -628,12 +681,30 @@ function pull(){
 }
 function pullNow(){
   if(!api()) return Promise.resolve(false);
-  return fetch(apiGet("platform", SID)).then(r=>r.json())
+  const sq = seqOf();
+  return fetch(apiGet("platform", SID) + "&v=2" + (sq ? "&since=" + sq : "")).then(r=>r.json())
     /* ⛔ **`lastSent` لا يُضبط إلا من دفعةٍ ناجحة.** كان السحبُ يضبطه، فيرى
        `pushNow` أن لا جديدَ فيلغي الدفعَ **ويُعلن نجاحاً** — فما كُتب بين
        دفعةٍ وسحبٍ لا يُدفع أبداً ولا يبقى محلياً. (٣٠ سبتمبر ٢٠٢٦) */
-    .then(r=>{ if(r && r.ok && r.data){ mergeDB(r.data);
-      try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){} return true; } return false; })
+    .then(r=>{
+      if(!(r && r.ok)) return false;
+      /* ⚠️ فارقةٌ: ما استجدَّ وما غاب. والخادمُ لا يُرسلها إلا لمن طلبها
+         بترقيمٍ يعرفه، فعميلٌ قديمٌ لا يراها أبداً. */
+      if(r.inc){
+        const n = cameIn(r.data, r.gone);
+        mergeDB(r.data); dropGone(r.gone); setSeq(r.seq);
+        try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){}
+        /* ⚠️ ولا يُعاد الرسمُ على لا شيء: «صحيحٌ» هنا يعني «جاء جديد» —
+           وبه يمتنع رسمُ الشاشة كلَّ دقيقةٍ بلا سبب، وهو ثقلٌ على الآيفون. */
+        return n > 0;
+      }
+      if(r.data){
+        mergeDB(r.data); setSeq(r.seq || 0);
+        try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){}
+        return true;
+      }
+      return false;
+    })
     .catch(()=>false);
 }
 /* ═════════ سلّةُ المحذوفات ═════════
@@ -832,6 +903,15 @@ function fld(type, val, onch, opts, ph, ro){
     e.insertBefore(b, e.firstChild); }
   else if(type === "area"){ e = el("textarea"); }
   else { e = el("input"); e.type = "text"; }
+  /* ⛔ **ما يكتبه المعلّمُ بالإنجليزية كان يُعرَض مكسوراً**: الحقلُ يرث اتجاهَ
+     الصفحة (`rtl`)، فتُدفع علامةُ الترقيم المحايدةُ إلى صدر الجملة —
+     «?How does heating change the state» و«.Classify 12 materials» — ويُحاذى
+     النصُّ يميناً. والأقسامُ العالميةُ تُحضّر بالإنجليزية كلَّها، فكان
+     التحضيرُ عندهم غيرَ مقروء. (بلاغُ وكيل عرقة عالمي بنين ٦ أكتوبر ٢٠٢٦)
+     ⚠️ والعلاجُ `dir="auto"`: كلُّ حقلٍ يتبع **محتواه** لا صفحتَه — فالعربيُّ
+        يمينٌ والإنجليزيُّ يسار، بلا زرٍّ يُضغط ولا لغةِ واجهةٍ تُبدَّل.
+     ⚠️ ولا يُمَسُّ `select`: قيمُه عربيةٌ مخزونةٌ تُقارَن، لا نصٌّ يكتبه أحد. */
+  if(type !== "sel") e.dir = "auto";
   if(ph) e.placeholder = TR(ph);
   e.value = val == null ? "" : val;
   e.addEventListener("focus", ()=>{ const r = e.closest(".row2,.stg,td,.cellbox,.f,label,div");
@@ -1177,11 +1257,15 @@ const NOTIF_ACTS = ["تسجيل حصة", "إصدار التحضير"];
 function notifSeen(){ try{ return localStorage.getItem(KEY + "_seen") || ""; }catch(e){ return ""; } }
 function notifMark(){ try{ localStorage.setItem(KEY + "_seen", new Date().toISOString()); }catch(e){} }
 function notifFeed(){
+  /* ⚠️ والتنبيهاتُ تتبع ترشيحَ المرحلة نفسَه: من ضيّق جدولَه بمرحلةٍ لا
+     يريد أن تُنبّهه المنصةُ بما خارجَها. ومن لم يُرشِّح رأى نطاقَه كلَّه. */
+  const st = (gctx() || {}).stages || [];
   const out = [];
   logList().forEach(e=>{
     if(NOTIF_ACTS.indexOf(e.a) < 0) return;
     const L = (DB.sched || []).find(x=>x.id === e.lid);
     if(!L || !canScore(L)) return;
+    if(st.length && st.indexOf(L.stage) < 0) return;
     out.push({e: e, L: L});
   });
   return out.slice(0, 40);
@@ -1193,8 +1277,10 @@ function notifNew(feed){
 /* جاهزيةُ التحضير: لكل معلمٍ في نطاقي — كم حصةً له وكم صدر تحضيرُها */
 function prepReady(){
   const by = {};
+  const st = (gctx() || {}).stages || [];
   (DB.sched || []).forEach(L=>{
     if(!canScore(L)) return;
+    if(st.length && st.indexOf(L.stage) < 0) return;
     const n = (L.teacher || "").trim(); if(!n) return;
     const r = by[n] = by[n] || {n: n, all: 0, done: 0};
     r.all++;
@@ -2151,6 +2237,10 @@ function phTools(m){
        "ارفع الكشف", ()=>rosterUp(), !n],
     ]);
   })();
+  /* ⛔ **تخزينُ الخادم: كتلةٌ أو صفوف** — ولا يُحوَّل بأمرٍ منّي بل بزرٍّ
+     من المستشار، ويرجع بنقرةٍ إن ظهر خلل. فتغييرُ موضعِ بياناتِ معلّمين
+     يعملون الآن لا يصحُّ بلا بابٍ للرجوع. (٦ أكتوبر ٢٠٢٦) */
+  storeCard(m);
   mk("السجلّ والاسترداد", "ما جرى وما حُذف", [
     ["سجلّ العمليات", "من فعل ماذا ومتى — آخر ٦٠٠ عملية", "افتح السجلّ",
      ()=>{ PH = 1; setctx("tab","log"); shell(); }],
@@ -2162,6 +2252,127 @@ function phTools(m){
     ["تفريغُ البيانات", "محوٌ كاملٌ على كل الأجهزة — بعد نسخةٍ وتأكيدٍ مكتوب",
      "تفريغ", ()=>wipeAll(), true],
   ]);
+}
+
+/* ═════════ تخزينُ الخادم: كتلةٌ أو صفوف ═════════
+   ⛔ **القاعدةُ كانت كتلةً واحدةً** تُفكُّ وتُركَّب في كل عملية، فسقط الخادمُ
+      ٥٠٣ في ٦ أكتوبر ٢٠٢٦ عند ٢٫٩٤ ميجابايت. والعلاجُ الجذريُّ أن يكون
+      **لكلِّ حصةٍ وتحضيرٍ صفُّه** — فلا تسافر القاعدةُ كلُّها أبداً.
+   ⚠️ والتحويلُ **ثلاثُ خطواتٍ بيدِ المستشار** لا خطوةٌ واحدةٌ آليّة:
+      ① هجرةٌ: تُنسخ الكتلةُ صفوفاً — إضافةٌ محضةٌ لا يقرأها أحدٌ بعد،
+         فالكتلةُ تبقى هي المخدومةَ والمعلمون يعملون بلا أثر.
+      ② تحويلٌ: تُقرأ الصفوفُ بدل الكتلة — وهنا يظهر الأثرُ.
+      ③ ورجوعٌ بنقرةٍ: الكتلةُ محفوظةٌ كما هي، فتُخدَم من جديد في لحظة.
+   ⚠️ و**الهجرةُ تُعاد قبل التحويل**: الكتلةُ تتغيّر وقتَ الهجرة (معلمون
+      يسجّلون)، فتُمسح كلُّها مرةً أخيرةً — وما لم يتغيّر لا يُكتب، فهي رخيصة. */
+function storeCard(m){
+  if(!api() || !isAdmin()) return;
+  const c = el("div","card");
+  const h = el("div","ch"); h.appendChild(el("h3",null,"تخزينُ الخادم"));
+  const st = el("small",null,"يُقرأ…"); h.appendChild(st);
+  c.appendChild(h);
+  const p = el("div","pad");
+  const line = el("div","vday"); line.appendChild(el("b",null,"حالُ القاعدة"));
+  const info = el("i",null,"…"); line.appendChild(info); p.appendChild(line);
+
+  const row = (lab, desc, btn, fn, warn)=>{
+    const w = el("div","vday");
+    w.appendChild(el("b",null,lab));
+    w.appendChild(el("i",null,desc));
+    const b = el("button","b " + (warn ? "warn" : "ghost") + " sm", btn);
+    b.addEventListener("click", fn);
+    b.style.marginInlineStart = "auto";
+    w.appendChild(b); p.appendChild(w);
+  };
+  row("① هجرةُ البيانات",
+      "تُنسخ الكتلةُ صفّاً صفّاً — ولا يتغيّر شيءٌ عند المعلمين",
+      "نفِّذ الهجرة", ()=>rowsMigrate());
+  row("② تحويلُ القراءة",
+      "تُقرأ الصفوفُ بدل الكتلة — وهنا تخفُّ المزامنةُ ألفَ ضعف",
+      "حوِّل إلى الصفوف", ()=>rowsMode("rows"));
+  row("③ الرجوع",
+      "تُخدَم الكتلةُ المحفوظةُ من جديد — في لحظةٍ وبلا فقد",
+      "ارجع إلى الكتلة", ()=>rowsMode("blob"), true);
+  c.appendChild(p); m.appendChild(c);
+
+  /* الحالةُ تُقرأ من الخادم: لا تُفترض ولا تُستنتج من نجاح طلبٍ */
+  fetch(apiGet("platform", SID) + "&stat=1").then(r=>r.json()).then(r=>{
+    if(!(r && r.ok)){ st.textContent = TR("لم يستجب"); return; }
+    if(!r.stat){
+      /* خادمٌ قديمٌ لا يعرف الإحصاء — فالكتلةُ وحدَها */
+      st.textContent = TR("كتلةٌ واحدة");
+      info.textContent = TR("⚠️ خادمُك يعمل بشفرةٍ قديمةٍ لا تعرف الصفوف — انشر النسخةَ الجديدة أولاً.");
+      return;
+    }
+    const x = r.stat, ps = x.parts || {};
+    const rows = Object.keys(ps).reduce((a,k)=>a + (ps[k].n || 0), 0);
+    const by = Object.keys(ps).reduce((a,k)=>a + (ps[k].bytes || 0), 0);
+    st.textContent = TR(x.mode === "rows" ? "صفوف ✓" : "كتلةٌ واحدة");
+    info.textContent = TR("حصص ") + arn((ps.sched || {}).n || 0)
+      + TR(" · صفوف ") + arn(rows)
+      + TR(" · حجم ") + arn(Math.round(by / 1048576 * 100) / 100) + TR(" م.ب")
+      + TR(" · سجلّ ") + arn(x.logs || 0)
+      + TR(" · ترقيم ") + arn(x.seq || 0)
+      + (x.mig ? TR(" · ⚠️ هجرةٌ لم تنتهِ") : "");
+  }).catch(()=>{ st.textContent = TR("تعذّر الاتصال"); });
+}
+
+/* ⚠️ الهجرةُ أشواطٌ لا طلبٌ واحد: طلبٌ يحمل ألفَي صفٍّ يتجاوز حدَّ المعالجة
+   — وهو العطبُ نفسُه الذي نُزيله. فأربعُ مئةٍ في الشوط، والموضعُ محفوظٌ
+   على الخادم فتُستأنف من حيث توقّفت. */
+function rowsMigrate(){
+  let n = 0, rounds = 0;
+  setSyn("تُهاجَر البيانات…");
+  const step = (sweep)=>fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body: apiBody({kind:"platform", id:SID, __migrate:true, limit:400, sweep:!!sweep})})
+    .then(r=>r.json())
+    .then(r=>{
+      if(!(r && r.ok)){
+        setSyn("");
+        uiDialog(TR("⛔ لم تُنفَّذ الهجرة.\n\n") + ((r && r.error) || TR("خادمُك يعمل بشفرةٍ قديمةٍ لا تعرف الصفوف — انشر النسخةَ الجديدةَ ثم أعد المحاولة.")), "bad");
+        return false;
+      }
+      n += r.wrote || 0; rounds++;
+      setSyn("تُهاجَر… " + arn(n) + " صفّاً");
+      if(!r.done && rounds < 80) return step(false);
+      /* ⚠️ ومسحةٌ ختاميةٌ: ما كُتب وقت الهجرة يُلحَق، وما لم يتغيّر لا يُكتب */
+      if(!sweep) return step(true);
+      setSyn("");
+      logAct("هجرةُ التخزين إلى الصفوف", arn(n) + " صفّاً", null);
+      save();
+      uiDialog(TR("✓ تمّت الهجرة: ") + arn(n) + TR(" صفّاً.\n\nولم يتغيّر شيءٌ عند المعلمين بعد — القاعدةُ المخدومةُ هي الكتلةُ نفسُها. والخطوةُ الثانيةُ («تحويلُ القراءة») هي التي تُفعّل الصفوف."), "ok");
+      shell();
+      return true;
+    })
+    .catch(e=>{ setSyn(""); uiDialog(TR("تعذّر الاتصال: ") + e.message, "bad"); return false; });
+  step(false);
+}
+
+function rowsMode(want){
+  const toRows = want === "rows";
+  uiAsk(toRows
+    ? TR("تحويلُ القراءة إلى الصفوف.\n\nبعدها تسحب الأجهزةُ ما استجدَّ وحدَه بدل القاعدة كلِّها. والكتلةُ تبقى محفوظةً كما هي، فالرجوعُ بنقرة.\n\nأتُتابع؟")
+    : TR("الرجوعُ إلى الكتلة الواحدة.\n\nتُخدَم الكتلةُ المحفوظةُ من جديد.\n\n⚠️ وما سجّله المعلمون **بعد** التحويل إلى الصفوف موجودٌ في الصفوف لا في الكتلة — فخُذ نسخةً احتياطيةً أولاً إن كنت ستعود.\n\nأتُتابع؟"),
+    toRows ? TR("حوِّل") : TR("ارجع")).then(ok=>{
+    if(!ok) return;
+    askAdmin(toRows ? "تحويل التخزين إلى الصفوف" : "الرجوع إلى الكتلة").then(adm=>{
+      if(!adm){ uiDialog(TR("أُلغي — لا مفتاحَ إدارة."), "warn"); return; }
+      fetch(api(), {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+          body: apiBody({kind:"platform", id:SID, __mode:want, admin:adm})})
+        .then(r=>r.json())
+        .then(r=>{
+          if(!(r && r.ok)){ uiDialog(TR("⛔ لم يُحوَّل.\n\n") + ((r && r.error) || ""), "bad"); return; }
+          /* ⚠️ والترقيمُ يُصفَّر عند كل تحويل: نمطٌ آخرُ وترقيمٌ آخر، فلو
+             بقي القديمُ طُلب «ما بعده» على عدّادٍ ليس له — فعادت القاعدةُ
+             ناقصةً بلا خطأ. والصفرُ يعني «أعطني الكاملة». */
+          setSeq(0);
+          logAct("تحويل التخزين", toRows ? "إلى الصفوف" : "إلى الكتلة", null);
+          save();
+          pullNow().then(()=>{ uiDialog(TR("✓ صار التخزينُ: ") + TR(toRows ? "صفوفاً" : "كتلةً واحدة"), "ok"); shell(); });
+        })
+        .catch(e=>uiDialog(TR("تعذّر الاتصال: ") + e.message, "bad"));
+    });
+  });
 }
 
 function srv(){
@@ -4675,7 +4886,7 @@ function ph1(m){
       "أعمدةُ مدرستك وحدها مفتوحةٌ لك — ولتغييرها اخرج وادخل بمدرسةٍ أخرى."));
   }
   if(!bound) sw.appendChild(el("b",null, T ? "مراحلُ التدريس — اختر واحدةً أو أكثر:"
-                                : "ترشيحُ الأعمدة بالمدرسة (اختياري):"));
+                                : "ترشيحٌ بالمدرسة — للجدول والقائمة والتنبيهات (اختياري):"));
   const sl = el("div","ticks");
   if(!bound) schoolsOf(c.complex).forEach(st=>{
     const l = el("label","tk"), cb = el("input"); cb.type = "checkbox";
@@ -5402,8 +5613,16 @@ function myList(m, c){
      ثلاث مدارس أمام وكيلِ مدرسةٍ واحدة — ومعها زرُّ حذف. فيرى حصصَ غيره
      ويحذفها. و`inMyScope` كانت معرَّفةً ولا تُستعمل هنا. (١ أكتوبر ٢٠٢٦) */
   else if(isScopeBound()) here = here.filter(inMyScope);
+  /* ⛔ **المربّعاتُ كانت تُرشِّح أعمدةَ الجدول ولا تمسُّ القائمة**: فيُرشِّح
+     مديرُ المجمع بمرحلةٍ فيضيق الجدولُ وتبقى القائمةُ تحته بالمراحل الثلاث
+     كلِّها — وهو ما شكا منه المستشارُ بصورة (٦ أكتوبر ٢٠٢٦): «تخصيصٌ للحصص
+     المسجَّلة حسب المرحلة». فصار المرشِّحُ واحداً للجدول والقائمة والتنبيهات،
+     ولا يُطلب من المستخدم ترشيحان لشيءٍ واحد. */
+  if(c.stages && c.stages.length) here = here.filter(x=>c.stages.indexOf(x.stage) >= 0);
   const s2 = el("div","card"), sh = el("h3");
-  sh.appendChild(el("span",null, ME.role === "teacher" ? "حصصك المسجَّلة" : "الحصص المسجَّلة في المجمع"));
+  sh.appendChild(el("span",null, ME.role === "teacher" ? "حصصك المسجَّلة"
+    : ((c.stages && c.stages.length === 1) ? ("الحصص المسجَّلة · " + c.stages[0])
+                                           : "الحصص المسجَّلة في المجمع")));
   /* ⚠️ والعدُّ يقول ما يقع عليه لا مجرّدَ العدد */
   const _mg = here.filter(isMyGap).length;
   sh.appendChild(el("small",null, arn(here.length) + " حصة"
@@ -6489,7 +6708,9 @@ function wipeGo(){
 }
 function wipeSend(adm){
   backup();                                    /* نسخةٌ قبل المحو */
-  const empty = {sched:[], prep:{}, obs:{}, peer:{}, rot:{}};
+  /* ⚠️ والترقيمُ يُصفَّر مع القاعدة: لو بقي لطُلب «ما بعد التسعين» على قاعدةٍ
+     فارغةٍ فعادت خاويةً — فلا يُستردُّ شيءٌ ولا يُعلَم السبب. */
+  const empty = {sched:[], prep:{}, obs:{}, peer:{}, rot:{}, __seq:0};
   DB = empty; lastSent = ""; UNDO = [];
   try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){}
   if(!api()){ alert("فُرّغت بيانات هذا الجهاز."); shell(); return; }

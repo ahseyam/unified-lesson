@@ -538,27 +538,8 @@ STALE_WORDS = ["ثلاثة مقيّمين", "المقيّمون الثلاثة",
                "but do not observe", "follow-up, not observation",
                "no form opens for you"]
 
-LEAK_WORDS = ["الحصص " + "التطبيقية",
-              "cloud" + "flare", "Bind" + "ings", "wran" + "gler",
-              "KV " + "namespace", "workers" + ".dev/",
-              "دل" + "يل ربط المخزن", "كيف " + "تستضيفها",
-              "D1 " + "database", "D1 " + "binding"]
-LEAK_OK = {"٨ - النموذج الرقمي (تجربة)/منصة الحصة الموحَّدة — ابن خلدون.html",
-           "٨ - النموذج الرقمي (تجربة)/منصة الحصة الموحَّدة — ابن خلدون (بنات).html",
-           "_المولّد/platform_app.js"}
-# نصُّ التحقّق «ينتهي بـ workers.dev» لا يُعلِّم شيئاً ولا يكشف عنواناً، فيُستثنى.
-LEAK_OK_WORDS = {"workers" + ".dev/"}
-
-# ⛔ **اسمُ شخصٍ في بياناتِ ملفٍ وصفية** — تسرّبٌ رابعٌ بقي حيّاً حتى ١ أكتوبر
-#    ٢٠٢٦: ملفٌّ يتيمٌ في جذر المستودع (`استرداد نسختك من البطاقة.doc`) يحمل
-#    `Last Saved By: Ahmaed Mahmooud Sueam` ويردُّ ٢٠٠ على الموقع، **ولا يشير
-#    إليه فهرسٌ ولا بطاقة**. فالنصُّ وحدَه لا يكفي: الاسمُ في الخصائص لا في
-#    المتن. (أمسكه وكيلُ تماسك المطبوعات)
-#    ⚠️ وتُكتب الصيغُ المحرَّفةُ أيضاً: وورد يكتب ما كُتب في إعداد الجهاز.
-META_NAMES = ["Ahmaed", "Sueam", "Seyam", "صيام", "ahmadseyam"]
-# ما يُقرأ منه الاسمُ في كل صيغة
-META_RX = [r"Last Saved By", r"dc:creator", r"lastModifiedBy", r"Author"]
-
+from leakwords import (LEAK_WORDS, LEAK_OK, LEAK_OK_WORDS,
+                       META_NAMES, META_RX)
 
 def guard_no_server_leak():
     """يمسح كلَّ ملفٍ نصيٍّ في شجرة التسليم، ويرفع الخطأَ عند أول تسرّب."""

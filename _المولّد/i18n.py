@@ -1777,6 +1777,61 @@ EN.update({
     "ستُّ عملياتٍ — والسجلُّ كاملاً في أدوات المنصة":
         "Six entries — the full log is in the platform tools",
     "سحبُ ما كتبه غيرُك على أجهزتهم": "Pull what others have written on their devices",
+    # ── تخزينُ الخادم: كتلةٌ أو صفوف (٦ أكتوبر ٢٠٢٦) ──
+    "تخزينُ الخادم": "Server storage",
+    "حالُ القاعدة": "Database state",
+    "يُقرأ…": "Reading…",
+    "لم يستجب": "No response",
+    "تعذّر الاتصال": "Connection failed",
+    "كتلةٌ واحدة": "Single blob",
+    "صفوف ✓": "Rows ✓",
+    "حصص ": "lessons ",
+    " · صفوف ": " · rows ",
+    " · حجم ": " · size ",
+    " م.ب": " MB",
+    " · سجلّ ": " · log ",
+    " · ترقيم ": " · stamp ",
+    " · ⚠️ هجرةٌ لم تنتهِ": " · ⚠️ migration unfinished",
+    "⚠️ خادمُك يعمل بشفرةٍ قديمةٍ لا تعرف الصفوف — انشر النسخةَ الجديدة أولاً.":
+        "⚠️ Your server runs older code that does not know rows — publish the new version first.",
+    "① هجرةُ البيانات": "① Migrate the data",
+    "تُنسخ الكتلةُ صفّاً صفّاً — ولا يتغيّر شيءٌ عند المعلمين":
+        "The blob is copied row by row — nothing changes for the teachers",
+    "نفِّذ الهجرة": "Run the migration",
+    "② تحويلُ القراءة": "② Switch the read",
+    "تُقرأ الصفوفُ بدل الكتلة — وهنا تخفُّ المزامنةُ ألفَ ضعف":
+        "Rows are read instead of the blob — and here syncing gets a thousand times lighter",
+    "حوِّل إلى الصفوف": "Switch to rows",
+    "③ الرجوع": "③ Roll back",
+    "تُخدَم الكتلةُ المحفوظةُ من جديد — في لحظةٍ وبلا فقد":
+        "The stored blob is served again — instantly and with no loss",
+    "ارجع إلى الكتلة": "Back to the blob",
+    "تُهاجَر البيانات…": "Migrating the data…",
+    "تُهاجَر… ": "Migrating… ",
+    " صفّاً": " rows",
+    "⛔ لم تُنفَّذ الهجرة.\n\n": "⛔ The migration did not run.\n\n",
+    "خادمُك يعمل بشفرةٍ قديمةٍ لا تعرف الصفوف — انشر النسخةَ الجديدةَ ثم أعد المحاولة.":
+        "Your server runs older code that does not know rows — publish the new version, then try again.",
+    "✓ تمّت الهجرة: ": "✓ Migration complete: ",
+    " صفّاً.\n\nولم يتغيّر شيءٌ عند المعلمين بعد — القاعدةُ المخدومةُ هي الكتلةُ نفسُها. والخطوةُ الثانيةُ («تحويلُ القراءة») هي التي تُفعّل الصفوف.":
+        " rows.\n\nNothing has changed for the teachers yet — the database being served is still the blob itself. It is the second step (\"Switch the read\") that activates the rows.",
+    "تحويلُ القراءة إلى الصفوف.\n\nبعدها تسحب الأجهزةُ ما استجدَّ وحدَه بدل القاعدة كلِّها. والكتلةُ تبقى محفوظةً كما هي، فالرجوعُ بنقرة.\n\nأتُتابع؟":
+        "Switch the read to rows.\n\nAfterwards devices pull only what is new instead of the whole database. The blob stays stored as it is, so rolling back is one click.\n\nContinue?",
+    "الرجوعُ إلى الكتلة الواحدة.\n\nتُخدَم الكتلةُ المحفوظةُ من جديد.\n\n⚠️ وما سجّله المعلمون **بعد** التحويل إلى الصفوف موجودٌ في الصفوف لا في الكتلة — فخُذ نسخةً احتياطيةً أولاً إن كنت ستعود.\n\nأتُتابع؟":
+        "Back to the single blob.\n\nThe stored blob is served again.\n\n⚠️ Whatever the teachers recorded **after** the switch to rows lives in the rows, not in the blob — so take a backup first if you are going back.\n\nContinue?",
+    "حوِّل": "Switch",
+    "ارجع": "Go back",
+    "تحويل التخزين إلى الصفوف": "switching storage to rows",
+    "الرجوع إلى الكتلة": "going back to the blob",
+    "أُلغي — لا مفتاحَ إدارة.": "Cancelled — no admin key.",
+    "⛔ لم يُحوَّل.\n\n": "⛔ Not switched.\n\n",
+    "تحويل التخزين": "Storage switch",
+    "إلى الصفوف": "to rows",
+    "إلى الكتلة": "to the blob",
+    "✓ صار التخزينُ: ": "✓ Storage is now: ",
+    "صفوفاً": "rows",
+    "كتلةً واحدة": "a single blob",
+    "هجرةُ التخزين إلى الصفوف": "Storage migration to rows",
     "تُنزَّل بياناتُ المنظومة كلُّها ملفاً على جهازك":
         "The system's entire data downloads as a file to your device",
     "نسخة-منصة-الحصة-الموحدة.json": "unified-lesson-platform-backup.json",
@@ -2026,6 +2081,9 @@ EN.update({
         "Schedules their school's lessons, edits and deletes them, assigns the visiting teachers, and scores them",
     "تجدول حصص مدرستها وتعدّلها وتحذفها، وتسنِد المعلمات الزائرات، وترصدها":
         "Schedules her school's lessons, edits and deletes them, assigns the visiting teachers, and scores them",
+    "ترشيحٌ بالمدرسة — للجدول والقائمة والتنبيهات (اختياري):":
+        "Filter by school — for the grid, the list and the alerts (optional):",
+    "الحصص المسجَّلة · ": "Registered lessons · ",
     # ── ورقةُ رياض الأطفال (٦ أكتوبر ٢٠٢٦) ──
     " روضةً، لكلِّ روضةٍ ": " KGs, each with ",
     "ولرياض الأطفال ورقتها: تبويب «رياض الأطفال» — صفوفها الأسبوع واليوم، والمادة تُختار في الخلية من قائمة موادها هي (حلقة · أركان · مكتبة …) لأن معلمة الصف تُدرّس أكثر من مادة.":

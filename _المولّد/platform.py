@@ -979,7 +979,10 @@ tbody tr:hover td{background:#f4f8fc}
 .whois.no{color:#8a5a00}
 .login input{margin-bottom:8px}
 .login input[readonly]{background:var(--okbg);border-color:#bcdfc4;font-weight:700;color:var(--ok)}
-.ro{background:#f7fafc;border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--ans);
+/* ⛔ وقيمةُ القراءة مثلُ حقلِ الكتابة: `plaintext` يجعل كلَّ فقرةٍ تتبع
+   محتواها — فالتحضيرُ الإنجليزيُّ يُقرأ عند الوكيل والمدير كما كتبه
+   صاحبُه، لا بعلاماتِ ترقيمٍ انقلبت إلى صدر الجملة. (٦ أكتوبر ٢٠٢٦) */
+.ro{unicode-bidi:plaintext;text-align:start;background:#f7fafc;border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--ans);
  min-height:36px;white-space:pre-wrap;font-size:15.5px}
 .lab{background:var(--head);color:var(--navy);font-weight:700;font-size:14.5px;padding:7px 10px;border-radius:8px}
 .row2{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:start;margin-bottom:9px}
