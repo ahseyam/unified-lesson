@@ -181,16 +181,25 @@ function save(){
    (٧ أكتوبر ٢٠٢٦): المخزنُ يردُّ عطلاً على كل طلبٍ والصفحةُ لا تقول شيئاً.
    ⚠️ فصار للانقطاع **شريطٌ ظاهرٌ تحت الترويسة** لا علامةً صغيرةً في زاويةٍ:
       يقول ما جرى، وأن ما كُتب محفوظٌ، وأنّ المعروضَ قد لا يكون كاملاً. */
-let offFail = 0;
+let offFail = 0, degDay = "";
 function offBar(){
   const old = document.getElementById("offbar");
   if(old) old.remove();
-  if(!offFail || !api()) return;
+  if((!offFail && !degDay) || !api()) return;
   const b = el("div","offbar"); b.id = "offbar";
-  b.appendChild(el("strong",null,"المخزنُ المشترك متعذّرٌ الآن"));
-  b.appendChild(el("span",null,
-    "ما تكتبه محفوظٌ على جهازك ويُرفع تلقائياً متى عاد — "
-    + "والمعروضُ أمامك قد لا يكون كاملاً، فتأنَّ في حجز خانةٍ جديدة."));
+  /* ⛔ **ولا يُقال «متعذّر» وهو يُخدَم من نسخة**: الحالان مختلفتان، وخلطُهما
+     يُفقد المعلّمَ الثقةَ. فالنجدةُ تُسمّى بتاريخ نسختها صراحةً. */
+  if(degDay){
+    b.appendChild(el("strong",null,"تُعرض نسخةٌ احتياطية"));
+    b.appendChild(el("span",null,
+      "القاعدةُ المشتركةُ متوقّفةٌ مؤقتاً، وهذا جدولُ يوم " + degDay + ". "
+      + "ما تكتبه محفوظٌ على جهازك ويُرفع متى عادت — ولا تحجز خانةً جديدةً الآن."));
+  } else {
+    b.appendChild(el("strong",null,"المخزنُ المشترك متعذّرٌ الآن"));
+    b.appendChild(el("span",null,
+      "ما تكتبه محفوظٌ على جهازك ويُرفع تلقائياً متى عاد — "
+      + "والمعروضُ أمامك قد لا يكون كاملاً، فتأنَّ في حجز خانةٍ جديدة."));
+  }
   const rb = el("button",null,"أعد المحاولة");
   rb.addEventListener("click", ()=>{ pullNow().then(()=>shell()); });
   b.appendChild(rb);
@@ -786,6 +795,8 @@ function pushNow(){
       pending = true;
       /* ⚠️ وتعذُّرُ الحفظ انقطاعٌ كتعذُّر السحب — فالشريطُ واحدٌ لهما */
       offSet(true);
+      /* ⚠️ ويُسجَّل: تعذُّرُ الحفظ أخطرُ ما يقع، وكان لا يصلني منه خبر */
+      if(writeFails === 2) errLog("تعذّر الحفظ", e && e.message, "", "محاولاتٌ " + writeFails);
       setSyn(e.message === "limit" ? "تعذّر الحفظ المشترك — يُعاد قريباً" : "محفوظٌ محلياً — بانتظار الشبكة",
              "warnsyn");
       /* ⚠️ لا تُفقد البيانات: تبقى محليةً ويُعاد الدفعُ بتباعدٍ متزايد */
@@ -818,6 +829,28 @@ function pull(){
   if(pending) return pushNow().then(()=>pullNow());
   return pullNow();
 }
+/* ⛔ **الأرشيفُ لم يعد يُحمَّل مع كل فتحةِ صفحة**: قِيس ٧ أكتوبر ٢٠٢٦ أن
+   ٨٨٪ ممّا يُنزَّل سجلٌّ وسلّةُ محذوفاتٍ لا يراهما إلا المستشارُ في شاشتين
+   (٢٠٠٠ مدخلِ سجلٍّ و٤٠٣ سلّةٍ من ٢٧٠٠ صفّ). فصار يُطلب عند فتحهما.
+   ⚠️ **ولا تُعرض الشاشةُ خاويةً ريثما يصل**: تقول إنها تُحمَّل، ثم تُرسَم.
+   ⚠️ ومرّةً واحدةً في الجلسة — ثم تكفي الفارقةُ لما يستجدّ. */
+let archAt = 0, archBusy = false;
+function archNeed(){ return !archAt && !!api(); }
+function archPull(then){
+  if(archBusy || !api()){ if(then) then(); return; }
+  archBusy = true;
+  fetch(apiGet("platform", SID) + "&arch=1")
+    .then(r=>r.json())
+    .then(r=>{
+      if(r && r.ok && r.data){
+        mergeDB(r.data);
+        try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){}
+        archAt = Date.now();
+      }
+    })
+    .catch(()=>{})
+    .then(()=>{ archBusy = false; if(then) then(); });
+}
 function pullNow(){
   if(!api()) return Promise.resolve(false);
   const sq = seqOf();
@@ -827,6 +860,16 @@ function pullNow(){
        دفعةٍ وسحبٍ لا يُدفع أبداً ولا يبقى محلياً. (٣٠ سبتمبر ٢٠٢٦) */
     .then(r=>{
       if(!(r && r.ok)){ offSet(true); return false; }
+      /* ⚠️ نجدةٌ: بياناتٌ من نسخةٍ احتياطية — تُعرض ولا يُبنى عليها ترقيم،
+         وإلّا ظنَّ الجهازُ أنه على أحدث الخادم فامتنع عن السحب الكامل بعد
+         عودة القاعدة. */
+      if(r.degraded){
+        degDay = String(r.bakday || "").slice(0, 10);
+        mergeDB(r.data || {});
+        offBar();
+        return false;
+      }
+      if(degDay){ degDay = ""; offBar(); }
       offSet(false);
       noteNow(r);
       /* ⚠️ فارقةٌ: ما استجدَّ وما غاب. والخادمُ لا يُرسلها إلا لمن طلبها
@@ -880,6 +923,65 @@ const LOG_MAX = 2000;
 /* ⚠️ الوقتُ وحده لا يكفي للترتيب: عمليتان في الميلي‑ثانية نفسها تتساويان
    فيختلّ ترتيبُهما. فيُضاف عدّادٌ متسلسلٌ داخل المفتاح، ويُرتَّب بالمفتاح. */
 let logSeq = 0;
+/* ⛔ **لم تكن في المنصة عينٌ ترى عطلاً.** كلُّ ما عُولج في ٧ أكتوبر ٢٠٢٦ —
+   ثمانيةُ أعطالٍ — اكتُشف **بعد أن اصطدم به معلّمٌ** فأبلغ المستشارَ في واتساب
+   فأبلغني. فأنا أقيس ما أتذكّر أن أقيسه، والمستخدمُ يكتشف ما لم يخطر لي.
+   ⚠️ فصار لكلِّ خطأٍ في الصفحة — ولكلِّ حفظةٍ تفشل — **سجلٌّ يُرفع مع البيانات**:
+      ما وقع · في أيِّ شاشة · لمن · على أيِّ جهاز · وبأيِّ إصدار.
+   ⚠️ **ولا يُثقل ولا يدور**: عشرون في الجلسة على الأكثر، والمكرّرُ يُعدُّ ولا
+      يُكتب مرّتين، ولا يُسجَّل خطأٌ وقع **داخل** التسجيل نفسِه (وإلّا دار).
+   ⚠️ ولا يُرسَل منه نصٌّ كتبه المعلّم في حقلٍ — رسالةُ العطل وموضعُه فقط. */
+const ERRP = "~err~";
+const ERR_MAX = 20;
+let errN = 0, errBusy = false;
+const errSeen = {};
+function errKey(){
+  return ERRP + Date.now().toString(36) + "-" + (logSeq++).toString(36).padStart(4, "0")
+       + "-" + Math.random().toString(36).slice(2, 6);
+}
+function errLog(kind, msg, where, note){
+  if(errBusy || errN >= ERR_MAX) return;
+  const m = String(msg == null ? "" : msg).slice(0, 300);
+  const sig = kind + "|" + m.slice(0, 120);
+  if(errSeen[sig]){ errSeen[sig]++; return; }
+  errSeen[sig] = 1; errN++;
+  errBusy = true;
+  try{
+    DB.prep = DB.prep || {};
+    DB.prep[errKey()] = {k: kind, m: m, w: String(where || "").slice(0, 200),
+      n: String(note || "").slice(0, 400),
+      by: ME ? ME.name : "", r: ME ? ME.role : "", sc: ME ? (ME.school || "") : "",
+      cx: ME ? (ME.complex || "") : "", ph: typeof PH === "number" ? PH : -1,
+      ua: (navigator.userAgent || "").slice(0, 140),
+      vw: (window.innerWidth || 0) + "×" + (window.innerHeight || 0),
+      b: D.build || "", t: new Date().toISOString(), mt: nowMs()};
+    try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){}
+    sync();
+  }catch(e){}
+  errBusy = false;
+}
+addEventListener("error", (e)=>{
+  /* ⚠️ ولا بديلَ عربيٌّ للرسالة: المخزونُ يُقرأ في اللغتين، والخاوي يُعرض «—» */
+  errLog("خطأٌ في الصفحة", (e && e.message) || "",
+         ((e && e.filename) || "") + ":" + ((e && e.lineno) || ""));
+});
+addEventListener("unhandledrejection", (e)=>{
+  const r = e && e.reason;
+  errLog("وعدٌ مرفوض", (r && r.message) || String(r || ""), "");
+});
+
+/* ⛔ **وبلاغُ المستخدم من داخل الشاشة** لا من واتساب: يصل ومعه موضعُه ودورُه
+   وجهازُه وإصدارُه — فلا أسأل «أين كنت؟» ولا «أيُّ متصفّح؟». */
+function reportBug(){
+  uiPrompt("ما الذي حدث؟ اكتبه بإيجاز — ويصل معه موضعُك ودورُك وجهازُك.",
+           "", "مثال: ضغطتُ «ابدأ الحصة» فلم يحدث شيء").then(t=>{
+    if(!t || !String(t).trim()) return;
+    errN = 0;                                /* بلاغُ الإنسان لا يُحدُّ بسقفِ الآلة */
+    errLog("بلاغُ مستخدم", String(t).trim().slice(0, 300), "شاشة " + (typeof PH === "number" ? PH : "?"));
+    toast("وصل بلاغُك — شكراً لك", "ok");
+  });
+}
+
 function logKey(){
   return LOG + Date.now().toString(36) + "-" + (logSeq++).toString(36).padStart(4, "0")
        + "-" + Math.random().toString(36).slice(2, 6);
@@ -889,8 +991,12 @@ function logAct(act, what, L){
   DB.prep[logKey()] = {a: act, w: what, by: ME.name, r: ME.role,
                        t: new Date().toISOString(),
                        lid: L ? L.id : "", gk: L ? L.gk : ""};
-  const keys = Object.keys(DB.prep).filter(k=>k.indexOf(LOG) === 0).sort();
-  if(keys.length > LOG_MAX) keys.slice(0, keys.length - LOG_MAX).forEach(k=>delete DB.prep[k]);
+  /* ⚠️ ولا يُقَصُّ المحليُّ وقد حُمِّل الأرشيفُ في هذه الجلسة: المستشارُ فتح
+     السجلَّ الكاملَ، فلا يُنقَص بين يديه بأولِ عملٍ يعمله. */
+  if(!archAt){
+    const keys = Object.keys(DB.prep).filter(k=>k.indexOf(LOG) === 0).sort();
+    if(keys.length > LOG_MAX) keys.slice(0, keys.length - LOG_MAX).forEach(k=>delete DB.prep[k]);
+  }
 }
 function logList(){
   /* يُرتَّب بالمفتاح لا بالوقت: المفتاحُ يحمل الوقتَ ثم التسلسل فلا يتساوى اثنان */
@@ -2017,6 +2123,11 @@ function shell(){
   me.appendChild(el("span","rl", TR(roleTitle())));
   me.appendChild(el("span","nm", ME.name));
   const sv = el("span"); sv.id="syn"; sv.style.cssText="font-size:13px;color:#bfe3c9"; me.appendChild(sv);
+  /* ⚠️ وزرُّ البلاغ في الترويسة لا في شاشةٍ بعيدة: من يتعثَّر يُبلغ حيث تعثَّر */
+  const rb = el("button","rep","⚠ أبلغ");
+  rb.title = "أبلغ عن مشكلة في هذه الشاشة";
+  rb.addEventListener("click", reportBug);
+  me.appendChild(rb);
   const ob = el("button",null,"خروج");
   ob.addEventListener("click", ()=>{ localStorage.removeItem(KEY+"_me"); ME=null; login(); });
   me.appendChild(ob);
@@ -2480,6 +2591,12 @@ function phTools(m){
      ()=>{ PH = 1; setctx("tab","log"); shell(); }],
     ["سلّة المحذوفات", "يُحفظ المحذوفُ ثلاثين يوماً ويُستردُّ بنقرة", "افتح السلّة",
      ()=>{ PH = 1; setctx("tab","trash"); shell(); }],
+  ]);
+  /* ⛔ **ولوحةٌ تُريني ما تعثَّر** قبل أن يصل إلى المستشار في واتساب */
+  mk("البلاغاتُ والأعطال", "ما تعثَّر عند المستخدمين — وما أبلغوا به", [
+    ["بلاغاتُ المستخدمين وأخطاءُ الصفحة",
+     "تُجمع تلقائياً مع البيانات: ما وقع وأين ولمن وعلى أيِّ جهاز", "افتح البلاغات",
+     ()=>{ PH = 1; setctx("tab","err"); shell(); }],
   ]);
   mk("النسخ والتفريغ", "⚠️ الأخيرُ لا يُستردّ", [
     ["نسخةٌ احتياطية", "تُنزَّل بياناتُ المنظومة كلُّها ملفاً على جهازك", "نزّل النسخة", ()=>backup()],
@@ -3986,7 +4103,16 @@ function verCheck(){
       try{ sessionStorage.setItem(KEY + "_vr", live); }catch(e){}
       Promise.resolve(syncFlush()).then(()=>{
         if(isTyping()) return;                  /* لا يُقطع على كاتب */
-        location.reload();
+        /* ⛔ **وإعادةُ التحميل وحدَها قد تأتي بالمخبَّأ**: جِت هب بيدج يُرسل
+           `Cache-Control: max-age=600`، فالمتصفّحُ يُعيد من نسخته عشرَ دقائق.
+           والإعادةُ **مرّةٌ واحدةٌ لكلِّ ختم**، فمن وقع عليه ذلك بقي على
+           القديم بقيّةَ جلسته وهو يظنُّ نفسَه محدَّثاً. (قِيست الترويسةُ على
+           المنشور ٧ أكتوبر ٢٠٢٦.)
+           ⚠️ فتُجدَّد نسخةُ المتصفّح أولاً بطلبٍ يتجاوز المخبأ ويكتب مكانَه
+              (`cache: "reload"`)، ثم يُعاد التحميلُ على الجديد. */
+        const go = ()=>location.reload();
+        try{ fetch(location.href, {cache: "reload"}).then(go, go); }
+        catch(e){ go(); }
       });
     })
     .catch(()=>{});
@@ -5338,6 +5464,7 @@ function ph1(m){
   if(c.tab === "log") return logView(m, c);
   if(c.tab === "assign") return assignView(m, c);
   if(c.tab === "trash") return trashView(m, c);
+  if(c.tab === "err") return errView(m, c);
   if(c.tab === "visits") return visitPlan(m, c);
   if(c.tab === "school") return rotSchool(m, c);
   if(c.tab === "sup") return rotSup(m, c);
@@ -5670,6 +5797,7 @@ function grid(m, c, T){
 function cellEditor(c, band, r){
   const gk = gkey(c.complex, band, r.wk, r.day, r.spec);
   const w = el("div","cellbox");
+  w.dataset.gk = gk;
   const cur = () => findLesson(gk);
   const ensure = ()=>{
     let x = cur();
@@ -5956,6 +6084,13 @@ function rotSup(m, c){
   card.appendChild(wrap); m.appendChild(card);
 }
 
+/* ⚠️ والخانةُ تُعرف بمفتاحها في الصفحة — فالنقرةُ تأخذ صاحبَها إليها */
+function cellOf(gk){
+  if(!gk) return null;
+  const all = document.querySelectorAll(".cellbox");
+  for(let i = 0; i < all.length; i++) if(all[i].dataset.gk === gk) return all[i];
+  return null;
+}
 function myList(m, c){
   let here = DB.sched.filter(x=>x.gk && x.gk.indexOf(c.sector + "|" + c.complex + "|") === 0);
   if(ME.role === "teacher") here = here.filter(isMine);
@@ -5978,6 +6113,37 @@ function myList(m, c){
   sh.appendChild(el("small",null, arn(here.length) + " حصة"
     + (_mg ? (" · منها " + arn(_mg) + " عليك (لا مشرفَ لتخصصها)") : "")));
   s2.appendChild(sh);
+  /* ⛔ **نصفُ ما سُجِّل ناقص**: قِيس ٧ أكتوبر ٢٠٢٦ على المخزن الحيّ أن ٤٩٪ من
+     حصص البنين و٣٤٪ من حصص البنات تنقصها واحدةٌ من الأربع. والخانةُ الصفراءُ
+     تقول ذلك في الجدول، لكنّ من لا يمرُّ على خانته لا يراها.
+     ⚠️ فيُقال له هنا صراحةً: **كم ناقصةً، وما الذي ينقصها، وأين هي** — ونقرةٌ
+        تأخذه إليها. فالقائدُ إلى الإتمام خيرٌ من اللائم على النقص. */
+  const part = here.filter(x=>(x.teacher || "").trim() && !lessonFull(x));
+  if(part.length){
+    const w = el("div","pad gapbox");
+    const ttl = el("div","gapttl",
+      ME.role === "teacher" ? "حصصُك الناقصةُ لم تُحجز بعد" : "حصصٌ ناقصةٌ لم تُحجز بعد");
+    w.appendChild(ttl);
+    w.appendChild(el("div",null,
+      "لا تُحجز الخانةُ حتى تكتمل بياناتُها — وقد يسجّلها غيرُك."));
+    const ul = el("div","gaplist");
+    part.slice(0, 8).forEach(x=>{
+      const b = el("button","gapi");
+      b.appendChild(el("b",null, [x.stage, x.period].filter(Boolean).join(" · ")));
+      b.appendChild(el("span",null, [x.week, x.day].filter(Boolean).join(" ")));
+      b.appendChild(el("i",null, "ينقص: " + lessonGaps(x).join(" · ")));
+      b.addEventListener("click", ()=>{
+        const c2 = cellOf(x.gk);
+        if(c2){ c2.scrollIntoView({block: "center"}); c2.classList.add("hit");
+                setTimeout(()=>c2.classList.remove("hit"), 2200); }
+        else toast("افتح جدولَ مجمعها لتُكملها", "warn");
+      });
+      ul.appendChild(b);
+    });
+    w.appendChild(ul);
+    if(part.length > 8) w.appendChild(el("div","note", "وغيرُها " + arn(part.length - 8)));
+    s2.appendChild(w);
+  }
   const sp = el("div","pad");
   if(!here.length){
     sp.appendChild(el("div","empty", ME.role === "teacher"
@@ -6055,9 +6221,15 @@ function myList(m, c){
 }
 
 function backup(){
-  const a = document.createElement("a");
-  a.href = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(DB, null, 1));
-  a.download = "نسخة-منصة-الحصة-الموحدة.json"; a.click();
+  /* ⛔ **ولا تُنزَّل نسخةٌ ناقصة**: صار السجلُّ والسلّةُ لا يصلان الجهازَ إلا
+     بطلب، فنسخةٌ تُؤخذ قبلهما تبدو كاملةً وليست كذلك — وهي أخطرُ من غيابها. */
+  const go = ()=>{
+    const a = document.createElement("a");
+    a.href = "data:application/json;charset=utf-8," + encodeURIComponent(JSON.stringify(DB, null, 1));
+    a.download = "نسخة-منصة-الحصة-الموحدة.json"; a.click();
+  };
+  if(archNeed()){ toast("تُجمَع البياناتُ كاملةً قبل التنزيل…"); archPull(go); }
+  else go();
 }
 
 
@@ -6602,6 +6774,14 @@ function syncStageInputs(P){
 
 /* ═════════ عرضُ سلّة المحذوفات ═════════ */
 function trashView(m, c){
+  /* ⚠️ والسلّةُ لا تصل إلا بطلبٍ — فتُطلب هنا ثم تُعاد الشاشةُ برسمها */
+  if(archNeed()){
+    const w = el("div","card");
+    w.appendChild(el("div","pad note","تُحمَّل سلّةُ المحذوفات…"));
+    m.appendChild(w);
+    archPull(()=>shell());
+    return;
+  }
   /* ⛔ **السلّةُ كانت تعرض للمقيّم محذوفاتِ المنظومة كلِّها** — ومعها «محوٌ
      نهائيٌّ» بلا استرداد. فوكيلُ مدرسةٍ يمحو إلى الأبد ما حذفته مدرسةٌ أخرى.
      فصار الترشيحُ في `trashList()` وحدَها، وهذه تقرأ المرشَّح. */
@@ -6821,8 +7001,82 @@ function assignView(m, c){
   bp.appendChild(t); box.appendChild(bp); m.appendChild(box);
 }
 
+/* ═════════ عرضُ البلاغات والأعطال — للمستشار ═════════
+   ⛔ **وهذه الشاشةُ هي ما يُنهي حلقةَ ردِّ الفعل**: كانت الأعطالُ تصل بعد
+      يومين عبر واتساب منقوصةً («لا تظهر عندي»)، فأسأل عن الشاشة والجهاز
+      والإصدار. فصارت تصل بنفسها كاملةً. */
+function errList(){
+  return Object.keys(DB.prep || {}).filter(k=>k.indexOf(ERRP) === 0).sort().reverse()
+    .map(k=>DB.prep[k]).filter(Boolean);
+}
+function errView(m, c){
+  if(archNeed()){
+    const w = el("div","card");
+    w.appendChild(el("div","pad note","تُحمَّل البلاغات…"));
+    m.appendChild(w);
+    archPull(()=>shell());
+    return;
+  }
+  const all = errList();
+  const card = el("div","card"), h = el("h3");
+  h.appendChild(el("span",null,"البلاغاتُ والأعطال"));
+  h.appendChild(el("small",null, arn(all.length) + " مدخلاً"));
+  card.appendChild(h);
+  const p = el("div","pad");
+  if(!all.length){
+    p.appendChild(el("div","empty",
+      "لا بلاغَ ولا عطلٌ مسجَّل — وما يقع عند أيِّ مستخدمٍ يظهر هنا من تلقائه."));
+    card.appendChild(p); m.appendChild(card); return;
+  }
+  /* ⚠️ والمكرَّرُ يُجمع: عشرون جهازاً أصابها العطلُ نفسُه سطرٌ واحدٌ بعددها */
+  const by = {};
+  all.forEach(e=>{
+    const k = (e.k || "") + "|" + (e.m || "");
+    if(!by[k]) by[k] = {e: e, n: 0, who: {}, dev: {}};
+    by[k].n++;
+    if(e.by) by[k].who[e.by] = 1;
+    if(e.ua) by[k].dev[uaShort(e.ua)] = 1;
+  });
+  const rows = Object.keys(by).map(k=>by[k]).sort((a, b)=>b.n - a.n);
+  const t = el("table","tb");
+  const hr = el("tr");
+  ["النوع","ما وقع","مرّات","من","الجهاز","الشاشة","آخر مرة"].forEach(x=>hr.appendChild(el("th",null,x)));
+  t.appendChild(hr);
+  rows.forEach(g=>{
+    const e = g.e, r = el("tr");
+    r.appendChild(el("td",null, e.k || "—"));
+    const td = el("td"); td.className = "ro"; td.textContent = (e.m || "—") + (e.w ? " — " + e.w : "");
+    r.appendChild(td);
+    r.appendChild(el("td",null, arn(g.n)));
+    r.appendChild(el("td",null, Object.keys(g.who).slice(0, 3).join(" · ") || "—"));
+    r.appendChild(el("td",null, Object.keys(g.dev).slice(0, 2).join(" · ") || "—"));
+    r.appendChild(el("td",null, e.sc || "—"));
+    r.appendChild(el("td",null, (e.t || "").slice(0, 16).replace("T", " ")));
+    t.appendChild(r);
+  });
+  p.appendChild(t);
+  card.appendChild(p); m.appendChild(card);
+}
+/* اسمٌ قصيرٌ للجهاز من ترويسته — فالترويسةُ الكاملةُ سطرٌ لا يُقرأ */
+function uaShort(ua){
+  const u = String(ua || "");
+  const os = /iPhone|iPad/.test(u) ? "آيفون" : /Android/.test(u) ? "أندرويد"
+           : /Macintosh/.test(u) ? "ماك" : /Windows/.test(u) ? "ويندوز" : "آخر";
+  const br = /CriOS|Chrome/.test(u) ? "كروم" : /FxiOS|Firefox/.test(u) ? "فايرفوكس"
+           : /Safari/.test(u) ? "سفاري" : "متصفّح";
+  return os + " · " + br;
+}
+
 /* ═════════ عرضُ سجلّ العمليات — للمقيّم ═════════ */
 function logView(m, c){
+  /* ⚠️ والسجلُّ الكاملُ كذلك: في الصفحة آخرُه وحدَه حتى يُطلب */
+  if(archNeed()){
+    const w = el("div","card");
+    w.appendChild(el("div","pad note","يُحمَّل سجلُّ العمليات…"));
+    m.appendChild(w);
+    archPull(()=>shell());
+    return;
+  }
   const all = logList();
   const card = el("div","card"), h = el("h3");
   h.appendChild(el("span",null,"سجلّ العمليات"));

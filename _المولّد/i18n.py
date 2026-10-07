@@ -28,7 +28,10 @@ LIT = r'"((?:[^"\\\n]|\\.)*)"|\'((?:[^\'\\\n]|\\.)*)\''
 KEYRX = re.compile(r'(?:===|!==|==|!=)\s*"([^"]*[؀-ۿ][^"]*)"'
                    r'|\[\s*"([^"]*[؀-ۿ][^"]*)"\s*\]')
 # ⛔ أولُ وسيطٍ لـ logAct يُخزَّن في السجلّ ويُقارن لاحقاً — لا يُترجَم
-STORED = re.compile(r'logAct\(\s*"([^"]*[؀-ۿ][^"]*)"')
+# ⚠️ و`errLog` مثلُ `logAct`: أولُ وسيطٍ **يُخزَّن** في سجلّ الأعطال ويُقرأ في
+#    اللغتين — فلو لُفَّ لاختلف المخزونُ باختلاف لغةِ من وقع عنده العطل،
+#    فانقسم العطلُ الواحدُ عطلين في اللوحة. (٧ أكتوبر ٢٠٢٦)
+STORED = re.compile(r'(?:logAct|errLog)\(\s*"([^"]*[؀-ۿ][^"]*)"')
 # ⛔ مفتاحُ كائنٍ حرفيٍّ: {"س": …} — ولفُّه يُخرج جافاسكربت غيرَ صحيح أصلاً،
 #    وكشفه `node --check` في أول تجربة (خريطةُ أسماء المدارس القديمة OLDST).
 # ⚠️ **والنقطتان وحدَهما لا تكفيان للحكم**: في الشرط الثلاثي
@@ -1903,6 +1906,47 @@ EN.update({
     "والمعروضُ أمامك قد لا يكون كاملاً، فتأنَّ في حجز خانةٍ جديدة.":
         "and what you see may be incomplete, so take care before reserving a new cell.",
     "أعد المحاولة": "Try again",
+    # ⚠️ حالةُ النجدة (٧ أكتوبر ٢٠٢٦)
+    "تُعرض نسخةٌ احتياطية": "Showing a backup copy",
+    "القاعدةُ المشتركةُ متوقّفةٌ مؤقتاً، وهذا جدولُ يوم ":
+        "The shared database is temporarily down; this is the schedule as of ",
+    "ما تكتبه محفوظٌ على جهازك ويُرفع متى عادت — ولا تحجز خانةً جديدةً الآن.":
+        "What you type is saved on your device and will upload when it returns — do not reserve a new cell now.",
+    # ⚠️ لوحةُ البلاغات والأعطال وصندوقُ الناقصة (٧ أكتوبر ٢٠٢٦)
+    "⚠ أبلغ": "⚠ Report",
+    "أبلغ عن مشكلة في هذه الشاشة": "Report a problem on this screen",
+    "ما الذي حدث؟ اكتبه بإيجاز — ويصل معه موضعُك ودورُك وجهازُك.":
+        "What happened? Describe it briefly — your screen, role and device are sent with it.",
+    "مثال: ضغطتُ «ابدأ الحصة» فلم يحدث شيء":
+        "e.g. I pressed “Start lesson” and nothing happened",
+    "وصل بلاغُك — شكراً لك": "Your report was sent — thank you",
+    "البلاغاتُ والأعطال": "Reports and faults",
+    "ما تعثَّر عند المستخدمين — وما أبلغوا به":
+        "What users ran into — and what they reported",
+    "بلاغاتُ المستخدمين وأخطاءُ الصفحة": "User reports and page errors",
+    "تُجمع تلقائياً مع البيانات: ما وقع وأين ولمن وعلى أيِّ جهاز":
+        "Collected automatically with the data: what happened, where, to whom and on which device",
+    "افتح البلاغات": "Open reports",
+    "تُحمَّل البلاغات…": "Loading reports…",
+    "لا بلاغَ ولا عطلٌ مسجَّل — وما يقع عند أيِّ مستخدمٍ يظهر هنا من تلقائه.":
+        "No report or fault recorded — anything that happens to any user appears here by itself.",
+    " مدخلاً": " entries",
+    "النوع": "Type", "ما وقع": "What happened", "مرّات": "Times",
+    "الجهاز": "Device", "الشاشة": "Screen", "آخر مرة": "Last seen",
+    "شاشة ": "Screen ", "محاولاتٌ ": "attempts ",
+    "آيفون": "iPhone", "أندرويد": "Android", "ماك": "Mac", "ويندوز": "Windows",
+    "آخر": "Other", "كروم": "Chrome", "فايرفوكس": "Firefox", "سفاري": "Safari",
+    "متصفّح": "Browser",
+    "حصصُك الناقصةُ لم تُحجز بعد": "Your incomplete lessons are not reserved yet",
+    "حصصٌ ناقصةٌ لم تُحجز بعد": "Incomplete lessons — not reserved yet",
+    "لا تُحجز الخانةُ حتى تكتمل بياناتُها — وقد يسجّلها غيرُك.":
+        "A cell is not reserved until its data is complete — someone else may take it.",
+    "ينقص: ": "Missing: ", "وغيرُها ": "and ",
+    "افتح جدولَ مجمعها لتُكملها": "Open its complex's table to complete it",
+    # ⚠️ سحبُ الأرشيف عند الطلب (٧ أكتوبر ٢٠٢٦)
+    "تُحمَّل سلّةُ المحذوفات…": "Loading the recycle bin…",
+    "يُحمَّل سجلُّ العمليات…": "Loading the activity log…",
+    "تُجمَع البياناتُ كاملةً قبل التنزيل…": "Gathering all data before download…",
     # ⚠️ تنبيهُ مادةِ تخصصٍ آخر (٧ أكتوبر ٢٠٢٦)
     "» مادةُ تخصص ": "» is a subject of ",
     "، وهذه الخانةُ لتخصص ": " , while this cell belongs to ",

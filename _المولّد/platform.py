@@ -45,6 +45,15 @@ FONTS = os.path.expanduser("~/Library/Fonts")
 SITE = "https://ahseyam.github.io/unified-lesson/"
 RLM = "‏"
 GENDER = os.environ.get("CLS_GENDER", "m")
+
+
+def _icorel(outpath):
+    """بادئةُ المسار من موضع المخرَج إلى جذر التسليم — بعمقه لا بالظنّ."""
+    d = os.path.dirname(os.path.abspath(outpath))
+    r = os.path.relpath(ROOT, d) if d != ROOT else "."
+    return "" if r == "." else (r.replace(os.sep, "/") + "/")
+
+TRY = os.environ.get("CLS_ENV", "") == "try"
 F = GENDER == "f"
 
 
@@ -352,7 +361,13 @@ DATA = {
     #    والبناءان على `ahseyam.github.io` نفسِه — فكانا يتقاسمان المفتاحَ
     #    نفسَه ورابطَ المخزن نفسَه، فتختلط بياناتُ البنين والبنات على الجهاز
     #    الواحد. والبنونَ يبقون على «ik» فلا تضيع بياناتٌ قائمة.
-    "dbid": "ikf" if F else "ikm",
+    # ⛔ **ولم تكن ثَمَّ بيئةُ تجربة**: كلُّ بناءٍ يذهب إلى ٤٦٠ معلّماً مباشرةً،
+    #    فأولُ من يجرّب التغييرَ هم المستخدمون — وهو سببُ أن تصلني الأعطالُ
+    #    منهم لا منّي. (٧ أكتوبر ٢٠٢٦)
+    # ⚠️ فنسخةُ التجربة **قاعدتُها منفصلةٌ تماماً** (`ikm_try`): تُجرَّب فيها
+    #    التغييراتُ على بياناتٍ لا يملكها أحد، ولا تمسُّ حرفاً من بيانات
+    #    المعلمين. والفصلُ في `dbid` وحدَه — فما سواه نسخةٌ واحدةٌ لا نسختان.
+    "dbid": ("ikf" if F else "ikm") + ("try" if TRY else ""),
     # ⚠️ عنوان المستند يُؤنَّث والرابط لا يُمَسّ — وإلا انكسر المسار
     "phases": [dict(p, t=fem(p["t"]), s=fem(p["s"]), why=fem(p["why"]),
                     steps=[fem(x) for x in p["steps"]],
@@ -629,6 +644,25 @@ table.mx tr.sep td{border-top:2px solid var(--navy)}
 .offbar button{font:inherit;font-family:JZ,SK;font-size:13px;padding:4px 14px;border-radius:6px;
  border:1px solid #c98a2a;background:#fff;color:#8a3a00;cursor:pointer}
 @media (max-width:760px){.offbar{padding:8px 12px;font-size:12.5px;gap:6px}}
+/* ⛔ صندوقُ «الناقصة»: يقود إلى الإتمام ولا يكتفي بالتلوين */
+.gapbox{background:#fff8e6;border-top:2px solid #e9c46a}
+.gapttl{font-family:JZ,SK;font-weight:700;color:#8a5a0a;margin-bottom:3px}
+.gaplist{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.gapi{display:flex;flex-direction:column;gap:1px;text-align:start;font:inherit;
+ font-family:JZL,SK;background:#fff;border:1px solid #e3cf9a;border-radius:7px;
+ padding:6px 10px;cursor:pointer;min-width:150px}
+.gapi b{font-family:JZ,SK;font-size:12.5px;color:var(--navy2)}
+.gapi span{font-size:11.5px;color:var(--grey)}
+.gapi i{font-size:11.5px;color:#a9742a;font-style:normal}
+.cellbox.hit{outline:3px solid var(--navy2);outline-offset:2px}
+button.rep{background:transparent;border:1px solid #7fa4c8;color:#dbe9f6;
+ border-radius:6px;padding:3px 9px;font-size:12.5px;font-family:JZL,SK;cursor:pointer}
+@media (max-width:760px){button.rep{display:none}}
+/* ⚠️ شريطُ نسخة التجربة: ثابتٌ فوق كل شيءٍ ولا يزول — فلا تُخلط بالمنشورة */
+#trybar{position:fixed;inset-block-start:0;inset-inline:0;z-index:9999;
+ background:#b3261e;color:#fff;text-align:center;font-family:JZ,SK;font-size:13px;
+ padding:3px 8px;letter-spacing:.3px}
+body:has(#trybar) .top{margin-block-start:22px}
 .cellbox.part{background:#fff8e6;box-shadow:inset 0 0 0 2px #e9c46a}
 .cellbox.part::before{content:"⚠ ناقصة — لم تُحجز";display:block;font-size:10px;
  color:#a9742a;font-weight:700;text-align:center;margin-bottom:2px}
@@ -1100,6 +1134,15 @@ footer .sig i{display:block;font-style:normal;font-family:SK;font-size:11.5px;co
       إصبعٍ لا قياسُ خطّ، فتبقى كما هي ويحرسها `respcheck`. */
 @media (max-width:760px){
  body{font-size:15.5px;line-height:1.6}
+ /* ⛔ **قِيس بالنظر إلى لقطةٍ حقيقيةٍ لا بالأرقام** (٧ أكتوبر ٢٠٢٦): عنوانُ
+    المرحلة في بطاقة الشرح يكرّر عنوانَ البطاقة التي تحتَه حرفاً بحرف، ومعه
+    شريطُ المراحل — فالمعلّمُ يمرُّ بشاشتين قبل أول حقل. فيُطوى المكرَّرُ على
+    الجوال ويبقى «اقرأ أولاً» و«اعرض الشرح» كما هما. */
+ .why h2{font-size:16px;margin-bottom:2px;opacity:.72}
+ .why{padding:11px 12px 9px}
+ /* وشريطُ الانقطاع يقول ما يلزم في سطرين لا في خمسة */
+ .offbar{padding:7px 12px;font-size:12px;line-height:1.45;gap:5px}
+ .offbar strong{display:block;width:100%}
  .top{padding:9px 0}
  .top .row{gap:10px}
  .top h1{font-size:17px;white-space:nowrap}
@@ -1143,7 +1186,7 @@ HTML = """<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>منصة الحصة الموحَّدة — مدارس ابن خلدون</title>
 __ICON__
-<style>__FONTS____CSS__</style></head><body></body>
+<style>__FONTS____CSS__</style></head><body>__TRYBAR__</body>
 <script>__JS__</script></html>
 """
 
@@ -1706,7 +1749,16 @@ print("  ✓ الترجمة: %d مدخلاً في الصفحة · %d نصّاً 
 
 import icon as _ICO
 page = (HTML.replace("__FONTS__", FONTCSS).replace("__CSS__", CSS)
-            .replace("__ICON__", _ICO.head("../"))
+            # ⛔ **ومسارُ الأيقونة يتبع موضعَ الملف لا يُفترض**: نسخةُ التجربة
+            #    تُكتب في جذر التسليم فكان «‎../‎» يشير إلى خارجه — وأمسكه
+            #    `icocheck` قبل النشر. فيُحسب من عمق المخرَج نفسِه.
+            .replace("__ICON__", _ICO.head(_icorel(out)))
+            .replace("__TRYBAR__",
+                     ('<div id="trybar">\u26a0 \u0646\u0633\u062e\u0629\u064f '
+                      '\u062a\u062c\u0631\u0628\u0629\u064d \u2014 '
+                      '\u0628\u064a\u0627\u0646\u0627\u062a\u064f\u0647\u0627 '
+                      '\u0645\u0646\u0641\u0635\u0644\u0629\u064c \u0648\u0644\u0627 '
+                      '\u062a\u064f\u062d\u0633\u064e\u0628</div>') if TRY else "")
             .replace("__JS__", JS.replace("__SUBJFAM__", json.dumps(SUBJFAM, ensure_ascii=False))
                                  .replace("__DATA__", json.dumps(DATA, ensure_ascii=False))
                                  .replace("__LOGO__", logo)))

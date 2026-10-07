@@ -67,6 +67,9 @@ SLOW = ["supcheck", "rolescheck", "orphancheck", "focuscheck", "synccheck",
         #    المخالفَ ٢٨٤ وهو ٤٤. فخريطةُ المواد تُقاس **بتشغيل شفرة الصفحة**
         #    على حالاتٍ من المخزن الحيّ. (٧ أكتوبر ٢٠٢٦)
         "subjcheck",
+        # ⛔ وأخطرُ ما في بيئة التجربة أن تُبنى بمعرّف القاعدة الحقيقيّ،
+        #    فتكتب التجاربُ فوق عمل المعلمين وأنا أحسبها معزولة.
+        "trycheck",
         # ⛔ و`respcheck` يقيس الفيضانَ وأهدافَ اللمس **ولا يقيس حجمَ الخطّ**:
         #    كان المتنُ ١٧بك بلا تخفيضٍ للجوال، فأولُ حقلِ إدخالٍ عند ١٦٤٧
         #    بكسلاً — شاشتان قبل أن يكتب المعلمُ حرفاً. (بلاغُ ٦ أكتوبر)
@@ -106,6 +109,10 @@ def main():
     for g, fn in BUILDS:
         ok &= run([sys.executable, "platform.py", os.path.join(D8, fn)],
                   {"CLS_GENDER": g}, "بناء " + ("بنين" if g == "m" else "بنات"))
+    # ⛔ **ونسخةُ التجربة تُبنى مع الباقي**: مولّدٌ لا يناديه بابٌ يتخلَّف
+    #    (`webbuild` تخلَّف شهراً كاملاً). وقاعدتُها منفصلةٌ تماماً.
+    ok &= run([sys.executable, "platform.py", os.path.join(ROOT, "try.html")],
+              {"CLS_GENDER": "m", "CLS_ENV": "try"}, "نسخةُ التجربة")
     for g, fn in WEBS:
         ok &= run([sys.executable, "webbuild.py", os.path.join(D8, fn)],
                   {"CLS_GENDER": g},

@@ -149,7 +149,9 @@ A("والأقسامُ الخمسةُ كلُّها فيها ما يُقاس",
   P5.map(p => p + "=" + ((((st0.stat||{}).parts||{})[p]||{}).n || 0)).join(" · "));
 
 /* المقابلة: الكاملةُ من الصفوف مقابلَ الكتلة، سجلاً سجلاً */
-const rowsTxt = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+/* ⚠️ `arch=1`: المقابلةُ بالكتلة تطلب الأرشيفَ معها، وإلّا حُسب إقصاءُ السجلِّ
+   والسلّةِ عن القراءة العامّة **نقصاً** وهو تصميمٌ مقصود. */
+const rowsTxt = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&arch=1&key=" + KEY));
 const rows = rowsTxt.data;
 function cmp(a, b) {
   const miss = [], diff = [];
@@ -183,7 +185,7 @@ r = await jj(await P(env, { kind: "platform", id: "ikm_db", __mode: "rows", admi
 A("ويُحوَّل بمفتاح الإدارة", r.ok && r.mode === "rows", r.error || r.mode);
 
 /* ═══ ③ القراءةُ الكاملةُ بعد التحويل تُطابق الكتلة ═══ */
-const after = await jj(await G(env, "kind=platform&id=ikm_db&key=" + KEY));
+const after = await jj(await G(env, "kind=platform&id=ikm_db&arch=1&key=" + KEY));
 A("والقراءةُ العاديةُ صارت من الصفوف", after.mode === "rows" && after.seq > 0, "seq=" + after.seq);
 const c2 = cmp(blob, after.data);
 A("وتُطابق الكتلةَ تماماً", c2.miss.length === 0 && c2.diff.length === 0,
@@ -266,30 +268,65 @@ A("وسجلٌّ بلا ختمٍ يبقى يُدمج كما كان", zu && zu.not
 const z4 = await jj(await G(env, "kind=platform&id=ikm_db&v=2&since=" + zq + "&key=" + KEY));
 A("ولا يُذكر المردودُ في الفارقة", !((z4.sched || []).some(x => x.id === "NEW1")),
   "فارقةٌ فيها " + ((z4.sched || []).length) + " حصة");
-/* ⚠️ والتحضيرُ مثلُها: كان ختمُه **وقتَ وصوله** فيغلب القديمُ الواصلُ أخيراً */
-const pk = (blob.sched || [])[5].id;
-await P(env, { kind: "platform", id: "ikm_db", v: 2,
-  data: { prep: { [pk]: { t: "تحضيرٌ أحدث", mt: Date.now() + 5000 } } } });
-await P(env, { kind: "platform", id: "ikm_db", v: 2,
-  data: { prep: { [pk]: { t: "تحضيرٌ أقدم", mt: 1000 } } } });
-const z5 = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
-A("وتحضيرٌ أقدمُ لا يغلب أحدثَ منه", ((z5.data.prep || {})[pk] || {}).t === "تحضيرٌ أحدث",
-  ((z5.data.prep || {})[pk] || {}).t);
-/* ⚠️ وساعةٌ متقدّمةٌ لا تُخلّد سجلاً: الختمُ مسقوفٌ بساعةِ الخادم */
-const ck = (blob.sched || [])[6].id;
-await P(env, { kind: "platform", id: "ikm_db", v: 2,
-  data: { sched: [{ id: ck, note: "من ساعةٍ متقدّمةٍ سنة", mt: Date.now() + 31536000000 }] } });
-await P(env, { kind: "platform", id: "ikm_db", v: 2,
-  data: { sched: [{ id: ck, note: "من ساعةٍ سليمة", mt: Date.now() }] } });
-const z6 = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
-A("ولا تُخلّد ساعةٌ متقدّمةٌ سجلَّها",
-  ((z6.data.sched || []).find(x => x.id === ck) || {}).note === "من ساعةٍ سليمة",
-  ((z6.data.sched || []).find(x => x.id === ck) || {}).note);
-/* ⚠️ وساعةُ الخادمِ تُردّ في كل ردّ، وبها يُصحّح الجهازُ المتأخّرُ ختمَه */
-const z7 = await jj(await P(env, { kind: "platform", id: "ikm_db", v: 2, data: { sched: [] } }));
-A("وردُّ الكتابةِ يحمل ساعةَ الخادم", Number(z7.now) > 1.7e12, z7.now);
-const z8 = await jj(await G(env, "kind=platform&id=ikm_db&key=" + KEY));
-A("وردُّ القراءةِ كذلك", Number(z8.now) > 1.7e12, z8.now);
+
+/* ═══ ⑦ج ⛔ **لا تُحجز خانةٌ بلا صاحب** — في الخادم لا في الصفحة وحدَها ═══
+   قِيس ٧ أكتوبر ٢٠٢٦: ١٤٨ خليةً بلا اسمٍ البتّة في المخزن الحيّ. والحارسُ كان
+   في الصفحة، فطلبٌ مباشرٌ أو جهازٌ بشفرةٍ قديمةٍ يُنشئ صفّاً يحجز الخلية. */
+r = await jj(await P(env, { kind: "platform", id: "ikm_db", v: 2,
+  data: { sched: [{ id: "NONAME", gk: "بلا|صاحب", teacher: "" }] } }));
+const nn = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+A("وحصةٌ بلا اسمٍ تُردُّ ولا تُحجز", !(nn.data.sched || []).some(x => x.id === "NONAME"),
+  JSON.stringify(r.refused || []).slice(0, 80));
+A("ويُسمّى سببُ الردّ", ((r.refused || [])[0] || {}).id === "NONAME", (r.refused || []).length + " مردوداً");
+r = await jj(await P(env, { kind: "platform", id: "ikm_db", v: 2,
+  data: { sched: [{ id: "ZERO1", gk: "صفر|خانة", teacher: "٠" }] } }));
+const z0 = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+A("و«٠» ليست اسماً", !(z0.data.sched || []).some(x => x.id === "ZERO1"));
+/* ⚠️ والتعديلُ على صفٍّ قائمٍ يمرُّ — وإلّا رُدَّ تصحيحُ حصةٍ قديمةٍ ناقصة */
+r = await jj(await P(env, { kind: "platform", id: "ikm_db", v: 2,
+  data: { sched: [{ id: taken.id, note: "تعديلٌ على قائم" }] } }));
+const z9 = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+A("وتعديلُ صفٍّ قائمٍ يمرُّ ولو نقص", (r.refused || []).length === 0 &&
+  ((z9.data.sched || []).find(x => x.id === taken.id) || {}).note === "تعديلٌ على قائم");
+
+/* ═══ ⑦د ⛔ **الأرشيفُ لا يُحمَّل على كل جهاز** ═══
+   قِيس على الحيّ: ٢٧٠٠ صفٍّ في كل فتحةِ صفحة، منها ٢٠٠٠ سجلٌّ و٤٠٣ سلّة. */
+const arcTr = {}, arcLg = {};
+for (let i = 0; i < 40; i++) arcTr["~trash~T" + i] = { L: { id: "T" + i }, at: "x" };
+for (let i = 0; i < 40; i++) arcLg["~log~" + (9100000 + i).toString(36) + "|a"] = { a: i };
+await P(env, { kind: "platform", id: "ikm_db", v: 2, data: { prep: Object.assign({}, arcTr, arcLg) } });
+const plain = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+const withA = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&arch=1&key=" + KEY));
+const nTrP = Object.keys(plain.data.prep || {}).filter(k => k.indexOf("~trash~") === 0).length;
+const nTrA = Object.keys(withA.data.prep || {}).filter(k => k.indexOf("~trash~") === 0).length;
+const nLgP = Object.keys(plain.data.prep || {}).filter(k => k.indexOf("~log~") === 0).length;
+const nLgA = Object.keys(withA.data.prep || {}).filter(k => k.indexOf("~log~") === 0).length;
+A("والسلّةُ لا تُحمَّل في القراءة العامّة", nTrP === 0, nTrP + " مقابل " + nTrA + " عند الطلب");
+A("ويبقى منها كلُّها عند طلب الأرشيف", nTrA >= 40, nTrA);
+/* ⛔ **والبلاغاتُ أرشيفٌ ثالثٌ**: تُجمع من كل جهازٍ ولا تُبثُّ على أحد */
+const nEr = {};
+for (let i = 0; i < 7; i++) nEr["~err~E" + i] = { k: "خطأ", m: "س" + i, t: new Date().toISOString() };
+await P(env, { kind: "platform", id: "ikm_db", v: 2, data: { prep: nEr } });
+const pl2 = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+const ar2 = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&arch=1&key=" + KEY));
+A("والبلاغاتُ لا تُحمَّل في القراءة العامّة",
+  Object.keys(pl2.data.prep || {}).filter(k => k.indexOf("~err~") === 0).length === 0);
+A("وتصل المستشارَ عند طلب الأرشيف",
+  Object.keys(ar2.data.prep || {}).filter(k => k.indexOf("~err~") === 0).length === 7,
+  Object.keys(ar2.data.prep || {}).filter(k => k.indexOf("~err~") === 0).length + " بلاغاً");
+A("ومن السجلِّ آخرُه وحدَه", nLgP <= 300 && nLgP > 0, nLgP + " مقابل " + nLgA + " عند الطلب");
+A("ويبقى السجلُّ كلُّه عند الطلب", nLgA > nLgP, nLgA);
+/* ⚠️ والتحضيراتُ الحقيقيةُ لا تُمَسُّ بهذا الإقصاء */
+A("ولا يُنقص التحضيرُ الحقيقيُّ شيئاً",
+  Object.keys(plain.data.prep || {}).filter(k => k.indexOf("~") !== 0).length ===
+  Object.keys(withA.data.prep || {}).filter(k => k.indexOf("~") !== 0).length,
+  Object.keys(plain.data.prep || {}).filter(k => k.indexOf("~") !== 0).length + " تحضيراً");
+/* ⚠️ والسلّةُ لا تُبثُّ في الفارقة أيضاً */
+const sqA = (await jj(await G(env, "kind=platform&id=ikm_db&key=" + KEY))).seq;
+await P(env, { kind: "platform", id: "ikm_db", v: 2, data: { prep: { "~trash~TX": { L: { id: "TX" }, at: "x" } } } });
+const incA = await jj(await G(env, "kind=platform&id=ikm_db&v=2&since=" + sqA + "&key=" + KEY));
+A("ولا تُبثُّ السلّةُ في الفارقة", !("~trash~TX" in ((incA.data || {}).prep || {})),
+  Object.keys((incA.data || {}).prep || {}).length + " مدخلاً في الفارقة");
 
 /* ═══ ⑧ حذفٌ جماعيٌّ يُردّ بلا مفتاح إدارة ═══ */
 const many = (blob.sched || []).slice(0, 60).map(x => x.id);
@@ -319,14 +356,33 @@ A("وقراءةٌ بمفتاحٍ خاطئٍ تُردّ ٤٠٣", (await G(env, "k
 A("وهجرةٌ بمفتاحٍ خاطئٍ تُردّ",
   (await worker.fetch(new Request("http://x/", { method: "POST", body: JSON.stringify({ key: "خطأ", __migrate: true }) }), env)).status === 403);
 
-/* ═══ ⑫ قصُّ السجلّ وأرضيّتُه ═══ */
-const logs = {};
-for (let i = 0; i < 300; i++) logs["~log~" + (2000000 + i).toString(36) + "|x" + i] = { a: i };
-await P(env, { kind: "platform", id: "ikm_db", v: 2, data: { prep: logs } });
+/* ═══ ⑫ قصُّ السجلّ وأرضيّتُه ═══
+   ⚠️ **والأعدادُ تُؤخذ من الخادم نفسِه** لا تُكتب هنا: رُفع السقفُ من ألفَين
+      إلى عشرين ألفاً (أثرُ عشرةِ أيامٍ بدل سبعَ عشرةَ ساعة) فسقطت أربعةُ
+      شواهدَ مكتوبةٍ بالرقم — والعيبُ في الشاهد لا في المقيس. */
+const WSRC = fs.readFileSync("worker.js", "utf8");
+const KEEP = Number((WSRC.match(/const LOG_KEEP = (\d+)/) || [])[1] || 0);
+const SLACK = Number((WSRC.match(/const LOG_SLACK = (\d+)/) || [])[1] || 0);
+const HEAD = Number((WSRC.match(/const LOG_HEAD = (\d+)/) || [])[1] || 0);
+A("وثوابتُ السجلِّ مقروءةٌ من الخادم", KEEP > 0 && SLACK > 0 && HEAD > 0,
+  "سقف " + KEEP + " · هامش " + SLACK + " · رأس " + HEAD);
+const already = Object.keys(blob.prep || {}).filter(k => k.indexOf("~log~") === 0).length;
+/* ⚠️ ويُبذَر **تحت بوّابة القصِّ بقليل**: فالحالُ المقصودةُ «سجلٌّ قاربَ حدَّه»
+   ثم تعبره دفعةٌ فيُقَصّ. ولو بُذر فوقها قُصَّ قبل أن يُقاس شيء. */
+const push = Math.max(300, KEEP + SLACK - 100 - already);
+/* ⚠️ **وتُبذَر بـSQL لا بالدفع**: المقصودُ «سجلٌّ فوق حدِّه» لا مسارُ الكتابة
+   (وهو مقيسٌ في شواهدَ أخرى). ودفعُ ثمانيةِ آلافٍ عبر المسار أبطأ الكاشفَ
+   خمسةَ أضعافٍ بلا شاهدٍ يزيد — والعدّادُ يُضبط كما تضبطه المسحةُ والترقية. */
+const insLogs = env.D1._db.prepare(
+  "INSERT OR REPLACE INTO rec (db,part,rk,v,gk,del,seq,mt) VALUES ('platform:ikm_db','prep',?,?,NULL,0,1,0)");
+for (let i = 0; i < push; i++)
+  insLogs.run("~log~" + (2000000 + i).toString(36) + "|x" + i, JSON.stringify({ a: i }));
+env.D1._db.prepare("UPDATE meta SET logn = ? WHERE db = 'platform:ikm_db'").run(push + already);
 const st1 = await jj(await G(env, "kind=platform&id=ikm_db&stat=1&key=" + KEY));
 /* ⚠️ والعقدُ صار: لا يتجاوز السجلُّ حدَّه **وهامشَ قصِّه** — والهامشُ ثمنُ
    ألّا تُمسح القاعدةُ في كل حفظة. ثم يُقَصُّ إلى الحدِّ عند تجاوزه. */
-A("والسجلُّ لا يتجاوز حدَّه وهامشَه", (st1.stat||{}).logs <= 2300, (st1.stat||{}).logs + " مدخلاً");
+A("والسجلُّ لا يتجاوز حدَّه وهامشَه", (st1.stat||{}).logs <= KEEP + SLACK,
+  (st1.stat||{}).logs + " من " + (KEEP + SLACK));
 /* ⛔ **وحدُّ القراءةِ اليوميُّ نفد في ٧ أكتوبر ٢٠٢٦ فسقطت المنصةُ للجميع**:
    كان القصُّ يمسح القاعدةَ كلَّها في **كل حفظة** بحثاً عن عدد السجلّ. فمئةُ
    معلّمٍ يحفظون = ملايينُ الصفوف المقروءة في ساعات. فصار العدُّ محفوظاً. */
@@ -341,12 +397,12 @@ A("واثنتا عشرةَ حفظةً لا تمسح السجلَّ مرةً",
 /* وعند تجاوز الحدِّ بهامشه تُمسح مرةً واحدةً ويُقَصُّ السجلّ */
 env.D1._reset();
 const logs2 = {};
-for (let i = 0; i < 400; i++) logs2["~log~" + (2100000 + i).toString(36) + "|y" + i] = { a: i };
+for (let i = 0; i < SLACK + 100; i++) logs2["~log~" + (2100000 + i).toString(36) + "|y" + i] = { a: i };
 await P(env, { kind: "platform", id: "ikm_db", v: 2, data: { prep: logs2 } });
 const c13 = env.D1._cost();
 A("وتُمسح مرةً واحدةً عند تجاوز الحدّ", c13.logscans === 1, c13.logscans + " مسحةً");
 const st1b = await jj(await G(env, "kind=platform&id=ikm_db&stat=1&key=" + KEY));
-A("ويبقى السجلُّ عند حدّه بعدها", (st1b.stat||{}).logs === 2000, (st1b.stat||{}).logs + " مدخلاً");
+A("ويبقى السجلُّ عند حدّه بعدها", (st1b.stat||{}).logs === KEEP, (st1b.stat||{}).logs + " مدخلاً");
 A("وتُسجَّل أرضيّةٌ للقصّ", !!(st1b.stat||{}).logfloor, (st1b.stat||{}).logfloor);
 /* ⛔ **والقاعدةُ الحيّةُ هاجرت قبل أن يوجد العدّاد**، فلو بقي صفراً لما قُصَّ
    سجلُّها حتى يبلغ ألفَين وثلاثَ مئةٍ فوق ألفَيها. فيُهيَّأ بعدٍّ حقيقيٍّ
@@ -356,26 +412,29 @@ await eLg.D1.exec("CREATE TABLE IF NOT EXISTS rec (db TEXT NOT NULL, part TEXT N
 await eLg.D1.exec("CREATE TABLE IF NOT EXISTS meta (db TEXT PRIMARY KEY, seq INTEGER NOT NULL DEFAULT 0, mode TEXT NOT NULL DEFAULT 'blob', logfloor TEXT NOT NULL DEFAULT '', mig TEXT NOT NULL DEFAULT '', blobw INTEGER NOT NULL DEFAULT 0, swept INTEGER NOT NULL DEFAULT -1)");
 eLg.D1._db.exec("INSERT INTO meta (db, seq, mode) VALUES ('platform:ikm_db', 5, 'rows')");
 const insLg = eLg.D1._db.prepare("INSERT INTO rec (db,part,rk,v,seq) VALUES ('platform:ikm_db','prep',?,?,1)");
-for (let i = 0; i < 2500; i++) insLg.run("~log~" + (3000000 + i).toString(36) + "|z" + i, '{"a":1}');
+for (let i = 0; i < KEEP + 500; i++) insLg.run("~log~" + (3000000 + i).toString(36) + "|z" + i, '{"a":1}');
 await P(eLg, { kind: "platform", id: "ikm_db", v: 2, data: { prep: { "~log~zzzzz|1": { a: 1 } } } });
 const sLg = await jj(await G(eLg, "kind=platform&id=ikm_db&stat=1&key=" + KEY));
-A("وقاعدةٌ هاجرت قبل العدّادِ تُقَصُّ من أول حفظة", (sLg.stat||{}).logs === 2000,
+A("وقاعدةٌ هاجرت قبل العدّادِ تُقَصُّ من أول حفظة", (sLg.stat||{}).logs === KEEP,
   (sLg.stat||{}).logs + " مدخلاً");
 /* ⚠️ **وقاعدةٌ تُهاجَر اليوم** لا تمرُّ بالترقية: صفوفُها تدخل بالهجرة لا
    بالحفظ، فعدّادُها يُضبط عند **ختام المسحة** بعدٍّ حقيقيٍّ واحد. ولولاه
    لنما سجلُّها ضعفَ حدِّه قبل أن يُقَصَّ أولَ مرة. */
 const eSw = mkEnv(null);
 const bSw = { sched: [{ id: "S1", gk: "a|b", teacher: "أ. واحد" }], prep: {}, obs: {}, peer: {}, rot: {} };
-for (let i = 0; i < 2400; i++) bSw.prep["~log~" + (4000000 + i).toString(36) + "|w" + i] = { a: i };
+for (let i = 0; i < KEEP + 400; i++) bSw.prep["~log~" + (4000000 + i).toString(36) + "|w" + i] = { a: i };
 await seedBlob(eSw, JSON.stringify(bSw));
 for (;;) { const q = await jj(await P(eSw, { kind: "platform", id: "ikm_db", __migrate: true, limit: 9000 })); if (q.done || !q.ok) break; }
-await jj(await P(eSw, { kind: "platform", id: "ikm_db", __migrate: true, limit: 9000, sweep: true }));
+/* ⚠️ والمسحةُ مُصفَّحةٌ كالهجرة: قاعدةٌ فيها عشرون ألفَ مدخلٍ تحتاج أشواطاً،
+   فشوطٌ واحدٌ لا يبلغ آخرَها فلا تُسجَّل تامّةً ولا يُضبط عدّادُها. */
+for (;;) { const q = await jj(await P(eSw, { kind: "platform", id: "ikm_db", __migrate: true, limit: 9000, sweep: true })); if (q.done || !q.ok) break; }
 await jj(await P(eSw, { kind: "platform", id: "ikm_db", __mode: "rows", admin: ADM }));
 /* حفظةٌ واحدةٌ بمدخلِ سجلٍّ واحد — ولا دفعةَ عميلٍ كاملةٍ تُصحّح العدّاد */
 await P(eSw, { kind: "platform", id: "ikm_db", v: 2, data: { prep: { "~log~zzzzzz|1": { a: 1 } } } });
 const sSw = await jj(await G(eSw, "kind=platform&id=ikm_db&stat=1&key=" + KEY));
-A("وقاعدةٌ هاجرت بسجلٍّ فوق الحدِّ تُقَصُّ من أول حفظة", (sSw.stat||{}).logs === 2000,
-  (sSw.stat||{}).logs + " مدخلاً");
+const mSw = eSw.D1._db.prepare("SELECT logn, seq, swept, blobw FROM meta WHERE db='platform:ikm_db'").get();
+A("وقاعدةٌ هاجرت بسجلٍّ فوق الحدِّ تُقَصُّ من أول حفظة", (sSw.stat||{}).logs === KEEP,
+  (sSw.stat||{}).logs + " مدخلاً · meta=" + JSON.stringify(mSw));
 /* ═══ ⑫ج ⛔ **المخططُ يُتحقَّق ولا يُفترض** ═══
    «no such column: logn» أسقطت المنصةَ بعد ترقية الحساب (٧ أكتوبر ٢٠٢٦):
    كانت الأعمدةُ المستجدّةُ تُضاف بـ`try{ALTER}catch{}` **ثم يُعلَّم المخططُ
@@ -404,11 +463,31 @@ await P(env, { kind: "platform", id: "ikm_db", v: 2, data: { prep: stale } });
 const costStale = env.D1._cost();
 A("ولا يُقيمُ جهازٌ قديمٌ ما قُصَّ — ولا يُكتب حرفٌ منه", costStale.writes <= 3,
   costStale.writes + " صفّاً مكتوباً من 500 مُرسَلٍ قديم");
-const st2 = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+const st2 = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&arch=1&key=" + KEY));
 A("ولا يدخل القاعدةَ منه شيء",
   !Object.keys(st2.data.prep || {}).some(k => k.indexOf("~log~0000") === 0));
+/* ⛔ **والسلّةُ تُنظَّف في الخادم**: كان الجهازُ يمحو ما مضى عليه ثلاثون يوماً،
+   ولمّا صارت لا تصل الجهازَ إلا بطلبٍ لم يبقَ من ينفّذ وعدَ «ثلاثين يوماً». */
+const oldAt = new Date(Date.now() - 40 * 86400000).toISOString();
+const newAt = new Date().toISOString();
+const insTr = env.D1._db.prepare(
+  "INSERT OR REPLACE INTO rec (db,part,rk,v,gk,del,seq,mt) VALUES ('platform:ikm_db','prep',?,?,NULL,0,1,0)");
+for (let i = 0; i < 12; i++)
+  insTr.run("~trash~OLD" + i, JSON.stringify({ L: { id: "OLD" + i }, at: oldAt }));
+for (let i = 0; i < 5; i++)
+  insTr.run("~trash~NEW" + i, JSON.stringify({ L: { id: "NEW" + i }, at: newAt }));
+env.D1._db.prepare("UPDATE meta SET logn = ? WHERE db = 'platform:ikm_db'").run(KEEP + SLACK + 10);
+await P(env, { kind: "platform", id: "ikm_db", v: 2, data: { rot: { tr: "1" } } });
+const trA = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&arch=1&key=" + KEY));
+const trKeys = Object.keys(trA.data.prep || {});
+A("ويُمحى من السلّة ما جاوز ثلاثين يوماً",
+  !trKeys.some(k => k.indexOf("~trash~OLD") === 0),
+  trKeys.filter(k => k.indexOf("~trash~OLD") === 0).length + " قديماً باقياً");
+A("ويبقى حديثُها", trKeys.filter(k => k.indexOf("~trash~NEW") === 0).length === 5,
+  trKeys.filter(k => k.indexOf("~trash~NEW") === 0).length + " من ٥");
+
 A("ويبقى السجلُّ الحديثُ كما هو",
-  Object.keys(st2.data.prep || {}).filter(k => k.indexOf("~log~") === 0).length === 2000,
+  Object.keys(st2.data.prep || {}).filter(k => k.indexOf("~log~") === 0).length === KEEP,
   Object.keys(st2.data.prep || {}).filter(k => k.indexOf("~log~") === 0).length + " مدخلاً");
 
 /* ═══ ⑬ الرجوعُ إلى الكتلة بنقرة ═══ */
@@ -518,8 +597,110 @@ A("فتبقى الحصصُ كلُّها في الصفوف", (f4.data.sched || []
 r = await jj(await P(e4, { kind: "platform", id: "ikm_db", __mode: "rows", admin: ADM }));
 A("ويُمنع التحويلُ حتى تُراجَع", r.ok === false && /مسحةٌ ختاميةٌ/.test(r.error || ""), r.error);
 
+/* ═══ ⑰ ⛔ **النسخُ الاحتياطية — في بيئةٍ خاصّةٍ بها** ═══
+   ⚠️ والاستردادُ يُعيد الحالَ إلى ما كان، فلو جرى في البيئة العامّة أفسد ما
+      بعده من شواهد — وقد جرى ذلك فعلاً فسقطت ثلاثةٌ لا ذنبَ لها. */
+const eBk = mkEnv(null);
+await seedBlob(eBk, blobTxt);
+for (;;) { const q = await jj(await P(eBk, { kind: "platform", id: "ikm_db", __migrate: true, limit: 9000 })); if (q.done || !q.ok) break; }
+await jj(await P(eBk, { kind: "platform", id: "ikm_db", __migrate: true, limit: 9000, sweep: true }));
+await jj(await P(eBk, { kind: "platform", id: "ikm_db", __mode: "rows", admin: ADM }));
+await P(eBk, { kind: "platform", id: "ikm_db", v: 2,
+  data: { sched: [{ id: "BK1", gk: "نسخ|خانة", teacher: "أ. نسخة" }] } });
+/* ═══ ⑦هـ ⛔ **نسخةٌ احتياطيةٌ يوميةٌ تلقائية** — ولم تكن ثَمَّ نسخةٌ البتّة ═══ */
+const bk1 = await jj(await P(eBk, { kind: "platform", id: "ikm_db", __backups: true, admin: ADM }));
+A("وتُؤخذ نسخةٌ من تلقائها", (bk1.baks || []).length >= 1,
+  JSON.stringify((bk1.baks || []).map(b => b.day)).slice(0, 60));
+A("وفيها الأرشيفُ كلُّه", ((bk1.baks || [])[0] || {}).bytes > 1000, ((bk1.baks || [])[0] || {}).bytes);
+A("ولا تُعدَّد النسخُ بلا مفتاح إدارة",
+  (await jj(await P(eBk, { kind: "platform", id: "ikm_db", __backups: true }))).ok === false);
+/* ⚠️ والاستردادُ يُعيد ما كان، ويأخذ نسخةً قبله */
+const before = ((await jj(await G(eBk, "kind=platform&id=ikm_db&from=rows&key=" + KEY))).data.sched || []).length;
+const day0 = ((bk1.baks || [])[0] || {}).day;
+await P(eBk, { kind: "platform", id: "ikm_db", v: 2, data: { __deleted: [(blob.sched || [])[9].id] } });
+const rs = await jj(await P(eBk, { kind: "platform", id: "ikm_db", __restore: day0, admin: ADM }));
+A("والاستردادُ يُقبل بمفتاح الإدارة", rs.ok === true && rs.restored === day0,
+  (rs.error || rs.restored) + " · في النسخة " + rs.sched + " حصة");
+const aft = ((await jj(await G(eBk, "kind=platform&id=ikm_db&from=rows&key=" + KEY))).data.sched || []).length;
+A("ويعود ما حُذف بعد النسخة", aft === before, aft + " مقابل " + before);
+const bk2 = await jj(await P(eBk, { kind: "platform", id: "ikm_db", __backups: true, admin: ADM }));
+A("وتُحفظ نسخةٌ قبل الاسترداد نفسِه",
+  (bk2.baks || []).some(b => String(b.day).indexOf("before-restore") >= 0),
+  JSON.stringify((bk2.baks || []).map(b => b.day)).slice(0, 90));
+A("ولا استردادَ بلا مفتاح إدارة",
+  (await jj(await P(eBk, { kind: "platform", id: "ikm_db", __restore: day0 }))).ok === false);
+A("ولا استردادَ من تاريخٍ لا نسخةَ له",
+  (await jj(await P(eBk, { kind: "platform", id: "ikm_db", __restore: "1999-01-01", admin: ADM }))).ok === false);
+
+/* ═══ ⑰ب ⛔ **النجدة: القاعدةُ تسقط فلا تسقط المنصة** ═══
+   قِيس يومَ نفد حدُّ القراءة (٧ أكتوبر ٢٠٢٦): كلُّ طلبٍ مردود، فمن يفتح
+   المنصةَ يرى جدولاً خاوياً ويحجز خانةً محجوزة. فصارت تُخدَم آخرُ نسخةٍ
+   **من مخزنٍ آخرَ غير القاعدة** للقراءة وحدَها.
+   ⚠️ **والنسخةُ لا تسكن داخلَ ما تحميه**: لو بقيت في جدول `store` داخل D1
+      لذهبت معها — فهي في KV، ويُقاس ذلك بإسقاط D1 كلِّها. */
+const kvBak = new Map();
+eBk.DB = {
+  get: async (k)=>(kvBak.has(k) ? kvBak.get(k) : null),
+  put: async (k, v)=>{ kvBak.set(k, v); },
+  list: async ({ prefix })=>({ keys: [...kvBak.keys()].filter(k=>k.indexOf(prefix) === 0)
+    .sort().reverse().map(k=>({ name: k })) }),
+  delete: async (k)=>{ kvBak.delete(k); },
+};
+/* نسخةٌ تُؤخذ والقاعدةُ سليمةٌ — وتُكتب في المخزنَين */
+await P(eBk, { kind: "platform", id: "ikm_db", __snap: true, admin: ADM });
+A("والنسخةُ تُكتب في مخزنٍ غير القاعدة", kvBak.size >= 1, kvBak.size + " مفتاحاً في KV");
+/* ثم تسقط القاعدةُ سقوطاً تامّاً */
+const d1good = eBk.D1;
+const d1dead = { prepare: ()=>{ throw new Error("D1_ERROR: down"); },
+                 exec: async ()=>{ throw new Error("D1_ERROR: down"); },
+                 batch: async ()=>{ throw new Error("D1_ERROR: down"); } };
+eBk.D1 = d1dead;
+const dg = await jj(await G(eBk, "kind=platform&id=ikm_db&key=" + KEY));
+A("وتُخدَم آخرُ نسخةٍ عند سقوطها", dg.ok === true && dg.degraded === true,
+  (dg.error || "") + " · يوم " + (dg.bakday || "—"));
+A("وفيها الحصصُ كما كانت", ((dg.data || {}).sched || []).length > 300,
+  ((dg.data || {}).sched || []).length + " حصة");
+A("ويُسمّى سببُ السقوط", /D1_ERROR/.test(dg.why || ""), (dg.why || "").slice(0, 40));
+/* ⛔ ولا تُخدَم نجدةٌ لكتابة: الكتابةُ تفشل ظاهراً فيحتفظ الجهازُ بعمله */
+/* ⚠️ ويُرسَل المفتاحُ في المسار أيضاً، وإلّا لم يجد مسارُ النجدة قاعدةً
+   يبحث عن نسختها فسقط لسببٍ آخر — فيمرُّ العيبُ المزروعُ بلا كشف. */
+const wr = await jj(await worker.fetch(new Request(
+  "http://x/?kind=platform&id=ikm_db&key=" + KEY,
+  { method: "POST", body: JSON.stringify({ key: KEY, kind: "platform", id: "ikm_db", v: 2,
+    data: { sched: [{ id: "DEG1", gk: "نجدة|خانة", teacher: "أ. نجدة" }] } }) }), eBk));
+A("ولا تُخدَم نجدةٌ لطلب كتابة", wr.ok === false, JSON.stringify(wr).slice(0, 70));
+/* ثم تعود القاعدةُ فتعود الخدمةُ كاملةً بلا علامة نجدة */
+eBk.D1 = d1good;
+const bk = await jj(await G(eBk, "kind=platform&id=ikm_db&key=" + KEY));
+A("وتعود الخدمةُ كاملةً بعودتها", bk.ok === true && !bk.degraded && bk.seq > 0, "seq=" + bk.seq);
+/* ⚠️ والتحضيرُ مثلُها: كان ختمُه **وقتَ وصوله** فيغلب القديمُ الواصلُ أخيراً */
+const pk = (blob.sched || [])[5].id;
+await P(eBk, { kind: "platform", id: "ikm_db", v: 2,
+  data: { prep: { [pk]: { t: "تحضيرٌ أحدث", mt: Date.now() + 5000 } } } });
+await P(eBk, { kind: "platform", id: "ikm_db", v: 2,
+  data: { prep: { [pk]: { t: "تحضيرٌ أقدم", mt: 1000 } } } });
+const z5 = await jj(await G(eBk, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+A("وتحضيرٌ أقدمُ لا يغلب أحدثَ منه", ((z5.data.prep || {})[pk] || {}).t === "تحضيرٌ أحدث",
+  ((z5.data.prep || {})[pk] || {}).t);
+/* ⚠️ وساعةٌ متقدّمةٌ لا تُخلّد سجلاً: الختمُ مسقوفٌ بساعةِ الخادم */
+const ck = (blob.sched || [])[6].id;
+await P(eBk, { kind: "platform", id: "ikm_db", v: 2,
+  data: { sched: [{ id: ck, note: "من ساعةٍ متقدّمةٍ سنة", mt: Date.now() + 31536000000 }] } });
+await P(eBk, { kind: "platform", id: "ikm_db", v: 2,
+  data: { sched: [{ id: ck, note: "من ساعةٍ سليمة", mt: Date.now() }] } });
+const z6 = await jj(await G(eBk, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+A("ولا تُخلّد ساعةٌ متقدّمةٌ سجلَّها",
+  ((z6.data.sched || []).find(x => x.id === ck) || {}).note === "من ساعةٍ سليمة",
+  ((z6.data.sched || []).find(x => x.id === ck) || {}).note);
+/* ⚠️ وساعةُ الخادمِ تُردّ في كل ردّ، وبها يُصحّح الجهازُ المتأخّرُ ختمَه */
+const z7 = await jj(await P(eBk, { kind: "platform", id: "ikm_db", v: 2, data: { sched: [] } }));
+A("وردُّ الكتابةِ يحمل ساعةَ الخادم", Number(z7.now) > 1.7e12, z7.now);
+const z8 = await jj(await G(eBk, "kind=platform&id=ikm_db&key=" + KEY));
+A("وردُّ القراءةِ كذلك", Number(z8.now) > 1.7e12, z8.now);
+
+
 /* ⚠️ أرضيّةُ الشواهد: فحصٌ انقطع في منتصفه يُعلن نجاحاً كاذباً */
-const FLOOR = 71;
+const FLOOR = 99;
 let w = R.filter(x => !x[0]).length;
 if (R.length < FLOOR) { console.log("  ⛔ " + R.length + " شاهداً والأرضيّةُ " + FLOOR + " — فحصٌ لم يكتمل"); w++; }
 console.log("\n  " + (w ? "⛔ سقط " + w + " من " + R.length : "✓ " + R.length + " شاهداً كلُّها تمرّ"));
@@ -535,15 +716,15 @@ FAULTS = [
     ("نزعُ منعِ ازدواج الخلية",
      "        if (own && own.rk !== x.id) {", "        if (false) {", "خليةٌ محجوزةٌ تُردّ"),
     ("نزعُ منعِ الازدواج داخل الدفعة",
-     "        if (mine && mine !== x.id) {", "        if (false) {", "الدفعة نفسِها"),
+     "        if (mine && mine !== x.id && !raw) {", "        if (false) {", "الدفعة نفسِها"),
     ("جعلُ الحذفِ محواً بلا شاهد",
      '"UPDATE rec SET del = 1, v = NULL, seq = " + SEQ + ", mt = ?" +\n'
      '    " WHERE db = ? AND part = ? AND rk = ? AND del = 0").bind(db, MT, db, part, rk);',
      '"DELETE FROM rec WHERE db = ? AND part = ? AND rk = ?").bind(db, part, rk);',
      "يصل الأجهزةَ في gone"),
     ("إعادةُ عدِّ السجلِّ في كل حفظة",
-     "if ((Number(m.logn) || 0) + nlog > LOG_KEEP + LOG_SLACK) await pruneLogs(d1, db);",
-     "await pruneLogs(d1, db);", "واثنتا عشرةَ حفظةً لا تمسح السجلَّ مرةً"),
+     "if ((Number(m.logn) || 0) + nlog > LOG_KEEP + LOG_SLACK) {",
+     "if (true) {", "واثنتا عشرةَ حفظةً لا تمسح السجلَّ مرةً"),
     ("نزعُ تهيئةِ العدّادِ عند الترقية",
      'await d1.exec("UPDATE meta SET logn = (SELECT COUNT(*) FROM rec r WHERE r.db = meta.db"',
      'if (0) await d1.exec("UPDATE meta SET logn = (SELECT COUNT(*) FROM rec r WHERE r.db = meta.db"',
@@ -555,6 +736,46 @@ FAULTS = [
     ("تعليمُ المخططِ تامّاً ولو نقص عمود",
      '      if (!have.has(c.split(" ")[0]))\n        throw new Error("لم تكتمل ترقيةُ مخزن البيانات — أعد المحاولة بعد لحظة");',
      '      if (false) throw new Error("x");', "ثم يشفى الطلبُ التاليُ من نفسه بلا نشرٍ جديد"),
+    ("نزعُ حارسِ «لا خانةَ بلا صاحب»",
+     "if (!old && !raw && !realName(x.teacher)) {", "if (false) {",
+     "وحصةٌ بلا اسمٍ تُردُّ ولا تُحجز"),
+    ("جعلِ الحارسِ يردُّ تعديلَ القائم أيضاً",
+     "if (!old && !raw && !realName(x.teacher)) {", "if (!raw && !realName(x.teacher)) {",
+     "وتعديلُ صفٍّ قائمٍ يمرُّ ولو نقص"),
+    ("نزعُ إقصاءِ السلّة والبلاغات عن القراءة العامّة",
+     'if (x.rk.indexOf(TRASHP) === 0 || x.rk.indexOf(ERRP) === 0) continue;',
+     "if (false) continue;", "والسلّةُ لا تُحمَّل في القراءة العامّة"),
+    ("نزعُ قصرِ السجلِّ على آخرِه",
+     'if (x.rk.indexOf(LOGP) === 0 && floor && x.rk < floor) continue;', "if (false) continue;",
+     "ومن السجلِّ آخرُه وحدَه"),
+    ("نزعُ إقصاءِ السلّة عن الفارقة",
+     'if (x.part === "prep" && !arch &&\n        (x.rk.indexOf(TRASHP) === 0 || x.rk.indexOf(ERRP) === 0)) continue;',
+     "if (false) continue;", "ولا تُبثُّ السلّةُ في الفارقة"),
+    ("نزعُ النسخةِ اليوميةِ التلقائية",
+     "try { await bakMaybe(env, s, k, await metaGet(env.D1, k)); } catch (e) {}",
+     "/* nope */", "وتُؤخذ نسخةٌ من تلقائها"),
+    ("جعلِ الاستردادِ كتابةَ حجزٍ لا استعادة",
+     "await rowsWrite(env.D1, k, dat, true, true);",
+     "await rowsWrite(env.D1, k, dat, true, false);", "ويعود ما حُذف بعد النسخة"),
+    ("نزعُ النسخةِ قبل الاسترداد",
+     'await bakWrite(env, s, k, now0, (await bakDay()) + "-before-restore");',
+     "/* nope */", "وتُحفظ نسخةٌ قبل الاسترداد نفسِه"),
+    ("فتحُ الاستردادِ بلا مفتاح إدارة",
+     'if (!adm) return denyAdmin("استردادُ نسخة");', "if (false) return null;",
+     "ولا استردادَ بلا مفتاح إدارة"),
+    ("نزعُ تنظيفِ السلّة في الخادم",
+     "    await pruneTrash(d1, db);", "    /* nope */",
+     "ويُمحى من السلّة ما جاوز ثلاثين يوماً"),
+    ("جعلِ التنظيفِ يمحو الحديثَ أيضاً",
+     "if (at && at < cut) old.push(x.rk);", "old.push(x.rk);", "ويبقى حديثُها"),
+    ("نزعُ نجدةِ القراءة عند سقوط القاعدة",
+     "      const kv0 = bakStore(env);\n      if (request.method === \"GET\" && kv0) {",
+     "      const kv0 = null;\n      if (false) {", "وتُخدَم آخرُ نسخةٍ عند سقوطها"),
+    ("جعلِ النجدةِ تخدم الكتابةَ أيضاً",
+     'if (request.method === "GET" && kv0) {', "if (kv0) {", "ولا تُخدَم نجدةٌ لطلب كتابة"),
+    ("إبقاءِ النسخةِ داخلَ القاعدة وحدَها",
+     "  if (kv) { try { await kv.put(key + \":bak:\" + name, txt); } catch (e) {} }",
+     "  /* nope */", "والنسخةُ تُكتب في مخزنٍ غير القاعدة"),
     ("نزعُ سقفِ الختمِ بساعة الخادم",
      "const capMT = (x) => Math.min(Number(x) || 0, MT);",
      "const capMT = (x) => Number(x) || 0;", "ولا تُخلّد ساعةٌ متقدّمةٌ سجلَّها"),
@@ -580,8 +801,8 @@ FAULTS = [
      'if (p === "prep" && k.indexOf(LOGP) === 0 && m.logfloor && k < m.logfloor) continue;',
      "if (false) continue;", "ولا يُكتب حرفٌ منه"),
     ("نزعُ قصِّ السجلّ كلِّه",
-     "  if ((Number(m.logn) || 0) + nlog > LOG_KEEP + LOG_SLACK) await pruneLogs(d1, db);",
-     "  // nope", "ويبقى السجلُّ عند حدّه بعدها"),
+     "    await pruneLogs(d1, db);\n    await pruneTrash(d1, db);",
+     "    await pruneTrash(d1, db);", "ويبقى السجلُّ عند حدّه بعدها"),
     ("إسقاطُ قسمٍ من القراءة الكاملة",
      "'},\"obs\":{' + g.obs.join(\",\") +", "'},\"obs\":{' + \"\" +", "سجلاً بسجل"),
     ("إسقاطُ قسمٍ من القراءة الفارقة",

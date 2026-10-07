@@ -50,12 +50,22 @@ setTimeout(function(){
 """
 
 
+HITS = []
+
+
 def serve(d, port=0):
     """⚠️ **منفذٌ ثابتٌ يسقط عند التشغيل المتوازي** («Address already in use»)،
     فيبدو العطلُ في المنصة وهو في الحارس. فيُطلب منفذٌ حرٌّ من النظام."""
     class H(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *a, **k): super().__init__(*a, directory=d, **k)
         def log_message(self, *a): pass
+
+        def do_GET(self):
+            # ⚠️ يُسجَّل **نوعُ الطلب**: `Sec-Fetch-Dest: document` تنقّلٌ
+            #    (إعادةُ تحميل)، و`empty` طلبُ `fetch` — وبه يُقاس أن نسخةَ
+            #    المتصفّح جُدِّدت قبل الإعادة لا بعدها.
+            HITS.append((self.path, self.headers.get("Sec-Fetch-Dest", "?")))
+            return super().do_GET()
     socketserver.TCPServer.allow_reuse_address = True
     s = socketserver.TCPServer(("127.0.0.1", port), H)
     threading.Thread(target=s.serve_forever, daemon=True).start()
@@ -97,9 +107,19 @@ def main():
 
     # ② ختمٌ أحدثُ ⇒ إعادةٌ واحدةٌ لا أكثر
     ver({"ikm": build + "-NEW", "ikf": build})
+    del HITS[:]
     r = run(port, "مختلف")
     ok = r.get("n") == 1
     print("  %s ختمٌ أحدثُ ⇒ إعادةٌ واحدة (إعادات=%s)" % ("✓" if ok else "⛔", r.get("n")))
+    bad += 0 if ok else 1
+
+    # ②ب ⛔ **وتُجدَّد نسخةُ المتصفّح قبل الإعادة**: `max-age=600` على المنشور
+    #     يجعل الإعادةَ تأتي بالقديم، والإعادةُ مرّةٌ واحدةٌ لكلِّ ختم.
+    pulls = [h for h in HITS if h[0].endswith("page.html") and h[1] == "empty"]
+    navs = [h for h in HITS if h[0].endswith("page.html") and h[1] == "document"]
+    ok = len(pulls) >= 1 and len(navs) >= 2
+    print("  %s وتُجدَّد نسخةُ المتصفّح قبل الإعادة (طلبُ fetch=%d · تنقّل=%d)"
+          % ("✓" if ok else "⛔", len(pulls), len(navs)))
     bad += 0 if ok else 1
 
     # ③ ملفٌّ مفقود ⇒ لا إعادة ولا سقوط
