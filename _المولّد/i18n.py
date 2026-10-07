@@ -1779,6 +1779,13 @@ EN.update({
     "سحبُ ما كتبه غيرُك على أجهزتهم": "Pull what others have written on their devices",
     # ── تخزينُ الخادم: كتلةٌ أو صفوف (٦ أكتوبر ٢٠٢٦) ──
     "تخزينُ الخادم": "Server storage",
+    # ── أسماءُ المجموعات بعد إعادة تركيبها (قرارُ المستشار ٧ أكتوبر ٢٠٢٦) ──
+    "لغتي + إسلامية + اجتماعيات": "Arabic + Islamic + Social studies",
+    "رياضيات + الفنية": "Mathematics + Art",
+    "E + البدنية": "English + PE",
+    # ── اسمُ الشاشة السادسة للمشرف: هو لا مدرسةَ له (٧ أكتوبر ٢٠٢٦) ──
+    "لوحةُ الإشراف والتقارير": "Supervision board and reports",
+    "تقاريرُ تخصصاتك في مجمعاتك": "Reports for your subjects in your complexes",
     "تحويلُ القراءة إلى الصفوف.\n\nبعدها تسحب الأجهزةُ ما استجدَّ وحدَه بدل القاعدة كلِّها. والكتلةُ تبقى محفوظةً كما هي، فالرجوعُ بنقرة.\n\nوتُنفَّذ الهجرةُ والمطابقةُ والتحويلُ في خطوةٍ واحدةٍ — فقد تستغرق دقيقة.\n\nأتُتابع؟":
         "Switch the read to rows.\n\nAfterwards devices pull only what is new instead of the whole database. The blob stays stored as it is, so rolling back is one click.\n\nThe migration, the reconciliation and the switch all run as a single step — so it may take a minute.\n\nContinue?",
     "تعذّرت المسحة": "The reconciliation sweep failed",
@@ -1889,6 +1896,28 @@ EN.update({
         "Email and password — the system tools are yours alone",
     "البريدُ أو كلمةُ المرور غيرُ صحيحة.": "The email or password is incorrect.",
     "محفوظٌ محلياً — بانتظار الشبكة": "Saved locally — waiting for the network",
+    # ⚠️ شريطُ الانقطاع وعقدُ الحجز (٧ أكتوبر ٢٠٢٦)
+    "المخزنُ المشترك متعذّرٌ الآن": "The shared store is unavailable right now",
+    "ما تكتبه محفوظٌ على جهازك ويُرفع تلقائياً متى عاد — ":
+        "What you type is saved on your device and will upload automatically when it returns — ",
+    "والمعروضُ أمامك قد لا يكون كاملاً، فتأنَّ في حجز خانةٍ جديدة.":
+        "and what you see may be incomplete, so take care before reserving a new cell.",
+    "أعد المحاولة": "Try again",
+    # ⚠️ تنبيهُ مادةِ تخصصٍ آخر (٧ أكتوبر ٢٠٢٦)
+    "» مادةُ تخصص ": "» is a subject of ",
+    "، وهذه الخانةُ لتخصص ": " , while this cell belongs to ",
+    ". فإن كانت حصّتَك فاكتبها في صفِّ تخصصك — ":
+        ". If this is your lesson, enter it in your own subject's row — ",
+    "وإلّا صحّح اسمَ المادة، فالمشرفُ يُسنَد بتخصص الصف.":
+        "otherwise correct the subject name, since the supervisor is assigned by the row's subject.",
+    " حصةٌ ناقصةٌ لم تُحجز": " incomplete lesson — not reserved",
+    " حصصٌ ناقصةٌ لم تُحجز": " incomplete lessons — not reserved",
+    "أكمِل بياناتِ الحصة (الفصل · الاتجاه · الإستراتيجية) لتُحجز لك الخانة — ":
+        "Complete the lesson data (class · approach · strategy) for the cell to be reserved for you — ",
+    "وهي الآن محفوظةٌ على جهازك وحدَه": "for now it is saved on your device only",
+    "ناقصةٌ فلم تُحجز — أكمل: ": "Incomplete, so not reserved — complete: ",
+    "» ليست قيمةً — اكتب ": "» is not a value — enter ",
+    " كما هو": " as it is",
     "لا عمليات بعد.": "No activity yet.",
     # أدلّةُ الاستخدام
     "دليلُ استخدام المنصة — المعلم القائم بالحصة":

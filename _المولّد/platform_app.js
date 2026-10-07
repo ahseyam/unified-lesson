@@ -1,4 +1,7 @@
 const D = __DATA__, LOGO = "__LOGO__";
+/* ⛔ **خريطةُ المواد إلى التخصصات** — ومفاتيحُها نصوصُ مطابقةٍ لا تُعرض، فهي
+   في منطقةٍ محميّةٍ من الترجمة. ومرجعُها نماذجُ المنصة الاسترشادية. */
+const SUBJFAM = /*@noi18n*/__SUBJFAM__/*@/noi18n*/;
 /* ⛔ مفاتيحُ التخزين المحلي تُنسَب إلى المدرسة. الحادثة (٢٩ سبتمبر ٢٠٢٦):
    منصتان على نطاقٍ واحد (ahseyam.github.io) بمسارين مختلفين — و`localStorage`
    يخصُّ **النطاق لا المسار**. فقرأت منصةُ مدرسةٍ بياناتِ الأخرى من الجهاز نفسِه،
@@ -171,6 +174,34 @@ function save(){
                : "⚠️ ولا مخزنَ مشتركٌ مربوط — فاربطه قبل أن يضيع شيء."));
   }
   sync();
+}
+/* ⛔ **فشلُ السحب كان صامتاً تماماً** — ولا رسالةَ ولا علامة. فمن فتح الصفحةَ
+   والمخزنُ متعذّرٌ رأى **جدولاً ناقصاً يظنُّه كاملاً**، فحجز خانةً حجزها غيرُه
+   فتُردُّ عليه بعد حينٍ ويضيع ما كتبه فيها. وقِيس يومَ نفد حدُّ القراءة
+   (٧ أكتوبر ٢٠٢٦): المخزنُ يردُّ عطلاً على كل طلبٍ والصفحةُ لا تقول شيئاً.
+   ⚠️ فصار للانقطاع **شريطٌ ظاهرٌ تحت الترويسة** لا علامةً صغيرةً في زاويةٍ:
+      يقول ما جرى، وأن ما كُتب محفوظٌ، وأنّ المعروضَ قد لا يكون كاملاً. */
+let offFail = 0;
+function offBar(){
+  const old = document.getElementById("offbar");
+  if(old) old.remove();
+  if(!offFail || !api()) return;
+  const b = el("div","offbar"); b.id = "offbar";
+  b.appendChild(el("strong",null,"المخزنُ المشترك متعذّرٌ الآن"));
+  b.appendChild(el("span",null,
+    "ما تكتبه محفوظٌ على جهازك ويُرفع تلقائياً متى عاد — "
+    + "والمعروضُ أمامك قد لا يكون كاملاً، فتأنَّ في حجز خانةٍ جديدة."));
+  const rb = el("button",null,"أعد المحاولة");
+  rb.addEventListener("click", ()=>{ pullNow().then(()=>shell()); });
+  b.appendChild(rb);
+  const top = document.querySelector("header.top");
+  if(top && top.parentNode) top.parentNode.insertBefore(b, top.nextSibling);
+  else document.body.insertBefore(b, document.body.firstChild);
+}
+function offSet(bad){
+  const was = offFail;
+  offFail = bad ? offFail + 1 : 0;
+  if(!!was !== !!offFail) offBar();
 }
 function api(){ try{ return localStorage.getItem(API)||""; }catch(e){ return ""; } }
 /* ⛔ **عقدُ المخزن كان بلا مصادقةٍ البتّة.** القراءةُ والكتابةُ والمحوُ على
@@ -475,7 +506,7 @@ function setSyn(t, cls){
       تحضيراً واحداً كان يستهلك خمسين كتابة، وعشرون معلماً يستنفدون اليومَ كلَّه.
    العلاج: تأخيرٌ اثنتا عشرةَ ثانية · ولا تُكتب إن لم تتغيّر القاعدة فعلاً ·
       ودفعٌ فوريٌّ عند الأفعال الحاسمة وعند مغادرة الصفحة. */
-let syncT = null, lastSent = "", pending = false, writeFails = 0;
+let syncT = null, lastSent = "", pending = false, writeFails = 0, heldWarned = false;
 const SYNC_WAIT = 12000;
 
 /* ⚠️ `__schema` علامةٌ محليةٌ لا بيانات — تُستثنى من الحمولة كي لا تُعامَل
@@ -499,6 +530,83 @@ function dbSnapshot(){
       واحدةً أو لا يُكتبان.
    ⚠️ و**صفرٌ يعني «لا أساس»**: فتُطلب القاعدةُ كاملةً. وهو حالُ أولِ فتحٍ
       وحالِ خادمٍ لم تُحوَّل قاعدتُه إلى الصفوف بعد. */
+/* ⛔ **ختمُ الوقت لكلِّ حصة** — شكوى أ. إيهاب عباس ٧ أكتوبر ٢٠٢٦: «عند حذف
+   حصة أو تعديل بياناتها، لا تُحذف نهائياً ولا يحدث التعديل، ويبقى القديم
+   والحديث». وأثبتُّها: حذفتُ ١٦٩ خليةً فعاد منها ١١٣.
+   ⚠️ والسبب أن الجهازَ يرسل نسختَه **كاملةً** في أول حفظةٍ بعد فتح الصفحة،
+      فيكتب القديمُ فوق الجديد ويُحيي المحذوف. والخادمُ لا يعرف الأحدث.
+   ⚠️ فكلُّ لمسةٍ تختم حصّتَها بوقتها، والخادمُ يرفض ما هو أقدمُ مما عنده.
+   ⚠️ **والختمُ عند اللمس لا عند الإرسال**: لو خُتم عند الإرسال لما حُمي
+      تعديلٌ وقع في أولِ حفظةٍ (وهي كاملةٌ بطبعها). */
+/* ⚠️ **والساعةُ ساعةُ الخادم**: جهازٌ ساعتُه متأخّرةٌ أسبوعاً كان سيُرفَض كلُّ
+      ما يكتبه (ختمُه أقدمُ مما في المخزن) **بلا أيِّ رسالة**. فالخادمُ يردُّ
+      `now` في كل ردٍّ، ويُحفظ الفرقُ، فتُختم الكتابةُ بساعته لا بساعة الجهاز. */
+let SKEW = 0;
+function noteNow(r){ if(r && r.now) SKEW = Number(r.now) - Date.now(); }
+function nowMs(){ return Date.now() + SKEW; }
+function touchL(x){ if(x && typeof x === "object") x.mt = nowMs(); return x; }
+
+/* ⛔ **«احذف أي حصة من تخصص مخالف للصف»** (المستشار ٧ أكتوبر ٢٠٢٦) — وحُذفت.
+   ⚠️ لكنّ الحذفَ علاجُ الأثر: المنعُ **عند الكتابة** هو علاجُ السبب. فمن كتب
+      مادةً تنتسب إلى تخصصٍ آخرَ أُنبِئ في حينه، فيصحّح قبل أن تُحجز الخانة.
+   ⚠️ وتنبيهٌ لا منعٌ: المقرّراتُ الاختياريةُ («مقدمة الأعمال» · «قدرات لفظي»)
+      ورياضُ الأطفال موادُّها حرّةٌ — فما لا يُعرف انتسابُه لا يُحكم عليه. */
+function subjNorm(t){
+  let s = String(t == null ? "" : t).normalize("NFKC")
+    .replace(/[\u064b-\u0652\u0640\u200f\u200e]/g, "");
+  /* ⛔ **ولا تُستعمل `latnum` هنا**: هي **مستخرِجةُ أرقامٍ** تمحو كلَّ ما ليس
+     رقماً (`\D`) — فكانت تُفني اسمَ المادة كلَّه فتعود كلُّ مادةٍ مجهولة.
+     (أمسكه `subjcheck` في أول تشغيل: ٥١ حالةً من ٦١ عادت خاوية.) */
+  s = s.replace(/[\u0660-\u0669]/g, c=>String.fromCharCode(c.charCodeAt(0) - 0x0660 + 48))
+       .replace(/[\u06f0-\u06f9]/g, c=>String.fromCharCode(c.charCodeAt(0) - 0x06f0 + 48));
+  s = s.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه")
+       .replace(/ؤ/g, "و").replace(/ئ/g, "ي");
+  s = s.replace(/[0-9]+([-/][0-9]+)?/g, " ")
+       .replace(/[^\w\u0600-\u06ff ]+/g, " ")
+       .replace(/\s+/g, " ").trim().toLowerCase();
+  /* ⚠️ «ال» بالترميز لا بالحرف: آلةُ الترجمة تلفُّ كلَّ نصٍّ عربيٍّ في الشفرة،
+     وهذا طرفُ مطابقةٍ لا تسمية — فلو لُفَّ لانكسرت المطابقةُ في الإنجليزية.
+     ⛔ وتُنزع من **كل كلمة** لا من أولاها: «التصميم الرقمي» لم يكن يُطابق
+        «تصميم رقمي». ولا تُنزع إن بقي أقلُّ من ثلاثة أحرف — فـ«آلي» تصير
+        «الي» فتصير «ي»، فينكسر «حاسب آلي» نفسُه. */
+  const AL = "\u0627\u0644";
+  return s.split(" ").map(w=>(w.indexOf(AL) === 0 && w.length - 2 >= 3) ? w.slice(2) : w).join(" ");
+}
+function subjFam(t){
+  const n = subjNorm(t);
+  if(!n) return "";
+  const own = (k)=>Object.prototype.hasOwnProperty.call(SUBJFAM, k);
+  if(own(n)) return SUBJFAM[n];
+  /* ⚠️ ثم **كلمةً كلمةً**: «فقه : المهر» فيها «فقه» وهي إسلامية. والمطابقةُ
+     بالكلمة أدقُّ من الاحتواء — فلا تُصيب كلمةً داخل كلمة. */
+  const ws = n.split(" ");
+  for(let i = 0; i < ws.length; i++)
+    if(ws[i].length >= 3 && own(ws[i])) return SUBJFAM[ws[i]];
+  /* ⛔ **ولا مطابقةَ بالاحتواء**: كانت «ع» تُطابق مفتاحَ «علوم» لأنه يحتويها،
+     فتُنسب حصةٌ إلى تخصصٍ بحرفٍ واحد. ولمّا صارت المطابقةُ بالكلمة لم يبقَ
+     للاحتواء حالةٌ واحدةٌ يحتاجها — فحُذف ولم يُرقَّع. */
+  return "";
+}
+
+/* ⛔ **«ولماذا تسمح بتسجيل وحجز حصة بالاسم فقط؟»** — المستشارُ ٧ أكتوبر ٢٠٢٦،
+   ومعه الصورة: معلمٌ كتب اسمَه وحجز حصتين. و«وكيف يسمح بكتابة صفر في الخلايا
+   وتسمح له بحجزها؟».
+   ⚠️ فصار للحجز **عقدٌ واحدٌ** يُقاس عليه في الشاشة وفي الدفع وفي التقارير:
+      اسمُ المعلم · الفصل · الاتجاه · الإستراتيجية. وما نقص عن ذلك **ناقصةٌ
+      لا تدخل المخزنَ المشترك** — تبقى على جهاز صاحبها بعلامتها الصفراء.
+   ⚠️ و«٠» و«-» و«.» ليست قيماً: كُتبت في الخانات ففتحت البابَ المقفول.
+   ⚠️ ولا تُحجب حصةٌ **سبقت** إلى المخزن: حجبُ تعديلٍ عليها يُفرّق النسختين.
+      فالحجبُ لمن لم يدخله بعدُ وحدَه (`__loc`). */
+const NOTVAL = ["0", "\u0660", "-", "\u2014", "\u2013", "_", ".", "\u060c", "/", "\u00d7", "\u0644\u0627", "na", "n/a"];
+function realVal(v){
+  const t = String(v == null ? "" : v).replace(/[\s\u200f\u200e]+/g, "");
+  if(!t) return false;
+  return NOTVAL.indexOf(t.toLowerCase()) < 0;
+}
+const NEEDF = [["teacher", "اسم المعلم"], ["klass", "الفصل"],
+               ["approach", "الاتجاه التدريسي"], ["strategy", "الإستراتيجية"]];
+function lessonGaps(x){ return x ? NEEDF.filter(f=>!realVal(x[f[0]])).map(f=>f[1]) : NEEDF.map(f=>f[1]); }
+function lessonFull(x){ return lessonGaps(x).length === 0; }
 function seqOf(){ const n = +(DB.__seq || 0); return n > 0 ? n : 0; }
 function setSeq(n){ DB.__seq = +n > 0 ? +n : 0; }
 
@@ -586,7 +694,13 @@ function deltaOf(prevTxt){
     const a = now[k] || {}, b = prev[k] || {}, d = {};
     let n = 0;
     Object.keys(a).forEach(kk=>{
-      if(JSON.stringify(a[kk]) !== JSON.stringify(b[kk])){ d[kk] = a[kk]; n++; }
+      if(JSON.stringify(a[kk]) !== JSON.stringify(b[kk])){
+        /* ⚠️ **وهنا وحدَه يُعرَف «ما غيَّرتُه أنا»**: ما اختلف عن آخرِ ما أرسلتُه.
+           فيُختم بوقته، فلا يكتب جهازٌ قديمٌ نسختَه فوق تعديلٍ أحدثَ منه.
+           (وختمُ الحصص عند اللمس نفسِه — `touchL` — فهي تُدفع كاملةً أيضاً.) */
+        if(a[kk] && typeof a[kk] === "object" && !Array.isArray(a[kk])) a[kk].mt = nowMs();
+        d[kk] = a[kk]; n++;
+      }
     });
     if(n) out[k] = d;
   });
@@ -596,12 +710,24 @@ function deltaOf(prevTxt){
 function pushNow(){
   clearTimeout(syncT); syncT = null;
   if(!api()) return Promise.resolve(false);
+  /* ⛔ **عقدُ الحجز عند الدفع**: من اكتملت بياناتُه دخل المخزنَ المشترك، ومن
+     نقص بقي على جهاز صاحبه بعلامته الصفراء. وبه لا يرى مشرفٌ حصةً «بالاسم
+     وحدَه»، ولا يُحجز في الجدول ما لم يكتمل. (٧ أكتوبر ٢٠٢٦)
+     ⚠️ ولا يُحجب تعديلٌ على حصةٍ **سبقت** إلى المخزن: `__loc` لا يحملها إلا
+        ما وُلد هنا ولم يدخله بعد — فلا تفترق نسختان. */
+  (DB.sched || []).forEach(x=>{ if(x && x.__loc && lessonFull(x)) delete x.__loc; });
   const body = dbSnapshot();
   if(!body || body === lastSent){ pending = false; setSyn(""); return Promise.resolve(true); }
   setSyn("يُحفظ…");
   const full = (++pushSeq % 10 === 0);
   const d = full ? null : deltaOf(lastSent);
   const sent = d || JSON.parse(body);
+  let held = 0;
+  if(Array.isArray(sent.sched)){
+    const keep = [];
+    sent.sched.forEach(x=>{ if(x && x.__loc) held++; else keep.push(x); });
+    sent.sched = keep;
+  }
   /* ⚠️ `v:2` إعلانُ نسخةِ العقد: خادمٌ يعرفها لا يُرجع القاعدةَ في ردِّ
      الكتابة (١٫٦ م.ب لا حاجةَ بها)، وخادمٌ لا يعرفها يُهمل الحقلَ ويُرجعها
      كما كان. فالعميلُ يعمل على الخادمَين، ولا يتوقّف نشرُه على نشرِه. */
@@ -631,8 +757,9 @@ function pushNow(){
         mergeDB(r.data);
         try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){}
       }
+      noteNow(r);
       if(r && r.ok && r.seq) setSeq(r.seq);
-      lastSent = dbSnapshot(); pending = false; writeFails = 0;
+      lastSent = dbSnapshot(); pending = false; writeFails = 0; offSet(false);
       /* ⚠️ **ولا يُفقَد ما كان ردُّ الكتابة يأتي به**: كان الحفظُ يُري
          صاحبَه آخرَ ما عند الجميع لأن الردَّ يحمل القاعدة. فلمّا خفَّ الردُّ
          صارت بعدَه **سحبةٌ فارقةٌ** — مئتا بايتٍ تؤدّي ما أدّته ميجابايت.
@@ -640,13 +767,25 @@ function pushNow(){
       if(r && r.ok && !r.data && seqOf() > 0){
         pullNow().then(got=>{ if(got && PH !== 2 && !isTyping()){ try{ render(); }catch(e){} } });
       }
-      setSyn("حُفظ للجميع ✓", "oksyn");
-      setTimeout(()=>setSyn(""), 2500);
+      /* ⚠️ ولا يُقال «حُفظ للجميع» وفي الجدول ناقصةٌ لم تُحجز — فيظنُّها محجوزة */
+      if(held){
+        setSyn(arn(held) + (held === 1 ? " حصةٌ ناقصةٌ لم تُحجز" : " حصصٌ ناقصةٌ لم تُحجز"), "warnsyn");
+        if(!heldWarned){
+          heldWarned = true;
+          toast("أكمِل بياناتِ الحصة (الفصل · الاتجاه · الإستراتيجية) لتُحجز لك الخانة — "
+                + "وهي الآن محفوظةٌ على جهازك وحدَه", "warn");
+        }
+      } else {
+        setSyn("حُفظ للجميع ✓", "oksyn");
+        setTimeout(()=>setSyn(""), 2500);
+      }
       return true;
     })
     .catch(e=>{
       writeFails++;
       pending = true;
+      /* ⚠️ وتعذُّرُ الحفظ انقطاعٌ كتعذُّر السحب — فالشريطُ واحدٌ لهما */
+      offSet(true);
       setSyn(e.message === "limit" ? "تعذّر الحفظ المشترك — يُعاد قريباً" : "محفوظٌ محلياً — بانتظار الشبكة",
              "warnsyn");
       /* ⚠️ لا تُفقد البيانات: تبقى محليةً ويُعاد الدفعُ بتباعدٍ متزايد */
@@ -687,7 +826,9 @@ function pullNow(){
        `pushNow` أن لا جديدَ فيلغي الدفعَ **ويُعلن نجاحاً** — فما كُتب بين
        دفعةٍ وسحبٍ لا يُدفع أبداً ولا يبقى محلياً. (٣٠ سبتمبر ٢٠٢٦) */
     .then(r=>{
-      if(!(r && r.ok)) return false;
+      if(!(r && r.ok)){ offSet(true); return false; }
+      offSet(false);
+      noteNow(r);
       /* ⚠️ فارقةٌ: ما استجدَّ وما غاب. والخادمُ لا يُرسلها إلا لمن طلبها
          بترقيمٍ يعرفه، فعميلٌ قديمٌ لا يراها أبداً. */
       if(r.inc){
@@ -705,7 +846,7 @@ function pullNow(){
       }
       return false;
     })
-    .catch(()=>false);
+    .catch(()=>{ offSet(true); return false; });
 }
 /* ═════════ سلّةُ المحذوفات ═════════
    ⛔ لا يُمحى شيءٌ نهائياً بضغطة: يُنقل إلى السلّة بكامله — الحصةُ وتحضيرُها
@@ -770,6 +911,10 @@ function trashList(){
   /* ⚠️ وفريقُ المتابعة يتابع ولا يحذف — فلا يرى إلا ما حذفه قبلَ المنع */
   if(!isEval() || ME.role === "intqa") return all.filter(t=>t.by === ME.name);
   if(isScopeBound()) return all.filter(t=>t.L && inMyScope(t.L));
+  /* ⛔ **والمشرفُ كان يسقط من كل الشروط فيرى السلّةَ كلَّها**: ١٣٦ عنصراً
+     فيها علوم ٢٦ ورياضيات ٢٤ وE ٢١ — ولا واحدةَ من مواده. (بلاغُ المستشار
+     ٧ أكتوبر ٢٠٢٦) فيرى ما يرصده هو لا غير. */
+  if(isSupervisor()) return all.filter(t=>t.L && canScore(t.L));
   return all;
 }
 /* ⛔ والاستردادُ والمحوُ حارسُهما واحدٌ مع الحذف: من لا يحذف لا يمحو ولا يستردّ */
@@ -864,7 +1009,7 @@ function restoreLesson(id){
     alert("لا يمكن الاسترداد: خانةُ هذه الحصة شُغِلت بحصةٍ أخرى بعد حذفها.");
     return false;
   }
-  DB.sched.push(t.L);
+  DB.sched.push(touchL(t.L));
   if(t.prep) DB.prep[t.L.id] = t.prep;
   Object.keys(t.obs || {}).forEach(k=>{ DB.obs[k] = t.obs[k]; });
   Object.keys(t.peer || {}).forEach(k=>{ DB.peer[k] = t.peer[k]; });
@@ -966,13 +1111,34 @@ function isMyVisit(L){
   if((L.peer2||"").trim() === n && !((L.peer2e||"") && e && L.peer2e !== e)) return true;
   return false;
 }
+/* ⛔ **القائمةُ كانت بترتيب الإدخال لا بترتيب الزمن** (بلاغُ المستشار ٧
+   أكتوبر ٢٠٢٦): فيقرأ المشرفُ «الأسبوع الثامن» ثم «العاشر» ثم «الثامن»
+   ثم «الخامس عشر» — ولا يعرف ما حصةُ اليوم. والترتيبُ أسبوعاً فيوماً
+   فحصةً: هو ترتيبُ وقوعها في الواقع.
+   ⚠️ والأسابيعُ والأيامُ تُرتَّب **بموضعها في التقويم** لا بحروفها: «الثامن»
+      قبل «التاسع» وبعد «السابع»، والمقارنةُ النصّيةُ تعكسها. */
+function lessonOrder(L){
+  const w = (D.weeks || []).indexOf(L.week); 
+  const d = (D.days || []).indexOf(L.day);
+  const p = parseInt(perNo(L) || "0", 10) || 0;
+  return [(w < 0 ? 999 : w), (d < 0 ? 99 : d), p];
+}
+function byTime(a, b){
+  const x = lessonOrder(a), y = lessonOrder(b);
+  for(let i = 0; i < 3; i++) if(x[i] !== y[i]) return x[i] - y[i];
+  return String(a.stage || "").localeCompare(String(b.stage || ""));
+}
 function myLessons(){
   /* ⛔ المربوطُ بنطاقٍ يرى نطاقَه: كان كلُّ مقيّمٍ يرى الجدولَ كلَّه */
-  if(isScopeBound() && !isAdmin()) return DB.sched.filter(inMyScope);
-  if(isEval()) return DB.sched;
+  if(isScopeBound() && !isAdmin()) return DB.sched.filter(inMyScope).sort(byTime);
+  /* ⛔ **والمشرفُ كان يسقط في `isEval` فيرى ٥٦٤ حصةً** فيها الكيمياءُ
+     والفيزياءُ والتربيةُ البدنية — ولا واحدةَ من مواده الثلاث. ونطاقُه
+     ما يرصده لا المكان. (بلاغُ المستشار ٧ أكتوبر ٢٠٢٦) */
+  if(isSupervisor()) return DB.sched.filter(L=>canScore(L)).sort(byTime);
+  if(isEval()) return DB.sched.slice().sort(byTime);
   /* ⚠️ ومصدرُ «حصصي» واحدٌ مع مصدر «أملك تعديلَها»: كانا اثنين فافترقا. */
-  if(ME.role === "teacher") return DB.sched.filter(isMine);
-  return DB.sched.filter(isMyVisit);
+  if(ME.role === "teacher") return DB.sched.filter(isMine).sort(byTime);
+  return DB.sched.filter(isMyVisit).sort(byTime);
 }
 function prog(L){                                   /* تقدّم الحصة */
   const p = DB.prep[L.id], issued = p && p.__issued;
@@ -1102,17 +1268,30 @@ function supByEmp(e){
   const k = latnum(e);
   return k ? (supList().find(r=>r.emp === k) || null) : null;
 }
-function supCovers(r, sector, complex, stage, spec){
+/* ⛔ **علمٌ ميتٌ ثانٍ — وهو عطبي لا بياناتُ المستشار** (٧ أكتوبر ٢٠٢٦):
+   `supdb.py` يحمل لمشرف الهوية الوطنية العلمَ `nat` ومعه نصٌّ صريح: «فريقُ
+   الهوية الوطنية القائمُ في الجدول: ثلاثُ موادَّ في اليوم الواحد». و`supclash`
+   يقرؤه فيقول **تعارض ٠**. لكنّ تصديرَ `DATA["sups"]` **أسقطه**، فلم تعرفه
+   المنصة — فعاملته معاملةَ مشرفِ موادَّ يركب الدورانَ العاديَّ في ثلاثة
+   مجمعات، فأعلنت عليه تعارضاً **كلَّ يومٍ من أيام الأسبوع**، وأظهرت له
+   «فريقك» مرّتين في جدول الزيارات.
+   ⚠️ وهي العلّةُ نفسُها التي وقعت في `schoolhelp` من قبل — علمٌ يُكتب في
+      السجلّ ولا يقرؤه شيء. فصار لها حارسٌ (`supflags.py`).
+   ⚠️ **ورحلتُه ثابتة**: يغطّي المجمعَ في **يوم فريقه** وحدَه — كما يحسبها
+      `supclash.demand` حرفاً بحرف. وبلا يومٍ مُمرَّرٍ يُقرأ نطاقُه كما هو
+      (شاشاتُ التعريف وجدولُ الزيارات تعرض مجمعاتِه كلَّها). */
+function supCovers(r, sector, complex, stage, spec, day){
   if(!r) return false;
   if((r.sectors || []).indexOf(sector) < 0) return false;
   if((r.complexes || []).indexOf(complex) < 0) return false;
   if((r.stages || []).indexOf(stageBase(stage)) < 0) return false;
+  if(r.nat && day && ((D.natdays || {})[day] || "") !== complex) return false;
   return !!r.allsubj || (r.subjects || []).indexOf(spec) >= 0;
 }
-function supsForCell(sector, complex, stage, spec){
-  return supList().filter(r=>supCovers(r, sector, complex, stage, spec));
+function supsForCell(sector, complex, stage, spec, day){
+  return supList().filter(r=>supCovers(r, sector, complex, stage, spec, day));
 }
-function supsFor(L){ return L ? supsForCell(L.sector, L.complex, L.stage, L.spec) : []; }
+function supsFor(L){ return L ? supsForCell(L.sector, L.complex, L.stage, L.spec, L.day) : []; }
 /* ⛔ التخصصُ بلا مشرفٍ لا يبقى بلا تقييم — قرارُ المستشار ٣٠ سبتمبر ٢٠٢٦ */
 function isGap(L){ return !!L && supsFor(L).length === 0; }
 /* ⛔ **حصةٌ لها مشرفٌ قد لا يحضر**: قرارُ المستشار في مشرفة رياض الأطفال
@@ -1714,7 +1893,11 @@ function phaseFor(p){
 function navItems(){
   let items = D.phases.filter(p=>p.who.includes(effRole()))
     .map(phaseFor).map(p=>({id:p.id, t:p.t, s:p.s}));
-  const mine5 = isEval()
+  /* ⛔ **«لوحةُ المدرسة» ليست وصفَ شاشةِ المشرف** (بلاغُ المستشار ٧ أكتوبر
+     ٢٠٢٦): هو لا مدرسةَ له، بل تخصصاتٌ في مجمعات. والاسمُ يصف ما يراه. */
+  const mine5 = isSupervisor()
+    ? {id:5, t:"لوحةُ الإشراف والتقارير", s:"تقاريرُ تخصصاتك في مجمعاتك"}
+    : isEval()
     ? {id:5, t:"لوحة المدرسة والتقارير", s:"تقارير التفعيل والنتائج"}
     : (ME.role === "teacher"
         ? {id:5, t:"تقريري", s:"حصصك ودرجاتُها وإجراءاتُ جسرك"}
@@ -1838,6 +2021,7 @@ function shell(){
   ob.addEventListener("click", ()=>{ localStorage.removeItem(KEY+"_me"); ME=null; login(); });
   me.appendChild(ob);
   tw.appendChild(left); tw.appendChild(nav2); tw.appendChild(me); top.appendChild(tw); document.body.appendChild(top);
+  offBar();
 
   /* ── الشريط الجانبي الأيمن: مراحل الدور المختار ── */
   const wide = localStorage.getItem(KEY+"_wide") === "1";
@@ -3124,6 +3308,7 @@ function ph4(m){
               "اعتمدها").then(ok=>{
           if(!ok) return;
           L.approved = {by: ME.name, no: ME.emp || "", at: new Date().toISOString()};
+          touchL(L);
           logAct("اعتماد", lessonTitle(L), L); save(); shell(); syncFlush();
         });
       });
@@ -3474,8 +3659,15 @@ function agg(){                                    /* تجميعٌ واحد تُ
      `DB.sched` كاملاً، فيقرأ مديرُ مدرسةٍ درجاتِ معلمي أربعة مجمعاتٍ
      وقطاعين. و`inMyScope` كانت مبنيّةً ولا تُنادى إلا في حارس الرصد.
      (١ أكتوبر ٢٠٢٦) */
-  const src = (isScopeBound() && !isAdmin())
-      ? DB.sched.filter(inMyScope) : DB.sched;
+  /* ⛔ **والمشرفُ كان خارجَ هذا الشرط** (بلاغُ المستشار ٧ أكتوبر ٢٠٢٦):
+     `isScopeBound` للمدير والوكيل ومدير المجمع، والمشرفُ «متنقّل» — فكانت
+     تقاريرُه السبعةُ تُحسب على `DB.sched` كاملاً، فيقرأ في «تقرير المعلمين»
+     معلمي الفيزياء والمهارات الرقمية والعلوم في أربعة مجمعات. ونطاقُه
+     ليس مكاناً بل **ما يرصده**. */
+  const src = isAdmin() ? DB.sched
+      : isSupervisor() ? DB.sched.filter(L=>canScore(L))
+      : isScopeBound() ? DB.sched.filter(inMyScope)
+      : DB.sched;
   return src.map(L=>{
     const obs = byLesson[L.id] || [];
     const pct = obs.length ? obs.reduce((a,v)=>a+(v.res.pct||0),0)/obs.length : null;
@@ -4290,7 +4482,7 @@ function ph2(m){
           "سجّلها باسمي").then(ok=>{
           if(!ok) return;
           const was = L.teacher || "—";
-          L.teacher = ME.name; if(ME.emp) L.teacherNo = ME.emp;
+          L.teacher = ME.name; if(ME.emp) L.teacherNo = ME.emp; touchL(L);
           logAct("تصحيح اسم المعلم", "كانت باسم " + was + " وصارت باسم " + ME.name, L);
           save(); shell();
         });
@@ -4712,6 +4904,15 @@ function myComplexes(sector){
   const out = all.filter(x=>mine.indexOf(x) >= 0);
   return out.length ? out : all;
 }
+/* تخصصاتي: من سجلّ الإشراف للمشرف، ومن المنظومة لمن لا سجلَّ له */
+function mySpecs(){
+  const all = D.specs || [];
+  if(!ME || ME.role !== "supervisor") return all;
+  const r = supByEmp(ME.emp);
+  if(!r || r.allsubj) return all;
+  const out = all.filter(x=>(r.subjects || []).indexOf(x) >= 0);
+  return out.length ? out : all;
+}
 function gctx(){
   if(!GS){
     try{ GS = JSON.parse(localStorage.getItem(KEY+"_ctx")||"null"); }catch(e){}
@@ -4768,6 +4969,23 @@ function schoolsOf(cx){                              /* أسماءُ المدا�
 function groupOf(cx, wk, day){ return ((D.rot[cx]||{})[wk]||{})[day] || ""; }
 /* ⚠️ في العالمي يزور فريقُ الهوية الوطنية مجمعاً بعينه في يومٍ بعينه، فقد يجتمع
    مع الفريق الدائر في اليوم نفسه — فتُعاد مجموعتان لا واحدة. */
+/* ⛔ **المنصةُ كانت تناقض نفسَها** (٧ أكتوبر ٢٠٢٦): خطةُ زيارات المشرف تقول
+   صراحةً «في العالمي لموادِّ الهوية رحلتُها الثابتة لا الدوران» وتُسقطها من
+   مجموعات الدوران هناك — **والمصفوفةُ لا تتبعها**، فتعرض لغتي وإسلامية في
+   مجمعٍ يومَ الدوران وفي آخرَ يومَ فريق الهوية. فيُسجّل المعلمون في خانةٍ
+   لا يبلغها مشرفُها، ويُعلَن على المشرف تعارضٌ كلَّ يوم.
+   ⚠️ فصارت القاعدةُ في **دالّةٍ واحدةٍ** يقرؤها الجدولُ والخطةُ معاً — لا
+      في موضعين يفترقان. (وهي القاعدةُ عينُها: عالِج القاعدةَ لا الموضع.)
+   ⚠️ وقرارُ المستشار ٧ أكتوبر: محمود كامل حافظ للغتي والإسلامية، واجتماعياتُ
+      العالمي للوكيل التعليمي كالفنية والبدنية. */
+/* اسمُ المجموعة المعروض: يتبع محتواها لا مفتاحَها (٧ أكتوبر ٢٠٢٦) */
+function gname(g){ return TR(((D.grouplabel || {})[g]) || g); }
+function groupSpecs(sector, gp){
+  const sp = (D.pairs || {})[gp] || [];
+  if(sector !== "عالمي" || gp === D.natgroup) return sp;
+  const nat = D.natspecs || [];
+  return sp.filter(x=>nat.indexOf(x) < 0);
+}
 function groupsOf(c, wk, day){
   const out = [];
   const g = groupOf(c.complex, wk, day);
@@ -4953,8 +5171,12 @@ function ph1(m){
      التربوي الزائر لتظهر حصصه فقط». (٢٩ سبتمبر ٢٠٢٦) */
   if(T || isRoving()){
     const ws = lab(T ? "تخصصك" : "التخصص الذي تزوره");
+    /* ⛔ **كانت تعرض التخصصاتِ التسعةَ لمشرفٍ له ثلاثة** (بلاغُ المستشار ٧
+       أكتوبر ٢٠٢٦): فيختار «علوم» فلا يجد شيئاً، ويظنُّ المنصةَ خاوية.
+       فالقائمةُ من سجلّه، ومن لا سجلَّ له (الزائر) يرى الكلَّ كما كان. */
+    const _my = mySpecs();
     ws.appendChild(fld("sel", c.spec, v=>{ setctx("spec", v); shell(); },
-                       T ? D.specs : ["كل التخصصات"].concat(D.specs)));
+                       T ? D.specs : ["كل التخصصات"].concat(_my)));
     gr.appendChild(ws);
   }
   /* ⛔ ومرشِّحُ اليوم: «وكذلك زر لليوم الذي يزور فيه لتظهر له حصص ذلك اليوم» */
@@ -5200,7 +5422,7 @@ function kgCell(c, band, r){
            approach: "", klass: "", time: band.time, grade: "", topic: "", pages: "",
            peer1: "", peer2: "", peer1e: "", peer2e: "",
            ev1: "", ev2: "", ev3: "", ev4: "", ev5: ""};
-      DB.sched.push(x);
+      DB.sched.push(touchL(x));
     }
     return x;
   };
@@ -5256,7 +5478,7 @@ function rowsOf(c){
       const dt = dayDate(wk, day);
       let i = 0;
       gs.forEach(gp=>{
-        (D.pairs[gp] || []).forEach(sp=>{
+        groupSpecs(c.sector, gp).forEach(sp=>{
           if(oneSpec && sp !== oneSpec) return;
           out.push({wk, day, gp, spec: sp, sub: i++, dt, nat: gp === D.natgroup});
         });
@@ -5420,7 +5642,7 @@ function grid(m, c, T){
       }
       const gsAll = groupsOf(c, r.wk, r.day);
       /* ⚠️ تُترجَم كلُّ مجموعةٍ ثم تُوصل — والوصلُ قبل الترجمة يُفوّتها */
-      td.appendChild(el("div","gsel ro2", gsAll.map(TR).join(" + ")));
+      td.appendChild(el("div","gsel ro2", gsAll.map(gname).join(" + ")));
       tr.appendChild(td); ld = dk;
     }
     const mine = ME.role === "teacher" && r.spec === gctx().spec;
@@ -5457,16 +5679,20 @@ function cellEditor(c, band, r){
            datetxt:(r.dt||{}).gt || "", hijri:(r.dt||{}).ht || "", spec:r.spec, group:r.gp,
            subject:r.spec, teacher:"", strategy:"", approach:"", klass:"", time:"",
            grade:"", topic:"", pages:"",
-           peer1:"", peer2:"", peer1e:"", peer2e:"", ev1:"", ev2:"", ev3:"", ev4:"", ev5:""};
-      DB.sched.push(x);
+           peer1:"", peer2:"", peer1e:"", peer2e:"", ev1:"", ev2:"", ev3:"", ev4:"", ev5:"",
+           __loc:1};
+      DB.sched.push(touchL(x));
     }
     return x;
   };
   const L0 = cur(), ed = canEdit(c, band, L0);
   const paint = ()=>{
     const x = cur(), on = !!(x && (x.teacher||"").trim());
+    const part = on && !lessonFull(x);
     w.className = "cellbox" + (on ? (ME.role === "teacher" && !isMine(x) ? " other" : " on") : "")
+                            + (part ? " part" : "")
                             + (ed ? "" : " locked") + (x && x.approved ? " appr" : "");
+    w.title = part ? "ناقصةٌ فلم تُحجز — أكمل: " + lessonGaps(x).join(" · ") : "";
     const a = w.querySelector(".crow2"); if(a) a.style.display = on ? "" : "none";
   };
   const mk = (key, ph, opts, cls, lock, after) => {
@@ -5479,9 +5705,15 @@ function cellEditor(c, band, r){
       d.title = lock; d.dataset.f = key; w.appendChild(d); return;
     }
     const e = fld(opts ? "sel" : "txt", v, val=>{
+      /* ⚠️ وتُردُّ في الخانة نفسِها لا عند الحفظ: ليعلم صاحبُها فوراً لماذا */
+      if(!opts && (val||"").trim() && !realVal(val)){
+        toast("«" + val + "» ليست قيمةً — اكتب " + ph + " كما هو", "warn");
+        val = "";
+        try{ e.value = ""; }catch(err){}
+      }
       snap(gk, "تعديل " + ph);
       const y = ensure(), was = y[key];
-      y[key] = val;
+      y[key] = val; touchL(y);
       /* ⚠️ تغييرُ الاتجاه يُسقط إستراتيجيةً لا تنتمي إليه: لو بقيت لعُرضت
          خانةً فارغةً وقيمتُها محفوظةٌ في الخلف — فيظنُّها المعلمُ مختارة. */
       if(key === "approach"){
@@ -5564,7 +5796,15 @@ function cellEditor(c, band, r){
   const rowsub = el("div","crow1");
   if(ed){
     const sb = fld("txt", L0 ? (L0.subject||"") : "",
-      v=>{ snap(gk,"تعديل المادة"); ensure().subject = v; save(); paint(); },
+      v=>{ snap(gk,"تعديل المادة"); ensure().subject = v; save(); paint();
+        /* ⚠️ بعد الحفظ لا قبلَه: يُحفظ ما كُتب ثم يُنبَّه صاحبُه */
+        const fs = subjFam(v), fp = subjFam(r.spec);
+        if(fs && fp && fs !== fp)
+          alert(TR("«") + v + TR("» مادةُ تخصص ") + TR(fs)
+            + TR("، وهذه الخانةُ لتخصص ") + TR(fp)
+            + TR(". فإن كانت حصّتَك فاكتبها في صفِّ تخصصك — "
+                 + "وإلّا صحّح اسمَ المادة، فالمشرفُ يُسنَد بتخصص الصف."));
+      },
       null, "اسم المادة (" + TR(r.spec) + ")");
     sb.className = "cin sm"; sb.dataset.f = "subject"; rowsub.appendChild(sb);
   } else rowsub.appendChild(el("div","cin sm ro2", (L0 && L0.subject) || "—"));
@@ -5940,7 +6180,7 @@ function undo(){
   const cur = DB.sched.find(x=>x.gk === u.gk);
   if(u.lesson){
     if(cur) Object.assign(cur, u.lesson);
-    else DB.sched.push(u.lesson);
+    else DB.sched.push(touchL(u.lesson));
     if(u.prep) DB.prep[u.lesson.id] = u.prep;
     /* ⛔ ويُعادُ ما التقطته اللقطةُ كلُّه — وإلا عادت الحصةُ بلا رصدٍ ولا أقران */
     Object.keys(u.obs || {}).forEach(k=>{ DB.obs[k] = u.obs[k]; });
@@ -6138,8 +6378,7 @@ function supVisits(r, week, day){
       if(sec === "عالمي" && (D.natdays || {})[day] === cx)
         specs = nat.filter(mine);
       const gp = (((D.rot || {})[cx] || {})[week] || {})[day] || "";
-      specs = specs.concat(((D.pairs || {})[gp] || []).filter(sp=>{
-        if(sec === "عالمي" && nat.indexOf(sp) >= 0) return false;
+      specs = specs.concat(groupSpecs(sec, gp).filter(sp=>{
         return mine(sp);
       }));
       if(specs.length) out.push({sector: sec, cx: cx, specs: specs});
@@ -6291,7 +6530,7 @@ function visitPlan(m, c){
     body.appendChild(dh);
     const bands = bandsOf(cx);
     const rows = [];
-    (D.pairs[myGp]||[]).forEach(spec=>{
+    groupSpecs(c.sector, myGp).forEach(spec=>{
       bands.forEach(b=>{
         const L = findLesson([c.sector, cx, b.stage, b.per, week, day, spec].join("|"));
         if(!L || !(L.teacher||"").trim()) return;

@@ -15,6 +15,7 @@ import json
 import os
 import re
 import sys
+import unicodedata
 from urllib.parse import quote
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -367,6 +368,9 @@ DATA = {
     "days": SD.DAYS,                 # ولا أربعاء: صفُّه فارغٌ في الأصل
     "specs": SD.SPECS,               # ثمانيةٌ مفردة
     "specgroups": SD.GROUPS,         # أربعُ مجموعاتٍ زائرة
+    # ⚠️ مفتاحُ المجموعة ثابتٌ (تبنى عليه ROT6/SUP6)، واسمُها المعروضُ يتبع
+    #    محتواها — فلا يُقرأ «رياضيات واجتماعيات» وفيها الرياضياتُ وحدَها.
+    "grouplabel": SD.GROUP_LABEL,
     "pairs": dict(SD.PAIRS, **{SD.NAT_GROUP: SD.NAT_SPECS}),
     # ⚠️ رياضُ الأطفال تُضاف في نسخة البنات وحدها: مستهدفةٌ في التقويم الخارجي هذا العام.
     #    وأوقاتُها تُترك فارغةً لأن الملفّ الأصلي لا يذكرها — والمعلمة تكتب وقت البدء.
@@ -474,6 +478,7 @@ html.en .cme{font-size:11px;padding:3px 4px}
 html.en table.mx th,html.en table.mx td{font-size:11.5px}
 html.en table.mx th b{font-size:12px}
 html.en .cellbox.appr::before{font-size:9.5px}
+html.en .cellbox.part::before{content:"\26a0 Incomplete \2014 not reserved";font-size:9.5px}
 a{color:var(--teal2)}
 .wrap{max-width:none;margin:0 auto;padding:0 14px}
 .wrap.narrow{max-width:1100px}
@@ -614,6 +619,19 @@ table.mx tr.sep td{border-top:2px solid var(--navy)}
 .cellbox.appr{background:var(--okbg);box-shadow:inset 0 0 0 2px #7fc494}
 .cellbox.appr::before{content:"◆ معتمدة";display:block;font-size:10.5px;color:var(--ok);
  font-weight:700;text-align:center;margin-bottom:2px}
+/* ⛔ **خانةٌ ناقصةٌ لا تُحجز**: شكوى المستشار ٧ أكتوبر ٢٠٢٦ — «محمد العسال كتب
+   اسمه فقط وحجز حصتين». فالناقصةُ صفراءُ بعلامتها، ولا تدخل المخزنَ المشترك
+   حتى تكتمل — فلا يراها مشرفٌ ولا تقريرٌ حصةً مسجّلة. */
+/* ⛔ شريطُ الانقطاع: تحت الترويسة لا في زاويةٍ — فمن لا يراه يظنُّ الجدولَ تامّاً */
+.offbar{background:#fff4e0;border-bottom:2px solid #e9a94a;color:#7a4a05;
+ padding:9px 16px;font-size:13.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.offbar strong{color:#8a3a00}
+.offbar button{font:inherit;font-family:JZ,SK;font-size:13px;padding:4px 14px;border-radius:6px;
+ border:1px solid #c98a2a;background:#fff;color:#8a3a00;cursor:pointer}
+@media (max-width:760px){.offbar{padding:8px 12px;font-size:12.5px;gap:6px}}
+.cellbox.part{background:#fff8e6;box-shadow:inset 0 0 0 2px #e9c46a}
+.cellbox.part::before{content:"⚠ ناقصة — لم تُحجز";display:block;font-size:10px;
+ color:#a9742a;font-weight:700;text-align:center;margin-bottom:2px}
 /* ⛔ خانةٌ مقفولةٌ حتى يُختار الاتجاه — تُقرأ ولا تُكتب */
 .cin.lock{color:var(--grey);background:#f7f9fb;border-style:dashed;font-size:11.5px}
 .cin{width:100%;font:inherit;font-size:12.5px;font-family:JZL,SK;padding:3px 5px;border:1px solid var(--line);
@@ -1191,6 +1209,11 @@ DATA["sups"] = [{"emp": r["emp"], "name": r["name"],
                  "subjects": r["subjects"], "complexes": [_cx(c) for c in r["complexes"]],
                  "stages": r["stages"], "sectors": r["sectors"],
                  "allsubj": bool(r["flags"].get("allsubj")),
+                 # ⛔ **علمٌ ميتٌ ثانٍ**: `nat` مكتوبٌ في `supdb.py` ومعه نصُّه
+                 #    («فريقُ الهوية الوطنية… ثلاثُ موادَّ في اليوم الواحد»)،
+                 #    و`supclash` يقرؤه فيقول «تعارض ٠» — وكان التصديرُ يُسقطه،
+                 #    فتُعلن المنصةُ على مشرف الهوية تعارضاً كلَّ يوم. (٧ أكتوبر)
+                 "nat": bool(r["flags"].get("nat")),
                  # ⛔ **علمٌ ميتٌ أُحيي**: `schoolhelp` كُتب في `supdb.py` بقرار
                  #    المستشار («حيثُ لا تحضر تساعدها مديرةُ المدرسة والوكيلةُ
                  #    التعليمية بذات المدرسة — لا فريقُ المتابعة الرباعي») ثم
@@ -1449,6 +1472,99 @@ _CARDS = _card_links()
 for _b in DATA["bank"]:
     _b["u"] = _CARDS[_b["name"]]
 DATA["specmap"] = SPECMAP
+
+# ═════════ خريطةُ المواد إلى التخصصات ═════════
+# ⛔ **«احذف أي حصة من تخصص مخالف للصف»** (المستشار ٧ أكتوبر ٢٠٢٦). ودُقِّق
+#    المخزنُ الحيُّ فكان المخالفُ ٤٤ حصةً — ومثلُها ستَّ مراتٍ ليست مخالفةً:
+#    «كيمياء» و«فيزياء» و«أحياء» **هي علوم** في الثانوي، و«الكفايات اللغوية»
+#    لغتي، و«التقنية الرقمية» حاسب آلي. فالحذفُ بلا هذه الخريطة إتلافُ عمل.
+# ⚠️ **ومرجعُها المنصةُ نفسُها**: أسماءُ مواد المناهج في نماذجها الاسترشادية
+#    (`DATA["models"]`) — لا قائمةٌ تُؤلَّف هنا. فإن زاد نموذجٌ زادت المادة.
+# ⚠️ والمرادفاتُ **مرصودةٌ من المخزن الحيّ** لا متخيَّلة: ما كتبه المعلمون
+#    فعلاً (إملاءً ولغةً واختصاراً). وما لم يُعرف انتسابُه لا يُحكم عليه.
+# ⚠️ ورياضُ الأطفال خارجَها: موادُّها ليست من التخصصات، وتكتبها المعلمةُ بنفسها.
+_SUBJ_ALIAS = {
+    "علوم": ["science", "sciences", "كيمياء", "chemistry", "فيزياء", "physics",
+             "احياء", "أحياء", "biology", "علم أرض", "علم الأرض", "جيولوجيا"],
+    "لغتي": ["عربي", "اللغة العربية", "لغة عربية", "arabic", "كفايات لغوية", "كفايات",
+             "قدرات لفظي", "القدرات اللفظي", "قدرات لفظية"],
+    "حاسب آلي": ["حاسب", "حاسوب", "computer", "computing", "ict", "it",
+                 "تقنية رقمية", "مهارات رقمية", "تصميم رقمي", "digital skills"],
+    "إسلامية": ["إسلامية", "إسلاميات", "اسلاميات", "دين", "islamic",
+                "قرآن", "توحيد", "فقه", "حديث", "تجويد"],
+    # ⚠️ ومقرّراتُ الثانويِّ بنصِّ المستشار ٧ أكتوبر ٢٠٢٦: «مقدمة الأعمال تتبع
+    #    الاجتماعيات بالثانوي، والقدرات اللفظي تتبع لغتي بالثانوي».
+    "اجتماعيات": ["اجتماعيات", "اجتماعية", "social", "تاريخ", "جغرافيا",
+                  "مقدمة الأعمال", "مقدمة أعمال"],
+    "E": ["english", "e", "انجليزي", "إنجليزي", "انجلش", "لغة إنجليزية"],
+    "البدنية": ["بدنية", "تربية بدنية", "pe", "physical education",
+                "تربية بدنية وصحية", "رياضة بدنية"],
+    "الفنية": ["فنية", "فنون", "art", "arts", "مهارات حياتية", "أسرية"],
+    "رياضيات": ["رياضيات", "math", "maths", "mathematics", "رياضة"],
+}
+
+
+def _subjnorm(t):
+    """تسويةٌ واحدةٌ هنا وفي الصفحة: همزاتٌ وياءٌ وتاءٌ وأرقامُ المستويات."""
+    t = unicodedata.normalize("NFKC", str(t or ""))
+    t = re.sub(r"[\u064b-\u0652\u0640\u200f\u200e]", "", t)
+    t = t.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
+    for a, b in (("أ", "ا"), ("إ", "ا"), ("آ", "ا"), ("ى", "ي"),
+                 ("ة", "ه"), ("ؤ", "و"), ("ئ", "ي")):
+        t = t.replace(a, b)
+    t = re.sub(r"[0-9]+([-/][0-9]+)?", " ", t)
+    t = re.sub(r"[^\w\u0600-\u06ff ]+", " ", t)
+    t = re.sub(r"\s+", " ", t).strip().lower()
+    # ⛔ **و«ال» تُنزع من كل كلمةٍ لا من أولاها**: «التصميم الرقمي» كان لا
+    #    يُطابق «تصميم رقمي» لأن «ال» الثانيةَ تبقى — فبقيت المادةُ مجهولةَ
+    #    الانتساب وهي معروفة. (كشفه نصُّ المستشار عن مقرّرات الثانوي.)
+    # ⚠️ ولا تُنزع إن بقي أقلُّ من ثلاثة أحرف: «آلي» ← «الي» ← «ي»، فينكسر
+    #    «حاسب آلي» نفسُه. فالشرطُ حارسٌ لا تحسين.
+    return " ".join(w[2:] if w.startswith("ال") and len(w) - 2 >= 3 else w
+                    for w in t.split(" "))
+
+
+def _build_subjfam():
+    fam, src = {}, {}
+    for key, lst in DATA["models"].items():
+        for m in lst:
+            nm = str(m.get("t", "")).split("—")[0].strip()
+            if not nm:
+                continue
+            k = key
+            if key == "أخرى":
+                k = "البدنية" if "بدنية" in nm else "الفنية"
+            fam[_subjnorm(nm)] = k
+            src[_subjnorm(nm)] = nm
+    for key, lst in _SUBJ_ALIAS.items():
+        for a in lst:
+            fam.setdefault(_subjnorm(a), key)
+    # ⚠️ شاهدٌ: كلُّ مادةٍ في نماذج المنصة تعود إلى تخصصها — وإلّا فالخريطةُ تكذب
+    bad = []
+    for key, lst in DATA["models"].items():
+        for m in lst:
+            nm = str(m.get("t", "")).split("—")[0].strip()
+            want = key if key != "أخرى" else ("البدنية" if "بدنية" in nm else "الفنية")
+            if nm and fam.get(_subjnorm(nm)) != want:
+                bad.append("%s ← %s (المنتظَر %s)" % (nm, fam.get(_subjnorm(nm)), want))
+    if bad:
+        raise SystemExit("⛔ خريطةُ المواد لا تُعيد موادَّ المنصة إلى تخصصها:\n    "
+                         + "\n    ".join(bad))
+    for key, lst in _SUBJ_ALIAS.items():
+        for a in lst:
+            if fam.get(_subjnorm(a)) != key and _subjnorm(a) not in src:
+                bad.append("«%s» يؤدّي إلى %s لا %s" % (a, fam.get(_subjnorm(a)), key))
+    if bad:
+        raise SystemExit("⛔ مرادفٌ ينتسب إلى تخصصَين:\n    " + "\n    ".join(bad))
+    return fam
+
+
+# ⚠️ **ولا تُحقن في `DATA`**: مفاتيحُها نصوصُ مطابقةٍ لا تسمياتٌ تُعرض، فحارسُ
+#    الترجمة يطلب لها إنجليزيةً لا معنى لها. فتُحقن في منطقةٍ محميّةٍ بعلامة
+#    `@noi18n` — وهي الآليةُ عينُها التي حُمي بها نصُّ أمر الذكاء الاصطناعي.
+SUBJFAM = _build_subjfam()
+print("  ✓ خريطةُ المواد: %d مدخلاً لـ%d تخصصاً · وكلُّ موادِّ النماذج تعود إلى تخصصها"
+      % (len(SUBJFAM), len(set(SUBJFAM.values()))))
 DATA["adminrole"] = "مستشارٌ ومديرُ المنصة"
 # ═════════ بوّابةُ المستشار ═════════
 # ⚠️ لا كلمةَ سرٍّ هنا ولا بريد — **بصمتان** فقط: بصمةُ البريد (SHA-256) وبصمةُ
@@ -1591,7 +1707,8 @@ print("  ✓ الترجمة: %d مدخلاً في الصفحة · %d نصّاً 
 import icon as _ICO
 page = (HTML.replace("__FONTS__", FONTCSS).replace("__CSS__", CSS)
             .replace("__ICON__", _ICO.head("../"))
-            .replace("__JS__", JS.replace("__DATA__", json.dumps(DATA, ensure_ascii=False))
+            .replace("__JS__", JS.replace("__SUBJFAM__", json.dumps(SUBJFAM, ensure_ascii=False))
+                                 .replace("__DATA__", json.dumps(DATA, ensure_ascii=False))
                                  .replace("__LOGO__", logo)))
 with open(out, "w", encoding="utf-8") as f:
     f.write(page)
