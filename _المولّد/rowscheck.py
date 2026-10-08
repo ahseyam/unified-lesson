@@ -699,8 +699,48 @@ const z8 = await jj(await G(eBk, "kind=platform&id=ikm_db&key=" + KEY));
 A("وردُّ القراءةِ كذلك", Number(z8.now) > 1.7e12, z8.now);
 
 
+/* ═══ ⑱ ⛔ **الخادمُ يُقدّم الصفحةَ بنفسه** ═══
+   قِيس ٨ أكتوبر ٢٠٢٦ أن مضيفَ الاستضافة لا تكتمل معه مصافحةُ TLS من شبكاتٍ
+   تُرشِّح بالاسم — فلا تُفتح الصفحةُ أصلاً. فيجلبها الخادمُ من شبكته ويُقدّمها،
+   فيصير مضيفٌ واحدٌ للصفحة والبيانات.
+   ⚠️ ويُقاس بجلبٍ مزيَّفٍ لا بالشبكة: المقصودُ **المسارُ والترويسةُ وبوّابةُ
+      المفتاح**، لا أن جِت هب يعمل. */
+const realFetch = globalThis.fetch;
+let asked = [];
+globalThis.fetch = async (u, o) => {
+  const s0 = String(u);
+  if (s0.indexOf("ahseyam.github.io") >= 0) {
+    asked.push(s0);
+    return new Response("<!doctype html><title>صفحةٌ مزيَّفة</title>", { status: 200 });
+  }
+  return realFetch(u, o);
+};
+const pg = await worker.fetch(new Request("http://x/m"), env);
+A("ويُقدَّم جدولُ البنين على /m", pg.status === 200, pg.status);
+A("بترويسة HTML", (pg.headers.get("content-type") || "").indexOf("text/html") === 0,
+  pg.headers.get("content-type"));
+A("ويُجلب من الاستضافة لا من القرص", asked.length === 1 && asked[0].indexOf("github.io") > 0,
+  (asked[0] || "").slice(0, 60));
+A("ويحمل جسداً", (await pg.text()).indexOf("صفحةٌ مزيَّفة") >= 0);
+asked = [];
+const pf = await worker.fetch(new Request("http://x/f"), env);
+A("وجدولُ البنات على /f", pf.status === 200 && asked.length === 1 &&
+  asked[0].indexOf("%D8%A8%D9%86%D8%A7%D8%AA") > 0, (asked[0] || "").slice(-30));
+asked = [];
+const vj = await worker.fetch(new Request("http://x/ver.json"), env);
+A("وملفُّ الختم يُمرَّر بلا تخبئة", vj.status === 200 &&
+  (vj.headers.get("cache-control") || "").indexOf("no-store") >= 0,
+  vj.headers.get("cache-control"));
+/* ⛔ **ولا تُطلب الصفحةُ بمفتاح**: لو حُرست بالمفتاح لما فُتحت أصلاً — وهو
+   الطريقُ المسدودُ عينُه الذي نهرب منه. */
+A("ولا يُطلب مفتاحٌ للصفحة", pg.status === 200 && pf.status === 200);
+/* ⚠️ وما سوى المسارات المعروفة يبقى على عقده: البيانات بمفتاحها */
+A("وسائرُ الطرق تبقى محروسة",
+  (await worker.fetch(new Request("http://x/?kind=platform&id=ikm_db&key=خطأ"), env)).status === 403);
+globalThis.fetch = realFetch;
+
 /* ⚠️ أرضيّةُ الشواهد: فحصٌ انقطع في منتصفه يُعلن نجاحاً كاذباً */
-const FLOOR = 99;
+const FLOOR = 106;
 let w = R.filter(x => !x[0]).length;
 if (R.length < FLOOR) { console.log("  ⛔ " + R.length + " شاهداً والأرضيّةُ " + FLOOR + " — فحصٌ لم يكتمل"); w++; }
 console.log("\n  " + (w ? "⛔ سقط " + w + " من " + R.length : "✓ " + R.length + " شاهداً كلُّها تمرّ"));
@@ -776,6 +816,12 @@ FAULTS = [
     ("إبقاءِ النسخةِ داخلَ القاعدة وحدَها",
      "  if (kv) { try { await kv.put(key + \":bak:\" + name, txt); } catch (e) {} }",
      "  /* nope */", "والنسخةُ تُكتب في مخزنٍ غير القاعدة"),
+    ("حراسةُ الصفحةِ بالمفتاح",
+     'if (request.method === "GET" && Object.prototype.hasOwnProperty.call(PATHS, url.pathname)) {',
+     "if (false) {", "ويُقدَّم جدولُ البنين على /m"),
+    ("تخبئةُ ملفِّ الختم",
+     'h.set("cache-control", url.pathname === "/ver.json" ? "no-store" : "max-age=300");',
+     'h.set("cache-control", "max-age=300");', "وملفُّ الختم يُمرَّر بلا تخبئة"),
     ("نزعُ سقفِ الختمِ بساعة الخادم",
      "const capMT = (x) => Math.min(Number(x) || 0, MT);",
      "const capMT = (x) => Number(x) || 0;", "ولا تُخلّد ساعةٌ متقدّمةٌ سجلَّها"),

@@ -189,23 +189,28 @@ function offBar(){
   const b = el("div","offbar"); b.id = "offbar";
   /* ⛔ **ولا يُقال «متعذّر» وهو يُخدَم من نسخة**: الحالان مختلفتان، وخلطُهما
      يُفقد المعلّمَ الثقةَ. فالنجدةُ تُسمّى بتاريخ نسختها صراحةً. */
+  /* ⛔ **ولا تُعرض على المعلم رسالةٌ تقنيةٌ تُشكّكه في المنصة** (قرارُ المستشار
+     ٨ أكتوبر ٢٠٢٦): «عطلٌ في المخزن» و«محجوبٌ عن هذه الشبكة» كلامٌ لا يملك
+     له حيلةً، وإنما يُنقص ثقتَه بما بين يديه.
+     ⚠️ **ولا يُكتم عنه ما يَعنيه**: أن عملَه محفوظ، وأن المعروضَ قد لا يكون
+        كاملاً، وأن يتأنّى في حجزٍ جديد — فهذه ثلاثٌ يتصرّف بها.
+     ⚠️ **والتشخيصُ لمدير المنصة وحدَه**: هو من يُراسل تقنيةَ المدارس. */
+  const adm = (function(){ try{ return isAdmin(); }catch(e){ return false; } })();
   if(degDay){
-    b.appendChild(el("strong",null,"تُعرض نسخةٌ احتياطية"));
+    b.appendChild(el("strong",null,"يُعرض جدولُ يوم " + degDay));
     b.appendChild(el("span",null,
-      "القاعدةُ المشتركةُ متوقّفةٌ مؤقتاً، وهذا جدولُ يوم " + degDay + ". "
-      + "ما تكتبه محفوظٌ على جهازك ويُرفع متى عادت — ولا تحجز خانةً جديدةً الآن."));
+      "التحديثُ متوقّفٌ مؤقتاً. وما تكتبه محفوظٌ على جهازك ويُرفع من تلقائه — "
+      + "ولا تحجز خانةً جديدةً الآن."));
   } else {
-    b.appendChild(el("strong",null,"المخزنُ المشترك متعذّرٌ الآن"));
+    b.appendChild(el("strong",null,"عملُك محفوظٌ على جهازك"));
     b.appendChild(el("span",null,
-      "ما تكتبه محفوظٌ على جهازك ويُرفع تلقائياً متى عاد — "
-      + "والمعروضُ أمامك قد لا يكون كاملاً، فتأنَّ في حجز خانةٍ جديدة."));
-    /* ⚠️ والسببُ يُقال صريحاً متى عُرف — فصاحبُ الجهاز يُبلغ تقنيةَ مدرسته
-       بما ينفعها، ولا يُقال له «جرّب لاحقاً» وهو على شبكةٍ تحجب. */
-    if(netVerdict){
-      const w2 = el("span","why"); w2.appendChild(el("b",null,"السبب: "));
-      w2.appendChild(document.createTextNode(TR(netVerdict)));
-      b.appendChild(w2);
-    }
+      "ويُرفع تلقائياً حين يستقرّ الاتصال. والمعروضُ أمامك قد لا يكون "
+      + "كاملاً الآن، فتأنَّ في حجز خانةٍ جديدة."));
+  }
+  if(adm && netVerdict){
+    const w2 = el("span","why"); w2.appendChild(el("b",null,"تشخيصٌ لمدير المنصة: "));
+    w2.appendChild(document.createTextNode(TR(netVerdict)));
+    b.appendChild(w2);
   }
   const rb = el("button",null,"أعد المحاولة");
   rb.addEventListener("click", ()=>{ pullNow().then(()=>shell()); });
@@ -829,10 +834,11 @@ function pushNow(){
         try{
           const ok2 = navigator.sendBeacon(api(),
             new Blob([apiBody({kind:"platform", id:SID, v:2, data: sent})], {type:"text/plain"}));
-          if(ok2) setSyn("أُرسل بطريقٍ بديل…", "warnsyn");
+          if(ok2) setSyn("يُعاد الإرسال…", "warnsyn");
         }catch(e2){}
       }
-      setSyn(e.message === "limit" ? "تعذّر الحفظ المشترك — يُعاد قريباً" : "محفوظٌ محلياً — بانتظار الشبكة",
+      /* ⚠️ ولا كلمةَ «تعذّر» في وجه المعلم: الخبرُ أن عملَه محفوظٌ ويُعاد */
+      setSyn(e.message === "limit" ? "محفوظٌ — ويُعاد الرفعُ بعد قليل" : "محفوظٌ على جهازك — بانتظار الشبكة",
              "warnsyn");
       /* ⚠️ لا تُفقد البيانات: تبقى محليةً ويُعاد الدفعُ بتباعدٍ متزايد */
       if(writeFails <= 6) syncT = setTimeout(pushNow, Math.min(60000, 5000 * writeFails));
@@ -1056,6 +1062,19 @@ function reportBug(){
     toast("وصل بلاغُك — شكراً لك", "ok");
   });
 }
+
+/* ⛔ **إقفالُ الأسبوع** (قرارُ المستشار ٨ أكتوبر ٢٠٢٦): يُصدِر مديرُ المنصة
+   يومَ الثلاثاء تقريرَ الأسبوع التالي، **فتثبت الحصص** وتُبنى عليها خطةُ
+   تحرّك المقيّمين الخارجيين بين المدارس والمجمعات. وتعديلٌ بعد الإصدار
+   يُبطل خطةً مطبوعة.
+   ⚠️ **والمقفولُ هويةُ الحصة وحدَها**: المعلم · المدرسة · اليوم · الحصة ·
+      المادة. ويبقى مفتوحاً: الفصلُ والاتجاهُ والإستراتيجيةُ واسمُ الدرس
+      **والتحضيرُ والرصد** — فلا يُحرَم معلّمٌ من إتمام ناقصةٍ ولا مشرفٌ من
+      رصدٍ في أسبوع التنفيذ نفسِه.
+   ⚠️ **ويُحرَس في الخادم أيضاً** — إخفاءُ حقلٍ ليس منعاً. */
+const LOCKP = "~lock~";
+function weekLock(w){ return (DB.prep || {})[LOCKP + w] || null; }
+function weekLocked(w){ return !!weekLock(w); }
 
 function logKey(){
   return LOG + Date.now().toString(36) + "-" + (logSeq++).toString(36).padStart(4, "0")
@@ -1628,7 +1647,7 @@ function notifFeed(){
     if(st.length && st.indexOf(L.stage) < 0) return;
     out.push({e: e, L: L});
   });
-  return out.slice(0, 40);
+  return out.slice(0, 25);     /* ⚠️ خمسٌ وعشرون تكفي الجوالَ — والأحدثُ أولاً */
 }
 function notifNew(feed){
   const s0 = notifSeen();
@@ -1657,8 +1676,33 @@ function notifPanel(){
   const box = el("div","udlgbox wide");
   box.setAttribute("role","dialog"); box.setAttribute("aria-modal","true");
   box.setAttribute("aria-label", TR("التنبيهات"));
+  /* ⛔ **اللوحةُ كانت تفتح على قسمٍ بلا ترويسة** (ملاحظةُ المستشار ٨ أكتوبر
+     ٢٠٢٦): لا عنوانَ يقول ما هذه الشاشة، ولا من هي له، ولا كم الجديدُ فيها،
+     ولا زرَّ إغلاقٍ في أعلاها. فيفتحها المقيّمُ فيرى جدولاً معلَّقاً في الهواء.
+     ⚠️ فصار لها رأسٌ يقول ثلاثاً: **ما هي · لمن · وكم استجدَّ**. ومعه نطاقُها
+        صريحاً — فالتنبيهاتُ تتبع ترشيحَ المرحلة، ومن لا يعلم ذلك يظنُّ
+        النقصَ عطلاً. */
+  const hd = el("div","ntfhd");
+  const hl = el("div","ntfhl");
+  hl.appendChild(el("b",null,"التنبيهات"));
+  if(fresh) hl.appendChild(el("span","ntfnew", arn(fresh) + (fresh === 1 ? " جديد" : " جديدة")));
+  hd.appendChild(hl);
+  const xb = el("button","ntfx","✕");
+  xb.setAttribute("aria-label", TR("إغلاق"));
+  hd.appendChild(xb);
+  const who = el("div","ntfsub");
+  const _st = (gctx() || {}).stages || [];
+  who.appendChild(document.createTextNode(
+    TR("ما يخصُّك بصفتك ") + TR(roleTitle())
+    + (ME.complex ? (TR(" · ") + ME.complex) : "")
+    + (isSchoolBound() && ME.school ? (TR(" · ") + ME.school) : "")));
+  if(_st.length) who.appendChild(el("i",null, TR(" · مُرشَّحٌ على: ") + _st.join(TR(" · "))));
+  hd.appendChild(who);
+  box.appendChild(hd);
   const body = el("div","udlgtx ntf");
-  body.appendChild(el("h3",null,"تسجيلُ الحصص وإصدارُ التحضير"));
+  const h1 = el("h3",null,"آخرُ ما سجّله المعلمون");
+  h1.appendChild(el("small",null,"تسجيلُ حصةٍ أو إصدارُ تحضيرٍ في نطاقك — والأحدثُ أولاً"));
+  body.appendChild(h1);
   if(!feed.length)
     body.appendChild(el("div","msg","لا تسجيلَ ولا إصدارَ في نطاقك بعد."));
   else feed.forEach(x=>{
@@ -1672,7 +1716,9 @@ function notifPanel(){
     r.appendChild(go);
     body.appendChild(r);
   });
-  body.appendChild(el("h3",null,"جاهزيةُ تحضير المعلمين"));
+  const h2 = el("h3",null,"جاهزيةُ تحضير المعلمين");
+  h2.appendChild(el("small",null,"كم حصةً لكلِّ معلمٍ وكم صدر تحضيرُها"));
+  body.appendChild(h2);
   if(!ready.length)
     body.appendChild(el("div","msg","لا حصةَ في نطاقك بعد."));
   else {
@@ -1680,7 +1726,13 @@ function notifPanel(){
     [D.lab_teacher_short || "المعلم", "حصصه", "صدر تحضيرُها", "الجاهزية"]
       .forEach(h=>hr.appendChild(el("th",null,h)));
     t.appendChild(hr);
-    ready.forEach(r=>{
+    /* ⛔ **جدولُ الجاهزية كان يسرد كلَّ معلمي النطاق** — ستّون صفّاً تُغرق
+       اللوحةَ على الجوال فلا يُرى ما قبلها ولا ما بعدها (لقطةُ المستشار
+       ٨ أكتوبر ٢٠٢٦). وهو مرتَّبٌ بالأقلِّ جاهزيةً أولاً، فأوّلُه هو المقصود.
+       ⚠️ فيُقصَر على اثني عشرَ، ويُقال صراحةً كم بقي ولماذا — ومن أراد الكلَّ
+          فله شاشةُ التقارير. */
+    const NTOP = 12;
+    ready.slice(0, NTOP).forEach(r=>{
       const pc = Math.round(r.done / r.all * 100), tr2 = el("tr");
       tr2.appendChild(el("td",null,r.n));
       tr2.appendChild(el("td",null,arn(r.all)));
@@ -1691,6 +1743,10 @@ function notifPanel(){
       tr2.appendChild(td); t.appendChild(tr2);
     });
     body.appendChild(t);
+    if(ready.length > NTOP)
+      body.appendChild(el("div","msg",
+        TR("وهؤلاء أقلُّ ") + arn(NTOP) + TR(" جاهزيةً من ") + arn(ready.length)
+        + TR(" معلماً في نطاقك — وبقيّتُهم في «لوحة المشرف والتقارير».")));
     body.appendChild(el("div","msg",
       "وهذه جاهزيةُ من سجّل حصصَه — ولا كشفَ للمعلمين تُقاس عليه، "
       + "فمن لم يسجّل حصةً أصلاً لا يظهر هنا."));
@@ -1701,6 +1757,7 @@ function notifPanel(){
   const close = ()=>{ notifMark(); back.remove();
     try{ if(back.__prev) back.__prev.focus(); }catch(e){} };
   ok.addEventListener("click", close); bar.appendChild(ok);
+  xb.addEventListener("click", close);
   box.appendChild(bar); back.appendChild(box);
   back.addEventListener("click", e=>{ if(e.target === back) close(); });
   back.addEventListener("keydown", e=>{ if(e.key === "Escape"){ e.preventDefault(); close(); } });
@@ -2668,6 +2725,11 @@ function phTools(m){
      ()=>{ PH = 1; setctx("tab","trash"); shell(); }],
   ]);
   /* ⛔ **ولوحةٌ تُريني ما تعثَّر** قبل أن يصل إلى المستشار في واتساب */
+  mk("تقريرُ الأسبوع وإقفالُه", "اكتمالُ التسجيل لكل مدرسة — ومنه تثبت الحصص", [
+    ["تقريرُ تسجيل الحصص",
+     "لكل مدرسةٍ: المسجَّل والمكتمل والناقص وما ينقصه — ثم يُقفَل الأسبوع",
+     "افتح التقرير", ()=>{ PH = 1; setctx("tab","weekrep"); shell(); }],
+  ]);
   mk("البلاغاتُ والأعطال", "ما تعثَّر عند المستخدمين — وما أبلغوا به", [
     ["بلاغاتُ المستخدمين وأخطاءُ الصفحة",
      "تُجمع تلقائياً مع البيانات: ما وقع وأين ولمن وعلى أيِّ جهاز", "افتح البلاغات",
@@ -5540,6 +5602,7 @@ function ph1(m){
   if(c.tab === "assign") return assignView(m, c);
   if(c.tab === "trash") return trashView(m, c);
   if(c.tab === "err") return errView(m, c);
+  if(c.tab === "weekrep") return weekRepView(m, c);
   if(c.tab === "visits") return visitPlan(m, c);
   if(c.tab === "school") return rotSchool(m, c);
   if(c.tab === "sup") return rotSup(m, c);
@@ -5888,19 +5951,27 @@ function cellEditor(c, band, r){
     }
     return x;
   };
-  const L0 = cur(), ed = canEdit(c, band, L0);
+  const L0 = cur(), lk = weekLocked(r.wk);
+  /* ⚠️ والإقفالُ لا يمنع إتمامَ الناقص: يُقفَل مَن يكتب الاسمَ والمادة فقط */
+  const ed = canEdit(c, band, L0);
   const paint = ()=>{
     const x = cur(), on = !!(x && (x.teacher||"").trim());
     const part = on && !lessonFull(x);
     w.className = "cellbox" + (on ? (ME.role === "teacher" && !isMine(x) ? " other" : " on") : "")
-                            + (part ? " part" : "")
+                            + (part ? " part" : "") + (lk ? " wklock" : "")
                             + (ed ? "" : " locked") + (x && x.approved ? " appr" : "");
     w.title = part ? "ناقصةٌ فلم تُحجز — أكمل: " + lessonGaps(x).join(" · ") : "";
     const a = w.querySelector(".crow2"); if(a) a.style.display = on ? "" : "none";
   };
+  const IDLOCK = ["teacher", "subject"];
   const mk = (key, ph, opts, cls, lock, after) => {
     const x = cur(), v = x ? (x[key]||"") : "";
-    if(!ed){ const d = el("div","cin ro2" + (cls ? " "+cls : ""), v || "—"); w.appendChild(d); return; }
+    /* ⚠️ هويةُ الحصة بعد الإصدار تُقرأ ولا تُكتب — والباقي مفتوحٌ كما كان */
+    if(!ed || (lk && IDLOCK.indexOf(key) >= 0)){
+      const d = el("div","cin ro2" + (cls ? " "+cls : ""), v || "—");
+      if(lk && IDLOCK.indexOf(key) >= 0) d.title = TR("أُقفل هذا الأسبوعُ بعد إصدار تقريره");
+      w.appendChild(d); return;
+    }
     /* ⛔ حقلٌ مقفولٌ برسالته: لو تُرك حقلاً حرّاً كتب المعلمُ فيه إستراتيجيةً
        لا تنتمي لاتجاهه — وهو ما جاء التقييدُ ليمنعه. */
     if(lock){
@@ -5998,7 +6069,7 @@ function cellEditor(c, band, r){
      (قرارُ المستشار ١ أكتوبر ٢٠٢٦) */
   const rowsub = el("div","crow1");
   if(ed){
-    const sb = fld("txt", L0 ? (L0.subject||"") : "",
+    const sb = lk ? null : fld("txt", L0 ? (L0.subject||"") : "",
       v=>{ snap(gk,"تعديل المادة"); ensure().subject = v; save(); paint();
         /* ⚠️ بعد الحفظ لا قبلَه: يُحفظ ما كُتب ثم يُنبَّه صاحبُه */
         const fs = subjFam(v), fp = subjFam(r.spec);
@@ -6009,7 +6080,8 @@ function cellEditor(c, band, r){
                  + "وإلّا صحّح اسمَ المادة، فالمشرفُ يُسنَد بتخصص الصف."));
       },
       null, "اسم المادة (" + TR(r.spec) + ")");
-    sb.className = "cin sm"; sb.dataset.f = "subject"; rowsub.appendChild(sb);
+    if(sb){ sb.className = "cin sm"; sb.dataset.f = "subject"; rowsub.appendChild(sb); }
+    else rowsub.appendChild(el("div","cin sm ro2", (L0 && L0.subject) || "—"));
   } else rowsub.appendChild(el("div","cin sm ro2", (L0 && L0.subject) || "—"));
   w.appendChild(rowsub);
 
@@ -6044,7 +6116,7 @@ function cellEditor(c, band, r){
     rowlet.appendChild(el("div","cin sm ro2", (L0 && L0.time) || "—"));
   }
   w.appendChild(rowlet);
-  if(ed && ME.role === "teacher" && !(L0 && (L0.teacher||"").trim())){
+  if(ed && !lk && ME.role === "teacher" && !(L0 && (L0.teacher||"").trim())){
     const me = el("button","cme","سجّلني هنا");
     me.addEventListener("click", ()=>{ snap(gk,"تسجيل الاسم");
       const y = ensure(); y.teacher = ME.name; y.teacherNo = ME.emp || "";
@@ -6062,7 +6134,7 @@ function cellEditor(c, band, r){
   const st = el("button","cst","ابدأ الحصة ←");
   st.addEventListener("click", ()=>{ const y = cur(); if(!y) return; CUR = y.id; PH = 2; shell(); });
   act.appendChild(st);
-  if(ed && L0 && ((L0.teacher||"").trim() || L0.strategy || (L0.klass||"").trim())){
+  if(ed && !lk && L0 && ((L0.teacher||"").trim() || L0.strategy || (L0.klass||"").trim())){
     const cx2 = el("button","cclr","✕");
     cx2.title = "مسحُ هذه الخانة";
     cx2.setAttribute("aria-label", "مسح خانة الحصة");
@@ -7074,6 +7146,144 @@ function assignView(m, c){
     t.appendChild(r);
   });
   bp.appendChild(t); box.appendChild(bp); m.appendChild(box);
+}
+
+/* ═════════ تقريرُ تسجيل الحصص لأسبوعٍ بعينه — لمدير المنصة ═════════
+   ⛔ **أعلنه المستشارُ للوكلاء** (٨ أكتوبر ٢٠٢٦): «الساعة ١:٠٠ ظهراً يصدر
+      تقريرٌ خاصٌّ باكتمال تسجيل المدارس لحصص الأسبوع، وحالةِ التسجيل لكل
+      حصة (مكتملُ البيانات / ناقصُ البيانات) لكل المدارس». وبه تثبت الحصصُ
+      فتُبنى خطةُ تحرّك المقيّمين الخارجيين.
+   ⚠️ و«مكتملةٌ» حدُّها **عقدُ الحجز** نفسُه الذي في الخانة — لا حدٌّ ثانٍ
+      يُخترع هنا، وإلّا اختلف التقريرُ عن الشاشة فسقطت الثقةُ بهما معاً. */
+function weekStats(week){
+  const rows = (DB.sched || []).filter(x=>x.week === week);
+  const by = {};
+  rows.forEach(x=>{
+    const k = [x.sector || "—", x.complex || "—", x.stage || "—"].join("|");
+    (by[k] = by[k] || []).push(x);
+  });
+  return {rows: rows, by: by,
+          full: rows.filter(x=>lessonFull(x)).length};
+}
+function weekRepView(m, c){
+  const weeks = D.weeks || [];
+  let week = c.week || weeks[0];
+  const card = el("div","card"), h = el("h3");
+  h.appendChild(el("span",null,"تقريرُ تسجيل الحصص"));
+  h.appendChild(el("small",null,"لكل مدرسةٍ في الأسبوع — ومنه يُقفَل الأسبوعُ فتثبت الحصص"));
+  card.appendChild(h);
+  const p = el("div","pad");
+  /* اختيارُ الأسبوع */
+  const lb = el("label","f");
+  lb.appendChild(el("span",null,"الأسبوع"));
+  const sel = fld("sel", week, v=>{ setctx("week", v); shell(); }, weeks, "الأسبوع");
+  lb.appendChild(sel); p.appendChild(lb);
+
+  const st = weekStats(week);
+  const lock = weekLock(week);
+  const nb = el("div","wrsum");
+  const add = (t, v, cls)=>{ const d = el("div","wrbox" + (cls ? " " + cls : ""));
+    d.appendChild(el("b",null, v)); d.appendChild(el("span",null, t)); nb.appendChild(d); };
+  add("مسجَّلة", arn(st.rows.length));
+  add("مكتملةُ البيانات", arn(st.full), "ok");
+  add("ناقصة", arn(st.rows.length - st.full), "no");
+  add("نسبةُ الاكتمال", (st.rows.length ? arn(Math.round(100 * st.full / st.rows.length)) : "٠") + "٪", "mid");
+  p.appendChild(nb);
+  p.appendChild(el("div","note",
+    "والحصةُ «مكتملةٌ» إذا تمَّت أربعتُها: اسمُ المعلم · الفصل · الاتجاه التدريسي "
+    + "· الإستراتيجية. وما نقص منها لا تُحجز به الخانة."));
+
+  if(lock){
+    const w2 = el("div","wrlock");
+    w2.appendChild(el("b",null,"هذا الأسبوعُ مُقفَل"));
+    w2.appendChild(el("span",null,
+      TR("صدر تقريرُه في ") + String(lock.at || "").slice(0, 16).replace("T", " ")
+      + TR(" — ولا تُغيَّر هويةُ حصةٍ فيه (المعلم · المدرسة · اليوم · الحصة · المادة)، ")
+      + TR("ويبقى التحضيرُ والرصدُ وإتمامُ البيانات مفتوحاً.")));
+    p.appendChild(w2);
+  }
+  card.appendChild(p);
+
+  /* جدولُ المدارس */
+  const p2 = el("div","pad");
+  const rows = [];
+  Object.keys(st.by).sort().forEach(k=>{
+    const g = st.by[k], f = g.filter(x=>lessonFull(x)).length, a = k.split("|");
+    rows.push([a[0], a[1], a[2], arn(g.length), arn(f), arn(g.length - f),
+               {tag: arn(Math.round(100 * f / g.length)) + "٪",
+                cls: f === g.length ? "ok" : (f ? "mid" : "no")}]);
+  });
+  /* ⛔ **سبعةُ أعمدةٍ تفيض عن عرض الجوال** (كشفته لقطةٌ ٨ أكتوبر ٢٠٢٦: عمودُ
+     الاكتمال مقصوص). فتُلفُّ في وعاءٍ يُمرَّر أفقياً كجدول الحصص نفسِه. */
+  const wr1 = el("div","tscroll");
+  tbl(wr1, ["القطاع","المجمع","المدرسة","مسجَّلة","مكتملة","ناقصة","الاكتمال"], rows);
+  p2.appendChild(wr1);
+  card.appendChild(p2);
+  m.appendChild(card);
+
+  /* تفصيلُ كل مدرسة */
+  Object.keys(st.by).sort().forEach(k=>{
+    const g = st.by[k].slice().sort((x, y)=>
+      (D.days.indexOf(x.day) - D.days.indexOf(y.day)) || String(x.period||"").localeCompare(String(y.period||"")));
+    const a = k.split("|");
+    const cd = el("div","card"), hh = el("h3");
+    hh.appendChild(el("span",null, a[2]));
+    hh.appendChild(el("small",null, a[1] + TR(" · ") + a[0] + TR(" · ") + arn(g.length) + TR(" حصة")));
+    cd.appendChild(hh);
+    const pp = el("div","pad");
+    const wr2 = el("div","tscroll");
+    tbl(wr2, ["اليوم","الحصة",D.lab_teacher_short,"المادة","الحالة","الناقص"],
+        g.map(x=>{
+          const gp = lessonGaps(x);
+          return [x.day || "—", x.period || "—", (x.teacher || "—").trim(),
+                  (x.subject || x.spec || "—").trim(),
+                  {tag: gp.length ? "ناقصة" : "مكتملة", cls: gp.length ? "no" : "ok"},
+                  gp.length ? gp.join(TR(" · ")) : "—"];
+        }));
+    pp.appendChild(wr2);
+    cd.appendChild(pp); m.appendChild(cd);
+  });
+
+  /* الإصدارُ والإقفال */
+  const act = el("div","card"), ah = el("h3");
+  ah.appendChild(el("span",null,"الإصدارُ والإقفال"));
+  act.appendChild(ah);
+  const ap = el("div","pad");
+  const pr = el("button","b alt","طباعةُ التقرير");
+  pr.addEventListener("click", ()=>window.print());
+  ap.appendChild(pr);
+  if(!lock){
+    const lk = el("button","b","أصدِر التقريرَ وأقفِل الأسبوع");
+    lk.style.marginInlineStart = "9px";
+    lk.addEventListener("click", ()=>{
+      uiAsk(TR("بإقفال ") + week + TR(" تثبت حصصُه: لا تُضاف حصةٌ ولا تُحذف، ")
+        + TR("ولا يُغيَّر معلمُها ولا يومُها ولا مادّتُها. ويبقى التحضيرُ والرصدُ ")
+        + TR("وإتمامُ البيانات مفتوحاً. والإقفالُ يُفتح بيدك متى شئت."),
+        TR("أقفِل الأسبوع")).then(ok=>{
+        if(!ok) return;
+        DB.prep[LOCKP + week] = {w: week, at: new Date().toISOString(),
+          by: ME.name, n: st.rows.length, full: st.full, mt: nowMs()};
+        logAct("إقفال أسبوع", week + " — " + arn(st.rows.length) + " حصة · مكتملة " + arn(st.full), null);
+        save(); shell();
+      });
+    });
+    ap.appendChild(lk);
+  } else {
+    const ul = el("button","b ghost","افتح القفل");
+    ul.style.marginInlineStart = "9px";
+    ul.addEventListener("click", ()=>{
+      uiAsk(TR("فتحُ قفل ") + week + TR(" يُعيد التعديلَ على حصصه — وقد بُنيت عليه خطةُ ")
+        + TR("تحرّك المقيّمين. أمتأكّد؟"), TR("افتح القفل")).then(ok=>{
+        if(!ok) return;
+        delete DB.prep[LOCKP + week];
+        DB.__deleted = (DB.__deleted || []);
+        logAct("فتح قفل أسبوع", week, null);
+        save(); shell();
+      });
+    });
+    ap.appendChild(ul);
+  }
+  act.appendChild(ap); m.appendChild(act);
 }
 
 /* ═════════ عرضُ البلاغات والأعطال — للمستشار ═════════

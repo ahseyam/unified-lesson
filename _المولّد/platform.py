@@ -663,6 +663,23 @@ button.rep{background:transparent;border:1px solid #7fa4c8;color:#dbe9f6;
  background:#b3261e;color:#fff;text-align:center;font-family:JZ,SK;font-size:13px;
  padding:3px 8px;letter-spacing:.3px}
 body:has(#trybar) .top{margin-block-start:22px}
+/* ⛔ خانةُ أسبوعٍ مُقفَل: هويتُها ثابتةٌ وقد بُنيت عليها خطةُ المقيّمين */
+.cellbox.wklock{box-shadow:inset 0 0 0 2px #9fb4cc}
+.cellbox.wklock::after{content:"🔒 مُعتمدة";display:block;font-size:10px;color:#5b7a99;
+ text-align:center;margin-top:2px}
+/* ⛔ وعاءٌ يُمرَّر أفقياً لجداول التقرير: سبعةُ أعمدةٍ تفيض عن عرض الجوال،
+   فيُقَصُّ آخرُها بلا علامةٍ ولا سبيلَ إليه. */
+.tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tscroll table{min-width:max-content}
+/* ملخّصُ تقرير الأسبوع */
+.wrsum{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 6px}
+.wrbox{flex:1 1 120px;min-width:118px;background:#f6f8fb;border:1px solid var(--line);
+ border-radius:10px;padding:10px 12px;text-align:center}
+.wrbox b{display:block;font-family:JZ,SK;font-size:22px;color:var(--navy2)}
+.wrbox span{font-size:12.5px;color:var(--grey)}
+.wrbox.ok b{color:var(--ok)} .wrbox.no b{color:var(--bad)} .wrbox.mid b{color:var(--teal2)}
+.wrlock{background:#eef3f8;border:1px solid #c6d4e4;border-radius:10px;padding:10px 13px;margin-top:10px}
+.wrlock b{display:block;font-family:JZ,SK;color:var(--navy2);margin-bottom:2px}
 .cellbox.part{background:#fff8e6;box-shadow:inset 0 0 0 2px #e9c46a}
 .cellbox.part::before{content:"⚠ ناقصة — لم تُحجز";display:block;font-size:10px;
  color:#a9742a;font-weight:700;text-align:center;margin-bottom:2px}
@@ -935,10 +952,19 @@ tbody tr:hover td{background:#f4f8fc}
    ⛔ النافذةُ الأصليةُ تخرج بخطِّ النظام وبلغته (زرُّ «OK» إنجليزياً في شاشةٍ
       عربية)، ولا تُميَّز رسالةُ المنع من الإشعار، وتُجمّد الصفحةَ على الجوال.
       وقاعدةُ المستشار تمنعها. (١ أكتوبر ٢٠٢٦) */
+/* ⛔ **حوارٌ أطولُ من الشاشة كان يُقَصُّ من أعلاه** (كشفته لقطةٌ ٨ أكتوبر
+   ٢٠٢٦): `align-items:center` يُوسّطه، فإن طال خرج رأسُه فوق الشاشة ولا
+   سبيلَ إليه — فلا عنوانَ يُرى ولا زرَّ إغلاقٍ يُضغط. وهو أسوأُ ما يكون
+   على الجوال حيث الشاشةُ أقصر.
+   ⚠️ فصار يبدأ من أعلى بهامش، وسقفُه ٩٢٪ من الشاشة، **والمتنُ وحدَه هو
+      الذي يُمرَّر** — فالرأسُ والذيلُ ثابتان مرئيّان دائماً. */
 .udlg{position:fixed;inset:0;z-index:200;background:rgba(14,30,46,.55);
- display:flex;align-items:center;justify-content:center;padding:18px}
+ display:flex;align-items:flex-start;justify-content:center;padding:18px;overflow:auto}
 .udlgbox{background:#fff;border-radius:14px;max-width:520px;width:100%;
- box-shadow:0 18px 50px rgba(0,0,0,.3);border-top:5px solid var(--teal2);overflow:hidden}
+ box-shadow:0 18px 50px rgba(0,0,0,.3);border-top:5px solid var(--teal2);overflow:hidden;
+ max-height:92vh;display:flex;flex-direction:column;margin:auto}
+.udlgbox > .udlgtx{overflow:auto;min-height:0;flex:1 1 auto}
+.udlgbox > .ntfhd, .udlgbox > .udlgbar{flex:0 0 auto}
 .udlgbox.bad{border-top-color:var(--bad)}
 .udlgbox.warn{border-top-color:#b07a00}
 .udlgbox.ok{border-top-color:var(--ok)}
@@ -972,6 +998,20 @@ tbody tr:hover td{background:#f4f8fc}
 .top .me .ntfb b{background:#c0392b;color:#fff;border-radius:999px;
  min-width:19px;padding:0 6px;font-size:12.5px;line-height:19px;text-align:center}
 .udlgbox.wide{max-width:760px}
+/* ⛔ ترويسةُ التنبيهات: ما هي · لمن · وكم استجدّ — وزرُّ إغلاقٍ في أعلاها */
+.ntfhd{padding:14px 22px 10px;border-bottom:1px solid var(--line);position:relative}
+.ntfhl{display:flex;align-items:center;gap:10px}
+.ntfhl b{font-family:JZ,SK;font-size:19px;color:var(--navy2)}
+.ntfnew{background:var(--teal2);color:#fff;border-radius:999px;padding:2px 11px;
+ font-size:12.5px;font-family:JZ,SK}
+.ntfsub{margin-top:3px;font-size:13px;color:var(--grey)}
+.ntfsub i{font-style:normal;color:var(--teal2)}
+.ntfx{position:absolute;top:10px;inset-inline-end:14px;background:none;border:0;
+ font-size:19px;line-height:1;color:var(--grey);cursor:pointer;padding:4px 8px;
+ border-radius:7px;min-width:38px;min-height:38px}
+.ntfx:hover{background:#eef2f7;color:var(--navy2)}
+.ntf h3 small{display:block;font-family:JZL,SK;font-size:12px;color:var(--grey);
+ font-weight:400;margin-top:2px}
 .ntf h3{font-family:JZ,SK;font-size:16px;color:var(--navy2);margin:14px 0 8px;
  padding-bottom:5px;border-bottom:2px solid var(--tealbg)}
 .ntf h3:first-child{margin-top:0}

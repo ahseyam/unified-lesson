@@ -1908,6 +1908,73 @@ EN.update({
     "والمعروضُ أمامك قد لا يكون كاملاً، فتأنَّ في حجز خانةٍ جديدة.":
         "and what you see may be incomplete, so take care before reserving a new cell.",
     "أعد المحاولة": "Try again",
+    # ⚠️ ترويسةُ التنبيهات (٨ أكتوبر ٢٠٢٦)
+    "ما يخصُّك بصفتك ": "What concerns you as ",
+    " · مُرشَّحٌ على: ": " · filtered to: ",
+    " جديد": " new", " جديدة": " new",
+    "آخرُ ما سجّله المعلمون": "Latest teacher registrations",
+    "تسجيلُ حصةٍ أو إصدارُ تحضيرٍ في نطاقك — والأحدثُ أولاً":
+        "A lesson registered or a preparation issued in your scope — newest first",
+    "كم حصةً لكلِّ معلمٍ وكم صدر تحضيرُها":
+        "How many lessons each teacher has and how many preparations were issued",
+    "إغلاق": "Close",
+    # ⚠️ تقريرُ الأسبوع وإقفالُه (٨ أكتوبر ٢٠٢٦)
+    "تقريرُ الأسبوع وإقفالُه": "Weekly report and lock",
+    "اكتمالُ التسجيل لكل مدرسة — ومنه تثبت الحصص":
+        "Registration completeness per school — and from it the lessons are fixed",
+    "تقريرُ تسجيل الحصص": "Lesson registration report",
+    "لكل مدرسةٍ: المسجَّل والمكتمل والناقص وما ينقصه — ثم يُقفَل الأسبوع":
+        "Per school: registered, complete, incomplete and what is missing — then the week is locked",
+    "لكل مدرسةٍ في الأسبوع — ومنه يُقفَل الأسبوعُ فتثبت الحصص":
+        "Per school for the week — and from it the week is locked so lessons are fixed",
+    "افتح التقرير": "Open the report",
+    "مسجَّلة": "Registered", "مكتملةُ البيانات": "Complete", "ناقصة": "Incomplete",
+    "نسبةُ الاكتمال": "Completion", "الاكتمال": "Completion", "الناقص": "Missing",
+    "والحصةُ «مكتملةٌ» إذا تمَّت أربعتُها: اسمُ المعلم · الفصل · الاتجاه التدريسي ":
+        "A lesson is “complete” when all four are present: teacher · class · teaching approach ",
+    "· الإستراتيجية. وما نقص منها لا تُحجز به الخانة.":
+        "· strategy. Anything short of that does not reserve the cell.",
+    "الإصدارُ والإقفال": "Issue and lock",
+    "طباعةُ التقرير": "Print the report",
+    "أصدِر التقريرَ وأقفِل الأسبوع": "Issue the report and lock the week",
+    "أقفِل الأسبوع": "Lock the week",
+    "بإقفال ": "Locking ",
+    " تثبت حصصُه: لا تُضاف حصةٌ ولا تُحذف، ":
+        " fixes its lessons: none added, none deleted, ",
+    "ولا يُغيَّر معلمُها ولا يومُها ولا مادّتُها. ويبقى التحضيرُ والرصدُ ":
+        "and no change of teacher, day or subject. Preparation and observation stay ",
+    "وإتمامُ البيانات مفتوحاً. والإقفالُ يُفتح بيدك متى شئت.":
+        "open, as does completing the data. You can unlock it whenever you wish.",
+    "هذا الأسبوعُ مُقفَل": "This week is locked",
+    "صدر تقريرُه في ": "Its report was issued on ",
+    " — ولا تُغيَّر هويةُ حصةٍ فيه (المعلم · المدرسة · اليوم · الحصة · المادة)، ":
+        " — no lesson identity may change (teacher · school · day · period · subject), ",
+    "ويبقى التحضيرُ والرصدُ وإتمامُ البيانات مفتوحاً.":
+        "while preparation, observation and completing the data stay open.",
+    "افتح القفل": "Unlock",
+    "فتحُ قفل ": "Unlocking ",
+    " يُعيد التعديلَ على حصصه — وقد بُنيت عليه خطةُ ":
+        " reopens its lessons to editing — and the evaluators' ",
+    "تحرّك المقيّمين. أمتأكّد؟": "visit plan was built on it. Are you sure?",
+    "أُقفل هذا الأسبوعُ بعد إصدار تقريره": "This week was locked after its report was issued",
+    " حصة · مكتملة ": " lessons · complete ",
+    "وهؤلاء أقلُّ ": "These are the ", " جاهزيةً من ": " least ready of ",
+    " معلماً في نطاقك — وبقيّتُهم في «لوحة المشرف والتقارير».":
+        " teachers in your scope — the rest are in “Supervisor board and reports”.",
+    # ⚠️ شريطُ الانقطاع بلغةِ المستخدم لا بلغة التقنية (٨ أكتوبر ٢٠٢٦)
+    "عملُك محفوظٌ على جهازك": "Your work is saved on your device",
+    "ويُرفع تلقائياً حين يستقرّ الاتصال. والمعروضُ أمامك قد لا يكون ":
+        "It will upload automatically once the connection settles. What you see may not be ",
+    "كاملاً الآن، فتأنَّ في حجز خانةٍ جديدة.":
+        "complete right now, so take care before reserving a new cell.",
+    "يُعرض جدولُ يوم ": "Showing the schedule as of ",
+    "التحديثُ متوقّفٌ مؤقتاً. وما تكتبه محفوظٌ على جهازك ويُرفع من تلقائه — ":
+        "Updates are paused for now. What you type is saved on your device and uploads by itself — ",
+    "ولا تحجز خانةً جديدةً الآن.": "and do not reserve a new cell right now.",
+    "تشخيصٌ لمدير المنصة: ": "Diagnosis for the platform manager: ",
+    "يُعاد الإرسال…": "Resending…",
+    "محفوظٌ — ويُعاد الرفعُ بعد قليل": "Saved — upload will retry shortly",
+    "محفوظٌ على جهازك — بانتظار الشبكة": "Saved on your device — waiting for the network",
     # ⚠️ تشخيصُ الشبكة من داخل الصفحة (٨ أكتوبر ٢٠٢٦)
     "السبب: ": "Cause: ",
     "المخزنُ المشترك محجوبٌ أو غيرُ متاحٍ من هذه الشبكة":
