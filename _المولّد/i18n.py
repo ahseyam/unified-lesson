@@ -1952,6 +1952,20 @@ EN.update({
     "ويبقى التحضيرُ والرصدُ وإتمامُ البيانات مفتوحاً.":
         "while preparation, observation and completing the data stay open.",
     "افتح القفل": "Unlock",
+    # ⚠️ امتلاءُ مساحة المتصفح — ويُعالَج قبل أن يُعلَن (٨ أكتوبر ٢٠٢٦)
+    "حُرِّرت مساحةٌ على جهازك وحُفظ عملُك": "Space was freed on your device and your work was saved",
+    "⛔ امتلأت مساحةُ هذا المتصفّح، فلم يُحفظ آخرُ تغييرٍ على الجهاز.":
+        "⛔ This browser's storage is full, so the last change was not saved on the device.",
+    "والعلاج: أدوات المستشار ← السجلّ والاسترداد ← أفرغ السلّة، ":
+        "Fix: Consultant tools ← Log and recovery ← empty the bin, ",
+    "أو خذ نسخةً احتياطيةً ثم فرّغ البيانات.": "or take a backup then clear the data.",
+    "مساحةُ هذا المتصفّح ممتلئة، فلم يُحفظ آخرُ تغييرٍ على جهازك.":
+        "This browser's storage is full, so your last change was not saved on this device.",
+    "وما كُتب قبله سليمٌ ومحفوظٌ في المنظومة. وأسرعُ حلٍّ: ":
+        "What you wrote before it is safe and stored in the system. Quickest fix: ",
+    "أغلق التبويبَ وافتح المنصةَ من جديد.": "close the tab and open the platform again.",
+    "ولا مخزنَ مربوطٌ بهذا الجهاز — راجع إدارة التخطيط.":
+        "and no store is linked to this device — contact the planning department.",
     # ⚠️ جداولُ زيارات المشرفين (٨ أكتوبر ٢٠٢٦)
     "جداولُ زيارات المشرفين": "Supervisor visit schedules",
     "إلى أي مجمعٍ يذهب كلُّ مشرفٍ في كل يومٍ — تُطبع وتُعمَّم":
