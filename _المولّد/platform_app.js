@@ -199,6 +199,13 @@ function offBar(){
     b.appendChild(el("span",null,
       "ما تكتبه محفوظٌ على جهازك ويُرفع تلقائياً متى عاد — "
       + "والمعروضُ أمامك قد لا يكون كاملاً، فتأنَّ في حجز خانةٍ جديدة."));
+    /* ⚠️ والسببُ يُقال صريحاً متى عُرف — فصاحبُ الجهاز يُبلغ تقنيةَ مدرسته
+       بما ينفعها، ولا يُقال له «جرّب لاحقاً» وهو على شبكةٍ تحجب. */
+    if(netVerdict){
+      const w2 = el("span","why"); w2.appendChild(el("b",null,"السبب: "));
+      w2.appendChild(document.createTextNode(TR(netVerdict)));
+      b.appendChild(w2);
+    }
   }
   const rb = el("button",null,"أعد المحاولة");
   rb.addEventListener("click", ()=>{ pullNow().then(()=>shell()); });
@@ -810,7 +817,21 @@ function pushNow(){
       /* ⚠️ وتعذُّرُ الحفظ انقطاعٌ كتعذُّر السحب — فالشريطُ واحدٌ لهما */
       offSet(true);
       /* ⚠️ ويُسجَّل: تعذُّرُ الحفظ أخطرُ ما يقع، وكان لا يصلني منه خبر */
-      if(writeFails === 2) errLog("تعذّر الحفظ", e && e.message, "", "محاولاتٌ " + writeFails);
+      if(writeFails === 2){
+        errLog("تعذّر الحفظ", e && e.message, "", "محاولاتٌ " + writeFails);
+        netProbe();
+      }
+      /* ⛔ **وطريقٌ ثانٍ للحفظ**: `sendBeacon` يُرسل بلا انتظار ردٍّ وبلا
+         اشتراط ترويسات CORS في الجواب — فوسيطٌ في الشبكة يحذفها يُسقط
+         `fetch` ولا يُسقطه. والخادمُ يدمج، فتكرارُ الإرسال لا يضرّ، وختمُ
+         الوقت يحمي الترتيب. فإن عجز الطريقُ الأول جرّب الثاني. */
+      if(writeFails >= 2 && navigator.sendBeacon){
+        try{
+          const ok2 = navigator.sendBeacon(api(),
+            new Blob([apiBody({kind:"platform", id:SID, v:2, data: sent})], {type:"text/plain"}));
+          if(ok2) setSyn("أُرسل بطريقٍ بديل…", "warnsyn");
+        }catch(e2){}
+      }
       setSyn(e.message === "limit" ? "تعذّر الحفظ المشترك — يُعاد قريباً" : "محفوظٌ محلياً — بانتظار الشبكة",
              "warnsyn");
       /* ⚠️ لا تُفقد البيانات: تبقى محليةً ويُعاد الدفعُ بتباعدٍ متزايد */
@@ -873,7 +894,7 @@ function pullNow(){
        `pushNow` أن لا جديدَ فيلغي الدفعَ **ويُعلن نجاحاً** — فما كُتب بين
        دفعةٍ وسحبٍ لا يُدفع أبداً ولا يبقى محلياً. (٣٠ سبتمبر ٢٠٢٦) */
     .then(r=>{
-      if(!(r && r.ok)){ offSet(true); return false; }
+      if(!(r && r.ok)){ offSet(true); netProbe(); return false; }
       /* ⚠️ نجدةٌ: بياناتٌ من نسخةٍ احتياطية — تُعرض ولا يُبنى عليها ترقيم،
          وإلّا ظنَّ الجهازُ أنه على أحدث الخادم فامتنع عن السحب الكامل بعد
          عودة القاعدة. */
@@ -908,7 +929,7 @@ function pullNow(){
       }
       return false;
     })
-    .catch(()=>{ offSet(true); return false; });
+    .catch(()=>{ offSet(true); netProbe(); return false; });
 }
 /* ═════════ سلّةُ المحذوفات ═════════
    ⛔ لا يُمحى شيءٌ نهائياً بضغطة: يُنقل إلى السلّة بكامله — الحصةُ وتحضيرُها
@@ -991,6 +1012,41 @@ addEventListener("unhandledrejection", (e)=>{
 
 /* ⛔ **وبلاغُ المستخدم من داخل الشاشة** لا من واتساب: يصل ومعه موضعُه ودورُه
    وجهازُه وإصدارُه — فلا أسأل «أين كنت؟» ولا «أيُّ متصفّح؟». */
+/* ⛔ **لا يُطلب من المستخدم أن يشخّص**: شكا وكيلٌ أن المنصةَ «لا تعمل على
+   سفاري ولا على جهاز المدرسة» (٨ أكتوبر ٢٠٢٦)، وكلُّ ما وصلني `Failed to
+   fetch` بلا سبب. والسؤالُ «افتح هذا الرابط وصوّر» عملٌ أُلقيه على من يشكو.
+   ⚠️ فالصفحةُ تُشخّص نفسَها: تجرّب **مرجعاً على أصلها** (ملفُّ الختم على
+      الاستضافة نفسِها) ثم **المخزنَ**، فتفرّق بين ثلاثٍ لا تلتبس:
+        · الصفحةُ تصل والمخزنُ لا   ← المخزنُ محجوبٌ عن هذه الشبكة
+        · كلاهما لا يصل             ← لا اتصالَ بالإنترنت
+        · كلاهما يصل                ← العلّةُ في الخادم أو في الطلب
+   ⚠️ والحكمُ يُعرَض لصاحبه بالعربية **ويُسجَّل** ليصلني متى عاد له اتصال. */
+let netVerdict = "", netAt = 0;
+function netProbe(){
+  if(!api() || Date.now() - netAt < 120000) return;
+  netAt = Date.now();
+  /*@noi18n*/
+  const ok = (p)=>p.then(r=>(r && r.ok) ? "وصل" : ("ردٌّ " + ((r && r.status) || "?")))
+                   .catch(e=>"فشل: " + String((e && e.message) || e).slice(0, 40));
+  /*@/noi18n*/
+  const ctl = ok(fetch((D.verurl || "../ver.json") + "?t=" + Date.now(), {cache: "no-store"}));
+  const srv = ok(fetch(apiGet("platform", SID) + "&stat=1", {cache: "no-store"}));
+  Promise.all([ctl, srv]).then(a=>{
+    const c = a[0], v = a[1];
+    /*@noi18n*/
+    const good = (x)=>String(x).indexOf("وصل") === 0;   /* طرفُ مطابقةٍ لا تسمية */
+    /*@/noi18n*/
+    netVerdict = good(c) && !good(v) ? "المخزنُ المشترك محجوبٌ أو غيرُ متاحٍ من هذه الشبكة"
+               : !good(c) && !good(v) ? "لا اتصالَ بالإنترنت من هذا الجهاز"
+               : "الشبكةُ تصل — والعلّةُ في الخادم أو في الطلب";
+    /*@noi18n*/
+    errLog("تشخيصُ الشبكة", netVerdict, "الصفحة: " + c + " · المخزن: " + v,
+           "الاتصال: " + (((navigator.connection || {}).effectiveType) || "؟"));
+    /*@/noi18n*/
+    offBar();
+  });
+}
+
 function reportBug(){
   uiPrompt("ما الذي حدث؟ اكتبه بإيجاز — ويصل معه موضعُك ودورُك وجهازُك.",
            "", "مثال: ضغطتُ «ابدأ الحصة» فلم يحدث شيء").then(t=>{
