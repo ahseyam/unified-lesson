@@ -1952,6 +1952,14 @@ EN.update({
     "ويبقى التحضيرُ والرصدُ وإتمامُ البيانات مفتوحاً.":
         "while preparation, observation and completing the data stay open.",
     "افتح القفل": "Unlock",
+    # ⚠️ جداولُ زيارات المشرفين (٨ أكتوبر ٢٠٢٦)
+    "جداولُ زيارات المشرفين": "Supervisor visit schedules",
+    "إلى أي مجمعٍ يذهب كلُّ مشرفٍ في كل يومٍ — تُطبع وتُعمَّم":
+        "Which complex each supervisor visits each day — printable and circulated",
+    "طباعةُ جداول المشرفين": "Print the supervisor schedules",
+    "لا مشرفين مسجَّلين في هذا القطاع.": "No supervisors registered in this sector.",
+    " · فريقُ الهوية": " · identity team",
+    "حصصُه المسجَّلة": "His registered lessons",
     "فتحُ قفل ": "Unlocking ",
     " يُعيد التعديلَ على حصصه — وقد بُنيت عليه خطةُ ":
         " reopens its lessons to editing — and the evaluators' ",

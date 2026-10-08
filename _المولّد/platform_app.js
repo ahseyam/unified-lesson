@@ -7244,6 +7244,67 @@ function weekRepView(m, c){
     cd.appendChild(pp); m.appendChild(cd);
   });
 
+  /* ═══ جداولُ زيارات المشرفين — تُصدَر وتُعمَّم ═══
+     ⛔ **طلبُ المستشار ٨ أكتوبر ٢٠٢٦**: «زرٌّ لإصدار جداول المشرفين حسب
+        (بنين/بنات · وطني/عالمي) لزياراتهم بالمجمعات لكل أسبوع، لنعمّمها».
+     ⚠️ **ولا يُبنى جدولٌ ثانٍ**: المجمعُ الذي يزوره المشرفُ في يومٍ هو ما
+        يقوله `SUP6` لمجموعة مادته — المصدرُ عينُه الذي يبني الجدولَ ويحكم
+        التعارض. فلو حُسب هنا بطريقةٍ أخرى لافترق الورقُ عن الشاشة.
+     ⚠️ **والقسمُ من النسخة** (بنين/بنات): لكلٍّ سجلُّ إشرافها. */
+  const sv = el("div","card"), svh = el("h3");
+  svh.appendChild(el("span",null,"جداولُ زيارات المشرفين"));
+  svh.appendChild(el("small",null,"إلى أي مجمعٍ يذهب كلُّ مشرفٍ في كل يومٍ — تُطبع وتُعمَّم"));
+  sv.appendChild(svh);
+  const svp = el("div","pad");
+  const secs = (D.sectors || []).slice();
+  const curSec = c.rsec || secs[0] || "";
+  const sl = el("label","f");
+  sl.appendChild(el("span",null,"القطاع"));
+  sl.appendChild(fld("sel", curSec, v=>{ setctx("rsec", v); shell(); }, secs, "القطاع"));
+  svp.appendChild(sl);
+  /* مجموعاتُ كل مشرفٍ من مواده، ثم مجمعُه في كل (أسبوع · يوم) */
+  const sups = (D.sups || []).filter(r=>(r.sectors || []).indexOf(curSec) >= 0);
+  if(!sups.length)
+    svp.appendChild(el("div","empty","لا مشرفين مسجَّلين في هذا القطاع."));
+  sups.forEach(r=>{
+    const grps = {};
+    Object.keys(D.pairs || {}).forEach(k=>{
+      if((D.pairs[k] || []).some(sp=>!!r.allsubj || (r.subjects || []).indexOf(sp) >= 0)) grps[k] = 1;
+    });
+    const gk2 = Object.keys(grps);
+    if(!gk2.length) return;
+    const ttl = el("div","svname");
+    ttl.appendChild(el("b",null, r.name));
+    ttl.appendChild(el("span",null, (r.subjects || []).map(TR).join(TR(" · "))
+      + (r.nat ? TR(" · فريقُ الهوية") : "")));
+    svp.appendChild(ttl);
+    const rows2 = [];
+    (D.weeks || []).forEach(w=>{
+      const cells = [];
+      (D.days || []).forEach(d=>{
+        /* المجمعُ من دوران المجموعة — ولفريق الهوية جدولُ أيامه */
+        let cx2 = "";
+        gk2.forEach(g=>{
+          const v = r.nat && g === D.natgroup ? ((D.natdays || {})[d] || "")
+                  : (((D.sup || {})[g] || {})[w] || {})[d] || "";
+          if(v && cells.indexOf(v) < 0 && !cx2) cx2 = v;
+        });
+        cells.push(cx2 || "—");
+      });
+      const n = (DB.sched || []).filter(x=>x.week === w && (r.allsubj
+        || (r.subjects || []).indexOf(x.spec) >= 0) && (x.sector === curSec)).length;
+      rows2.push([w].concat(cells).concat([arn(n)]));
+    });
+    const wr3 = el("div","tscroll");
+    tbl(wr3, ["الأسبوع"].concat(D.days || []).concat(["حصصُه المسجَّلة"]), rows2);
+    svp.appendChild(wr3);
+  });
+  const pv = el("button","b alt","طباعةُ جداول المشرفين");
+  pv.style.marginTop = "10px";
+  pv.addEventListener("click", ()=>window.print());
+  svp.appendChild(pv);
+  sv.appendChild(svp); m.appendChild(sv);
+
   /* الإصدارُ والإقفال */
   const act = el("div","card"), ah = el("h3");
   ah.appendChild(el("span",null,"الإصدارُ والإقفال"));

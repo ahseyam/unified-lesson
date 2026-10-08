@@ -671,6 +671,10 @@ body:has(#trybar) .top{margin-block-start:22px}
    فيُقَصُّ آخرُها بلا علامةٍ ولا سبيلَ إليه. */
 .tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tscroll table{min-width:max-content}
+/* اسمُ المشرف فوق جدوله */
+.svname{margin:14px 0 5px;padding-top:9px;border-top:1px solid var(--line)}
+.svname b{font-family:JZ,SK;font-size:15px;color:var(--navy2)}
+.svname span{display:block;font-size:12.5px;color:var(--grey)}
 /* ملخّصُ تقرير الأسبوع */
 .wrsum{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 6px}
 .wrbox{flex:1 1 120px;min-width:118px;background:#f6f8fb;border:1px solid var(--line);
