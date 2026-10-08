@@ -185,6 +185,41 @@ setTimeout(async function(){
   A("وجهازٌ جديدٌ يرى القاعدةَ كلَّها", DB.sched.length === N0 + 4, DB.sched.length + "/" + (N0 + 4) + " حصة");
   A("ويرى تحضيراتِها", !!DB.prep["A1"] && !!DB.prep["A3"]);
 
+  /* ⑥ب ⛔ **أولُ دفعةٍ من جهازٍ جديدٍ لا تُعيد القاعدةَ إلى الخادم** ═══
+     قِيس على الحيّ ٨ أكتوبر ٢٠٢٦: أولُ دفعةٍ بعد فتح الصفحة **٣٫٠ ميجابايت**
+     و٨–١٠ ثوانٍ على شبكةٍ سريعة — فتفشل على شبكة مدرسةٍ أو بياناتِ جوال.
+     وسجّلت أجهزةُ المعلمين ذلك بنفسها: «تعذّر الحفظ — Failed to fetch».
+     ⚠️ فيُقاس **حجمُ ما يُرسَل** لا وجودُ الشفرة. */
+  var _sent = [], _rawFetch = window.fetch;
+  window.fetch = function(u, o){
+    if(o && o.method === "POST" && o.body) _sent.push(String(o.body).length);
+    return _rawFetch.apply(this, arguments);
+  };
+  var fullBytes = JSON.stringify(DB).length;
+  /* جهازٌ جديدٌ تماماً: يسحب كاملةً ثم يكتب حرفاً واحداً */
+  DB = {sched:[], prep:{}, obs:{}, peer:{}, rot:{}, __seq:0};
+  lastSent = ""; srvBase = ""; pending = false; setSeq(0);
+  await pullNow();
+  var afterPull = DB.sched.length;
+  DB.sched.push({id:"TINY", gk:"ق|صغيرة", teacher:"أ. الصغير"});
+  pending = true;
+  /* ⚠️ ويُصفَّر عدّادُ الدفعات: الدفعةُ الخمسون كاملةٌ بتصميمها، فلو وقع
+     القياسُ عليها قِيست شبكةُ الأمان لا الطريقَ اليوميّ. */
+  pushSeq = 0;
+  _sent = [];
+  await pushNow();
+  var pushed = _sent.length ? Math.max.apply(null, _sent) : -1;
+  A("وجهازٌ جديدٌ سحب القاعدةَ كلَّها", afterPull >= N0 + 3, afterPull + " حصة");
+  A("ولا يُعيدها إلى الخادم في أول دفعة", pushed > 0 && pushed < fullBytes / 8,
+    Math.round(pushed / 1024) + " ك.ب من " + Math.round(fullBytes / 1024) + " ك.ب");
+  /* ⚠️ وتُرفع الحصةُ المقيسةُ بعد القياس، وإلّا اختلّت أعدادُ ما بعدها */
+  DB.__deleted = ["TINY"];
+  DB.sched = DB.sched.filter(x=>x.id !== "TINY");
+  pending = true; await pushNow(); delete DB.__deleted;
+  await pullNow();
+  A("ولا تبقى الحصةُ المقيسة", !DB.sched.some(x=>x.id === "TINY"), DB.sched.length + " حصة");
+  window.fetch = _rawFetch;
+
   /* ⑦ وخليةٌ محجوزةٌ تُردُّ عليه ويُزال ما كتبه */
   DB.sched.push({id:"X9", gk:"ق|١", teacher:"أ. المتطفّل"});
   DB.prep["X9"] = {goal:"لن يُحفظ"};

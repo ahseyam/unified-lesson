@@ -516,6 +516,18 @@ function setSyn(t, cls){
    العلاج: تأخيرٌ اثنتا عشرةَ ثانية · ولا تُكتب إن لم تتغيّر القاعدة فعلاً ·
       ودفعٌ فوريٌّ عند الأفعال الحاسمة وعند مغادرة الصفحة. */
 let syncT = null, lastSent = "", pending = false, writeFails = 0, heldWarned = false;
+/* ⛔ **أولُ دفعةٍ بعد فتح الصفحة كانت القاعدةَ كلَّها — ٣٫٠ ميجابايت**، تستغرق
+   ٨–١٠ ثوانٍ على شبكةٍ سريعة، وعلى شبكة مدرسةٍ أو بياناتِ جوالٍ تفشل. وسجّلت
+   أجهزةُ المعلمين ذلك بنفسها (٨ أكتوبر ٢٠٢٦): «تعذّر الحفظ — Failed to fetch»
+   من أندرويد، و«Load failed» من آيفون، في ساعات الدوام. وهي شكوى «المنصةُ
+   لا تعمل لديّ ولدى المعلمين».
+   ⚠️ **والعلاج: أساسٌ للفرق من آخر قراءةٍ كاملة.** فما جاء من الخادم لا
+      يُعاد إليه. ويبقى `lastSent` لا يُضبط إلا من دفعةٍ ناجحة (قاعدةُ ٣٠
+      سبتمبر)، فهذا أساسٌ **ثانٍ** لحساب الفرق لا بديلٌ عنه.
+   ⛔ **ويُبنى من ردِّ الخادم وحدَه لا من القاعدة بعد الدمج**: لو بُني بعد
+      الدمج لصار ما عندي محلياً جزءاً من «ما عند الخادم» فلا يُرسَل أبداً —
+      وهو عينُ العطل الذي حُذّر منه في ٣٠ سبتمبر. */
+let srvBase = "";
 const SYNC_WAIT = 12000;
 
 /* ⚠️ `__schema` علامةٌ محليةٌ لا بيانات — تُستثنى من الحمولة كي لا تُعامَل
@@ -728,8 +740,10 @@ function pushNow(){
   const body = dbSnapshot();
   if(!body || body === lastSent){ pending = false; setSyn(""); return Promise.resolve(true); }
   setSyn("يُحفظ…");
-  const full = (++pushSeq % 10 === 0);
-  const d = full ? null : deltaOf(lastSent);
+  /* ⚠️ والدفعةُ الكاملةُ كلَّ خمسين لا كلَّ عشر: هي شبكةُ أمانٍ لا طريقٌ
+     يوميّ، وثمنُها ميجاباتٌ على جوالٍ في مدرسة. (٨ أكتوبر ٢٠٢٦) */
+  const full = (++pushSeq % 50 === 0);
+  const d = full ? null : deltaOf(lastSent || srvBase);
   const sent = d || JSON.parse(body);
   let held = 0;
   if(Array.isArray(sent.sched)){
@@ -883,6 +897,11 @@ function pullNow(){
         return n > 0;
       }
       if(r.data){
+        /* ⚠️ الأساسُ من الردِّ نفسِه **قبل** الدمج — وبقراءةٍ كاملةٍ وحدَها */
+        try{
+          srvBase = JSON.stringify({sched: r.data.sched || [], prep: r.data.prep || {},
+            obs: r.data.obs || {}, peer: r.data.peer || {}, rot: r.data.rot || {}});
+        }catch(e){ srvBase = ""; }
         mergeDB(r.data); setSeq(r.seq || 0);
         try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){}
         return true;
