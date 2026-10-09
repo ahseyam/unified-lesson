@@ -811,6 +811,35 @@ EN.update({
     "بدايةٌ نظيفةٌ بعد التجربة": "A clean start after testing",
     "رقم غير صحيح.": "Invalid number.",
     "لا يطابق رقماً في الكشف": "No matching number in the roster",
+    # ⛔ إسنادُ الزائرين **بالاسم** حيث لا كشف (قرارُ المستشار ٨ أكتوبر ٢٠٢٦):
+    #    قسمُ البنات بلا كشفٍ فكانت خانةُ «الرقم الوظيفي» لا تُملأ.
+    "اسمُ المعلم الزائر": "Visiting teacher's name",
+    "اسمُ المعلمة الزائرة": "Visiting teacher's name",
+    "اسمُ المعلم الزائر ": "Visiting teacher's name ",
+    "اسمُ المعلمة الزائرة ": "Visiting teacher's name ",
+    "اكتب الاسمَ كاملاً كما يدخل به": "Write the full name as they sign in",
+    "اكتبي الاسمَ كاملاً كما تدخل به": "Write the full name as they sign in",
+    "هذا صاحبُ الحصة نفسُه": "That is the lesson's own teacher",
+    "عنده حصةٌ في هذا الوقت": "They have a lesson at this time",
+    "يظهر في حسابه بهذا الاسم": "It appears in their account under this name",
+    "لكل حصةٍ زائران — يُختاران من كشف المعلمين فتظهر الحصةُ في حسابَيهما":
+        "Two peers per lesson — chosen from the staff roster so the lesson "
+        "appears in both their accounts",
+    "لكل حصةٍ زائرتان — تُختاران من كشف المعلمات فتظهر الحصةُ في حسابَيهما":
+        "Two peers per lesson — chosen from the staff roster so the lesson "
+        "appears in both their accounts",
+    "لكل حصةٍ زائرتان — يُكتب اسمُ كلٍّ منهما كما تدخل به، فتظهر الحصةُ في حسابها":
+        "Two peers per lesson — write each name exactly as they sign in, so "
+        "the lesson appears in their account",
+    "لكل حصةٍ زائران — يُختاران من كشف المعلمات فتظهر الحصةُ في حسابَيهما":
+        "Two peers per lesson — chosen from the staff roster so the lesson "
+        "appears in both their accounts",
+    "لكل حصةٍ زائران — يُكتب اسمُ كلٍّ منهما كما يدخل به، فتظهر الحصةُ في حسابه":
+        "Two peers per lesson — write each name exactly as they sign in, so "
+        "the lesson appears in their account",
+    "لكل حصةٍ زائران — يُكتب اسمُ كلٍّ منهما كما تدخل به، فتظهر الحصةُ في حسابه":
+        "Two peers per lesson — write each name exactly as they sign in, so "
+        "the lesson appears in their account",
     "لا جدول لتصديره.": "No schedule to export.",
     "لا عمليات بعد.": "No activity yet.",
     "لا عمليات مطابقة.": "No matching activity.",

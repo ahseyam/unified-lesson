@@ -269,6 +269,50 @@ const z4 = await jj(await G(env, "kind=platform&id=ikm_db&v=2&since=" + zq + "&k
 A("ولا يُذكر المردودُ في الفارقة", !((z4.sched || []).some(x => x.id === "NEW1")),
   "فارقةٌ فيها " + ((z4.sched || []).length) + " حصة");
 
+/* ═══ ⑦ج ⛔ **والقبرُ لا يُفتح بختمٍ أحدثَ من دفنه** ═══
+   شكوى المستشار ٨ أكتوبر ٢٠٢٦: «أيُّ حصصٍ يحذفها الوكيلُ التعليميُّ تعود
+   بالجدول». وقِيس على القاعدتين الحيَّتين: **٢٧٤ حذفاً عاد منه ١٠١**.
+   ⚠️ والشاهدُ أعلاه كان يدفع ختماً **أقدمَ** (١٠٠٠) فيمرّ — وهو ليس الحالَ
+      الواقعة. فالحالُ ختمٌ **بالآن**: `deltaOf` في الصفحة يختم كلَّ ما خالف
+      أساسَه بوقت الدفع، وما حذفه الخادمُ مخالفٌ لأساسه؛ و`touchL` يختم
+      حصةَ معلمٍ يُعدّلها اللحظةَ التي حذفها وكيلُه فيها. */
+r = await jj(await P(env, { kind: "platform", id: "ikm_db", v: 2,
+  data: { sched: [{ id: "NEW1", gk: "زومبي|خلية", teacher: "أ. العائدُ بختمٍ أحدث",
+                    mt: Date.now() + 9000 }] } }));
+const y1 = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+A("ولا يُحيي الحصةَ المحذوفةَ ختمٌ أحدثُ من دفنها",
+  !(y1.data.sched || []).some(x => x.id === "NEW1"),
+  (y1.data.sched || []).filter(x => x.id === "NEW1").length + " عائداً");
+A("ويُخبَر الجهازُ بقبرها ليَدفن نسختَه",
+  (r.buried || []).some(b => b.part === "sched" && b.rk === "NEW1"),
+  JSON.stringify(r.buried || []));
+/* وتحضيرُها كذلك — وهو **الأكثرُ وقوعاً**: ٨١ من ١٠١ عادت من باب التحضير */
+r = await jj(await P(env, { kind: "platform", id: "ikm_db", v: 2,
+  data: { prep: { NEW1: { i_topic: "درسٌ عاد من القبر", mt: Date.now() + 9000 } } } }));
+const y2 = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+A("ولا يعود تحضيرُ المحذوفةِ بختمٍ أحدث", !("NEW1" in (y2.data.prep || {})),
+  JSON.stringify((y2.data.prep || {}).NEW1 || "").slice(0, 60));
+A("ويُخبَر بقبر التحضير",
+  (r.buried || []).some(b => b.part === "prep" && b.rk === "NEW1"),
+  JSON.stringify(r.buried || []));
+/* ⛔ **والقبرُ لا يحجز خانةً على حصةٍ جديدة**: جهازٌ قديمٌ يدفع المحذوفةَ،
+   ومعلمٌ آخرُ يسجّل في خانتها في الدفعة نفسِها — فلو مرَّ القبرُ على حارس
+   التصادم لحجز الخانةَ على التسجيل الصحيح. */
+r = await jj(await P(env, { kind: "platform", id: "ikm_db", v: 2,
+  data: { sched: [{ id: "NEW1", gk: "زومبي|خلية", teacher: "أ. العائد", mt: Date.now() + 9000 },
+                  { id: "HEIR1", gk: "زومبي|خلية", teacher: "أ. الوارثُ للخانة",
+                    mt: Date.now() }] } }));
+const y4 = await jj(await G(env, "kind=platform&id=ikm_db&from=rows&key=" + KEY));
+A("ولا يحجز القبرُ خانتَه على تسجيلٍ جديد",
+  (y4.data.sched || []).some(x => x.id === "HEIR1") && (r.conflicts || []).length === 0,
+  JSON.stringify(r.conflicts || []) + " · وارثٌ " +
+  (y4.data.sched || []).filter(x => x.id === "HEIR1").length);
+A("ولا يعود العائدُ معه", !(y4.data.sched || []).some(x => x.id === "NEW1"));
+await P(env, { kind: "platform", id: "ikm_db", v: 2, data: { __deleted: ["HEIR1"] } });
+/* ⚠️ **والاستردادُ وحدَه يُحيي** (`raw`): قرارٌ صريحٌ بمفتاح الإدارة لا دفعةُ
+      جهازٍ قديم. ولولا إعفاؤه لعاد المخزنُ ناقصاً بعد كلِّ استردادٍ — وقد
+      قِيس: ٣٦ حصةً من ٤٠١. وشاهدُه في ⑦هـ: «ويعود ما حُذف بعد النسخة». */
+
 /* ═══ ⑦ج ⛔ **لا تُحجز خانةٌ بلا صاحب** — في الخادم لا في الصفحة وحدَها ═══
    قِيس ٧ أكتوبر ٢٠٢٦: ١٤٨ خليةً بلا اسمٍ البتّة في المخزن الحيّ. والحارسُ كان
    في الصفحة، فطلبٌ مباشرٌ أو جهازٌ بشفرةٍ قديمةٍ يُنشئ صفّاً يحجز الخلية. */
@@ -622,7 +666,9 @@ const rs = await jj(await P(eBk, { kind: "platform", id: "ikm_db", __restore: da
 A("والاستردادُ يُقبل بمفتاح الإدارة", rs.ok === true && rs.restored === day0,
   (rs.error || rs.restored) + " · في النسخة " + rs.sched + " حصة");
 const aft = ((await jj(await G(eBk, "kind=platform&id=ikm_db&from=rows&key=" + KEY))).data.sched || []).length;
-A("ويعود ما حُذف بعد النسخة", aft === before, aft + " مقابل " + before);
+/* ⚠️ وهذا **شاهدُ إعفاءِ الاسترداد** من حارس القبور (⑦ج): الصفُّ مدفونٌ قبل
+      الاسترداد، فلو مُنع الإحياءُ على الاسترداد أيضاً لنقص المخزنُ بعده. */
+A("ويعود ما حُذف بعد النسخة — فالاستردادُ يفتح القبر", aft === before, aft + " مقابل " + before);
 const bk2 = await jj(await P(eBk, { kind: "platform", id: "ikm_db", __backups: true, admin: ADM }));
 A("وتُحفظ نسخةٌ قبل الاسترداد نفسِه",
   (bk2.baks || []).some(b => String(b.day).indexOf("before-restore") >= 0),
@@ -751,8 +797,8 @@ process.exit(w ? 1 : 0);
 #    فالمقصودُ أن يكشف العيبَ المزروعَ لا أن يفشل لأي سبب.
 FAULTS = [
     ("نزعُ شرطِ «ما لم يتغيّر لا يُكتب»",
-     '"WHERE (rec.v IS NOT excluded.v OR rec.del <> 0) AND excluded.mt >= rec.mt")',
-     '"WHERE excluded.mt >= rec.mt")', "دفعةٌ كاملةٌ بلا تغيير"),
+     '"WHERE (rec.v IS NOT excluded.v OR rec.del <> 0) AND excluded.mt >= rec.mt" +',
+     '"WHERE excluded.mt >= rec.mt" +', "دفعةٌ كاملةٌ بلا تغيير"),
     ("نزعُ منعِ ازدواج الخلية",
      "        if (own && own.rk !== x.id) {", "        if (false) {", "خليةٌ محجوزةٌ تُردّ"),
     ("نزعُ منعِ الازدواج داخل الدفعة",
@@ -826,23 +872,32 @@ FAULTS = [
      "const capMT = (x) => Math.min(Number(x) || 0, MT);",
      "const capMT = (x) => Number(x) || 0;", "ولا تُخلّد ساعةٌ متقدّمةٌ سجلَّها"),
     ("جعلُ ختمِ التحضيرِ وقتَ وصوله",
-     '(vo && typeof vo === "object" && vo.mt) ? vo.mt : 0));',
-     "MT));", "وتحضيرٌ أقدمُ لا يغلب أحدثَ منه"),
+     '(vo && typeof vo === "object" && vo.mt) ? vo.mt : 0, raw));',
+     "MT, raw));", "وتحضيرٌ أقدمُ لا يغلب أحدثَ منه"),
     ("كتمُ ساعةِ الخادمِ عن العميل",
      "mode: \"rows\", seq: w.seq, now: Date.now(),", 'mode: "rows", seq: w.seq,',
      "وردُّ الكتابةِ يحمل ساعةَ الخادم"),
     ("نزعُ رفضِ الأقدم في الكتابة",
      "AND excluded.mt >= rec.mt", "AND 1 = 1", "والأقدمُ لا يغلب الأحدث"),
-    ("جعلُ القبرِ بلا ختمِ وقت",
-     '", mt = ?" +\n    " WHERE db = ? AND part = ? AND rk = ? AND del = 0").bind(db, MT, db, part, rk);',
-     '", mt = 0" +\n    " WHERE db = ? AND part = ? AND rk = ? AND del = 0").bind(db, db, part, rk);',
-     "ولا يُحيي المحذوفَ جهازٌ قديم"),
-    ("جعلُ قبرِ المسحةِ بلا ختم",
-     '"UPDATE rec SET del = 1, v = NULL, mt = ?, seq = (SELECT seq FROM meta WHERE db = ?) " +\n'
-     '        "WHERE db = ? AND part = ? AND rk = ? AND del = 0").bind(SWMT, db, db, x.part, x.rk));',
-     '"UPDATE rec SET del = 1, v = NULL, mt = 0, seq = (SELECT seq FROM meta WHERE db = ?) " +\n'
-     '        "WHERE db = ? AND part = ? AND rk = ? AND del = 0").bind(db, db, x.part, x.rk));',
-     "ولا يُعيد محذوفَ المسحةِ جهازٌ قديم"),
+    # ⚠️ وعطبا «القبرُ بلا ختمِ وقت» نُزعا (٨ أكتوبر ٢٠٢٦): كانا يكشفان حارسَ
+    #    الختم، وقد حلَّ محلَّه حارسٌ أقوى — `rec.del = 0` في شرط الإدخال —
+    #    فنزعُ ختمِ القبر لم يُعِد المحذوفَ، فمرّا بلا كشف. وعطبٌ لا يُعطب
+    #    ليس عطباً: يُستبدل بما يكشف القاعدةَ القائمة.
+    # ⚠️ وشاهدُه **التحضيرُ** لا الحصة: الحصةُ يحجزها التخطّي قبل SQL، أمّا
+    #    الخرائطُ فتُترك للشرط — فهو موضعُ قياسِ هذه الطبقة.
+    ("فتحُ القبرِ لكلِّ كتابة",
+     '(revive ? "" : " AND rec.del = 0"))', '(revive ? "" : ""))',
+     "ولا يعود تحضيرُ المحذوفةِ بختمٍ أحدث"),
+    ("إعفاءُ كلِّ كتابةٍ من حارس القبور",
+     "  if (!raw) {\n    const byPart = new Map();", "  if (false) {\n    const byPart = new Map();",
+     "ويُخبَر الجهازُ بقبرها ليَدفن نسختَه"),
+    ("كتمُ القبورِ عن الجهاز",
+     "          buried.push({ part: p, rk: x.rk });",
+     "          if (false) buried.push({ part: p, rk: x.rk });",
+     "ويُخبَر بقبر التحضير"),
+    ("جعلُ القبرِ يمرُّ على حارس التصادم",
+     '      if (!old && isGrave("sched", x.id)) continue;', "",
+     "ولا يحجز القبرُ خانتَه على تسجيلٍ جديد"),
     ("نزعُ أرضيّةِ السجلّ",
      'if (p === "prep" && k.indexOf(LOGP) === 0 && m.logfloor && k < m.logfloor) continue;',
      "if (false) continue;", "ولا يُكتب حرفٌ منه"),

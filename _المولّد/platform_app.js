@@ -5581,8 +5581,11 @@ function ph1(m){
     if(n) tab("trash", "سلّة المحذوفات (" + arn(n) + ")");
   }
   /* ⚠️ ورقةُ الروضة تبويبٌ مستقلّ: صفوفُها (أسبوع × يوم) لا تخصُّصَ فيها،
-     فلا تُدمج في جدول المراحل الثلاث. (٦ أكتوبر ٢٠٢٦) */
-  tab("kg", "رياض الأطفال");
+     فلا تُدمج في جدول المراحل الثلاث. (٦ أكتوبر ٢٠٢٦)
+     ⛔ **وهي لقسم البنات وحدَه** (٩ أكتوبر ٢٠٢٦): والشرطُ على **وجود
+        بياناتها** لا على رايةٍ منفصلة — فمصدرُ الحكم واحدٌ لا اثنان
+        يفترقان، ومن لا بياناتِ روضةٍ عنده لا ورقةَ له. */
+  if(hasKG()) tab("kg", "رياض الأطفال");
   if(isAdmin()) tab("log", "سجلّ العمليات");        /* ⛔ سجلُّ من فعل ماذا — للمستشار وحده */
   if(isDeputy()) tab("assign", "إسناد الزائرين");
   if(isRoving()) tab("visits", R === "peer" ? "زياراتي المسنَدة" : "خطة زياراتي");
@@ -5650,7 +5653,7 @@ function ph1(m){
         "كشفُ المعلمين تامُّ الإدخال (" + arn(s.total) + ")."));
     }
   }
-  if(c.tab === "kg") return kgGrid(m, c);
+  if(c.tab === "kg" && hasKG()) return kgGrid(m, c);
   if(c.tab === "log") return logView(m, c);
   if(c.tab === "assign") return assignView(m, c);
   if(c.tab === "trash") return trashView(m, c);
@@ -5672,6 +5675,7 @@ function ph1(m){
       إذ تُدرّس معلمةُ الصف أكثرَ من مادةٍ في اليوم.
    ⚠️ والمفتاحُ يحمل تخصصاً ثابتاً (`D.kgspec`) فيبقى منعُ الحجز المزدوج
       عاملاً على الخلية كما هو في المراحل الثلاث. */
+function hasKG(){ return Object.keys(D.kgbands || {}).length > 0; }
 function kgRowsOf(c){
   const out = [], only = c.onlyw && c.onlyw !== "كل الأسابيع" ? c.onlyw : null;
   D.weeks.forEach(wk=>{
@@ -7054,8 +7058,10 @@ function trashView(m, c){
 function assignView(m, c){
   const card = el("div","card"), h = el("h3");
   h.appendChild(el("span",null,"إسناد المعلمين الزائرين"));
-  h.appendChild(el("small",null,
-    "لكل حصةٍ زائران — يُسنَدان بالرقم الوظيفي فتظهر الحصةُ في حسابَيهما"));
+  /*@noi18n*/
+  h.appendChild(el("small",null, TR((D.roster && Object.keys(D.roster).length)
+    ? D.peerhintlist : D.peerhintname)));
+  /*@/noi18n*/
   card.appendChild(h);
   const tp = el("div","pad"), fb = el("div","filt");
   const wk = fld("sel", c.onlyw || "كل الأسابيع",
@@ -7163,26 +7169,40 @@ function assignView(m, c){
       else box2.appendChild(el("div","whois", arn(cand.length) + " مرشَّحاً متفرِّغاً"));
       td.appendChild(box2); return td;
     }
-    const inp = el("input"); inp.type = "text"; inp.inputMode = "numeric";
-    inp.value = L[ke] || ""; inp.placeholder = "الرقم الوظيفي";
-    inp.setAttribute("aria-label", "الرقم الوظيفي للزائر " + arn(i));
+    /* ⛔ **وبلا كشفٍ يُسنَد بالاسم لا بالرقم** (قرارُ المستشار ٨ أكتوبر ٢٠٢٦):
+       قسمُ البنات لا كشفَ له، فخانةُ «الرقم الوظيفي» خانةٌ لا تُملأ — ووكيلةٌ
+       تنظر إليها فلا تستطيع إسنادَ زائرةٍ أصلاً.
+       ⚠️ والمطابقةُ حينئذٍ **بالاسم**، وهي مبنيّةٌ في `isMyVisit` من قبل: من
+          لا رقمَ له يُطابَق باسمه كما يكتبه عند الدخول.
+       ⚠️ **ويُفحص التفرُّغُ بالاسم كما يُفحص بالرقم**: من عنده حصةٌ في الوقت
+          نفسِه لا يستطيع الزيارة، ولا يُكتشف ذلك إلا يومَ الزيارة. */
+    const inp = el("input"); inp.type = "text";
+    inp.value = L[kn] || ""; inp.placeholder = "اسمُ المعلم الزائر";
+    inp.setAttribute("aria-label", "اسمُ المعلم الزائر " + arn(i));
+    inp.className = "cin";
     const who = el("div","whois");
     const paint = ()=>{
-      const k = latnum(inp.value);
-      const r = D.roster[k];
-      if(!k){ who.className = "whois"; who.textContent = TR(L[kn] || ""); return; }
-      if(r){ who.className = "whois ok"; who.textContent = TR(r.n); }
-      else  { who.className = "whois no"; who.textContent = TR("لا يطابق رقماً في الكشف"); }
+      const v = (inp.value || "").trim();
+      if(!v){ who.className = "whois"; who.textContent = ""; return; }
+      if(v.length < 4){
+        who.className = "whois no";
+        who.textContent = TR("اكتب الاسمَ كاملاً كما يدخل به"); return;
+      }
+      if(v === (L.teacher || "").trim()){
+        who.className = "whois no"; who.textContent = TR("هذا صاحبُ الحصة نفسُه"); return;
+      }
+      if(busyAt("", v, L)){
+        who.className = "whois no"; who.textContent = TR("عنده حصةٌ في هذا الوقت"); return;
+      }
+      who.className = "whois ok"; who.textContent = TR("يظهر في حسابه بهذا الاسم");
     };
     inp.addEventListener("input", paint);
     inp.addEventListener("change", ()=>{
-      const k = latnum(inp.value);
-      const r = D.roster[k];
-      L[ke] = k;
-      L[kn] = r ? r.n : (k ? L[kn] || "" : "");
+      const v = (inp.value || "").trim();
+      L[kn] = v; L[ke] = "";
       save();
-      logAct("إسناد زائر", (r ? r.n : k || "—") + " ← " + lessonTitle(L), L);
-      paint();
+      logAct("إسناد زائر", (v || "—") + " ← " + lessonTitle(L), L);
+      syncFlush(); paint();
     });
     paint();
     box2.appendChild(inp); box2.appendChild(who); td.appendChild(box2);
