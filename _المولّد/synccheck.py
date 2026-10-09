@@ -53,6 +53,15 @@ setTimeout(function(){
           SRV[k][f] = SRV[k][f] || {};
           Object.keys(body.data[f]).forEach(function(x){ SRV[k][f][x] = body.data[f][x]; });
         });
+        /* ⛔ **والحذفُ الصريحُ كما في الخادم المنشور**: كان المزيَّفُ يدمج
+           ولا يحذف، فحارسٌ يسأل «أوصَلَ الحذفُ؟» يُجيب «لا» أبداً — ومُحاكٍ
+           لا ينفّذ نصفَ العقد لا يقيس ذلك النصف. */
+        (body.data.__deleted || []).forEach(function(id){
+          ["prep","obs","peer"].forEach(function(f){
+            if(SRV[k][f]) delete SRV[k][f][id];
+          });
+          if(SRV[k].sched) SRV[k].sched = SRV[k].sched.filter(function(x){ return x.id !== id; });
+        });
       }
       return Promise.resolve({status:200, json:function(){
         return Promise.resolve({ok:true, replaced: !!body.__replace, data: SRV[k]}); }});
@@ -152,7 +161,25 @@ setTimeout(function(){
         T("والدعوةُ تحمله في جزء التجزئة",
           (location.origin + location.pathname + "#srv=x&k=" + encodeURIComponent(skey()))
             .indexOf("#srv=") > 0, true);
-        done();
+        /* ═════ ١١· قفلُ الأسبوع وفتحُه يصلان الخادم ═════
+           ⛔ كان `delete DB.prep[~lock~W]` محليّاً، والسطرُ التالي يُنشئ
+              `__deleted` **ولا يضع فيه شيئاً** — جملةٌ ميتةٌ تُطمئن ولا تفعل.
+              فيبقى الصفُّ في الخادم ويعود القفلُ عند أول سحب، ويعجز
+              المستشارُ عن فتح ما أقفله. (قِيس ٩ أكتوبر ٢٠٢٦.)
+           ⚠️ والمقيسُ **غيابُه من الخادم** لا من الجهاز: الجهازُ ينساه على
+              كل حال، والسؤالُ أوصَلَ ذلك إلى المخزن المشترك. */
+        /* ⚠️ ويُنادى **ما تناديه الأزرار** لا شفرةٌ تُكتب هنا: شاهدٌ يكتب
+           الحذفَ بيده يقيس المحاكيَ لا المنصة. */
+        var LK = "~lock~" + D.weeks[0], SK = "platform|" + NS + "_db";
+        weekLockDo(D.weeks[0], 3, 2);
+        return pushNow().then(function(){
+          T("قفلُ الأسبوع يصل الخادم", !!((SRV[SK].prep || {})[LK]), true);
+          weekUnlockDo(D.weeks[0]);
+          return pushNow().then(function(){
+            T("وفتحُه يصل الخادمَ حذفاً", !((SRV[SK].prep || {})[LK]), true);
+            done();
+          });
+        });
       });
         });
       });

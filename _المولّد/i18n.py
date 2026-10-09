@@ -811,6 +811,45 @@ EN.update({
     "بدايةٌ نظيفةٌ بعد التجربة": "A clean start after testing",
     "رقم غير صحيح.": "Invalid number.",
     "لا يطابق رقماً في الكشف": "No matching number in the roster",
+    # ⛔ شاشةُ «صيانةُ الجدول» (٩ أكتوبر ٢٠٢٦): الشاردُ عن يومه بعد إعادة
+    #    التجميع، والخليةُ فيها عملٌ بلا اسمِ صاحبها.
+    "صيانةُ الجدول": "Schedule maintenance",
+    "ما يحتاج تصحيحاً بعد إعادة التجميع": "What needs fixing after regrouping",
+    "لا شيءَ يحتاج تصحيحاً": "Nothing needs fixing",
+    "حصصٌ في غير يوم مجموعتها": "Lessons on the wrong day for their group",
+    "لا شيء — كلُّ حصةٍ في يوم مجموعتها": "None — every lesson is on its group's day",
+    " حصة — تُنقل منها ": " lessons — of which ",
+    " بلا تصادم، و": " can move with no clash, and ",
+    " خانتُها محجوزةٌ فتحتاج قرارَ المدرسة":
+        " have their correct cell taken, so the school must decide",
+    "انقلها إلى يومها": "Move them to their day",
+    "انقليها إلى يومها": "Move them to their day",
+    "انقلها": "Move",
+    "انقليها": "Move",
+    "تُنقل ": "Move ",
+    " حصةً إلى يوم مجموعتها؟ ": " lessons to their group's day? ",
+    "ولا يُمسُّ معلمُها ولا تحضيرُها.": "Their teacher and preparation are untouched.",
+    "نُقلت ": "Moved ",
+    " حصة.": " lessons.",
+    "لا حصةَ يمكن نقلُها الآن.": "No lesson can be moved right now.",
+    "خلايا بلا اسم معلم": "Cells with no teacher name",
+    "خلايا بلا اسم معلمة": "Cells with no teacher name",
+    " خلية — فيها عملٌ ينقصه الاسم، ولا تدخل تقاريرَ الاكتمال":
+        " cells — they hold work that lacks a name and stay out of completeness reports",
+    "لا شيء — كلُّ خليةٍ باسم صاحبها": "None — every cell carries its owner's name",
+    "فيها عملٌ ينقصه الاسم — ولا تدخل تقاريرَ الاكتمال":
+        "They hold work that lacks a name — and stay out of completeness reports",
+    "اعرضها": "Show them",
+    "اعرضيها": "Show them",
+    "ما فيها": "What is in it",
+    "بلا اسم": "No name",
+    "معلمُها": "Its teacher",
+    "يومُها الآن": "Its current day",
+    "الخانةُ الصحيحةُ يشغلها": "Its correct cell is taken by",
+    "حصصٌ في يومٍ خاطئٍ وخانتُها محجوزة":
+        "Lessons on the wrong day whose correct cell is taken",
+    "الاختيارُ بينها وبين شاغلِ الخانة قرارُ المدرسة":
+        "Choosing between it and the cell's occupant is the school's decision",
     # ⛔ شاشةُ «التخصصات — اليوم ومن يحضر» (٩ أكتوبر ٢٠٢٦): قسمان من مطبوع
     #    جدول زيارات الإشراف صارا شاشةً في المنصة.
     "التخصصات — اليوم ومن يحضر": "Subjects — day and who attends",

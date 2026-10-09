@@ -1117,6 +1117,23 @@ function reportBug(){
    ⚠️ **ويُحرَس في الخادم أيضاً** — إخفاءُ حقلٍ ليس منعاً. */
 const LOCKP = "~lock~";
 function weekLock(w){ return (DB.prep || {})[LOCKP + w] || null; }
+/* ⛔ **الإقفالُ والفتحُ دالّتان مسمّاتان لا شفرةٌ في زرّ**: شفرةُ الزرِّ لا
+   يناديها حارسٌ، فمرَّ فيها عطلٌ (الحذفُ لا يصل الخادم) حتى قِيس بيدي.
+   والدالّةُ المسمّاةُ يُناديها `synccheck` فتُقاس كما يستعملها المستشار. */
+function weekLockDo(week, n, full){
+  DB.prep[LOCKP + week] = {w: week, at: new Date().toISOString(),
+    by: (ME && ME.name) || "", n: n || 0, full: full || 0, mt: nowMs()};
+  logAct("إقفال أسبوع", week + " — " + arn(n || 0) + " حصة · مكتملة " + arn(full || 0), null);
+  save();
+}
+function weekUnlockDo(week){
+  /* ⚠️ والمفتاحُ يُذكر في `__deleted` وإلّا بقي الصفُّ في الخادم فعاد القفلُ
+     عند أول سحب — و`delete` وحدَه نسيانٌ على الجهاز لا حذفٌ في المخزن. */
+  delete DB.prep[LOCKP + week];
+  DB.__deleted = (DB.__deleted || []).concat([LOCKP + week]);
+  logAct("فتح قفل أسبوع", week, null);
+  save();
+}
 function weekLocked(w){ return !!weekLock(w); }
 
 function logKey(){
@@ -2761,6 +2778,7 @@ function phTools(m){
      من المستشار، ويرجع بنقرةٍ إن ظهر خلل. فتغييرُ موضعِ بياناتِ معلّمين
      يعملون الآن لا يصحُّ بلا بابٍ للرجوع. (٦ أكتوبر ٢٠٢٦) */
   storeCard(m);
+  maintCard(m, mk);
   mk("السجلّ والاسترداد", "ما جرى وما حُذف", [
     ["سجلّ العمليات", "من فعل ماذا ومتى — آخر ٦٠٠ عملية", "افتح السجلّ",
      ()=>{ PH = 1; setctx("tab","log"); shell(); }],
@@ -2783,6 +2801,110 @@ function phTools(m){
     ["تفريغُ البيانات", "محوٌ كاملٌ على كل الأجهزة — بعد نسخةٍ وتأكيدٍ مكتوب",
      "تفريغ", ()=>wipeAll(), true],
   ]);
+}
+
+/* ═════════ صيانةُ الجدول: الشاردُ عن يومه، والخليةُ بلا اسم ═════════
+   ⛔ **ولماذا في المنصة لا في يدي؟** نُقلت «اجتماعيات» إلى مجموعة لغتي
+      و«الفنية» إلى مجموعة الرياضيات (٧ أكتوبر ٢٠٢٦)، فبقيت حصصٌ سُجِّلت
+      قبلها على أيامها القديمة. نظّفتُها بيدي مرّتين (٧٢ ثم ٤٢)، وكلُّ
+      إعادةِ تجميعٍ قادمةٍ تُعيد الحال. فالبابُ هنا يُغني عن يدي.
+   ⚠️ **والنقلُ لا يُنشئ ولا يحذف**: يُغيَّر اليومُ وما يتبعه (المفتاحُ ·
+      التاريخُ الميلاديُّ ونصُّه · الهجريُّ · اسمُ المجموعة)، ويبقى المعلمُ
+      والفصلُ والإستراتيجيةُ والتحضيرُ كما هي.
+   ⚠️ **وما خانتُه محجوزةٌ لا يُنقل ولا يُحذف**: فيه عملُ معلمٍ وفي الخانة
+      الأخرى عملُ آخر، والاختيارُ بينهما قرارُ مدرسةٍ لا قرارُ برنامج. */
+function strayOnes(){
+  const out = [];
+  (DB.sched || []).forEach(x=>{
+    const g0 = Object.keys(D.pairs || {}).find(k=>(D.pairs[k] || []).indexOf(x.spec) >= 0
+                                                  && (D.sup || {})[k]);
+    if(!g0) return;
+    const rot = ((D.rot || {})[x.complex] || {})[x.week] || {};
+    const now = rot[x.day];
+    if(!now || now === g0) return;
+    const want = Object.keys(rot).filter(d=>rot[d] === g0);
+    const p = String(x.gk || "").split("|");
+    if(p.length < 7) return;
+    let free = "", busy = [];
+    want.forEach(d=>{
+      const q = p.slice(); q[5] = d;
+      const hit = (DB.sched || []).find(y=>y.gk === q.join("|"));
+      if(hit) busy.push({day: d, by: hit.teacher || ""});
+      else if(!free) free = d;
+    });
+    out.push({l: x, free: free, busy: busy});
+  });
+  return out;
+}
+function namelessOnes(){
+  return (DB.sched || []).filter(x=>!realVal(x.teacher));
+}
+function fixStrays(){
+  const all = strayOnes(), can = all.filter(s=>s.free);
+  if(!can.length){ uiDialog(TR("لا حصةَ يمكن نقلُها الآن.")); return; }
+  uiAsk(TR("تُنقل ") + arn(can.length) + TR(" حصةً إلى يوم مجموعتها؟ ")
+        + TR("ولا يُمسُّ معلمُها ولا تحضيرُها."), TR("انقلها")).then(ok=>{
+    if(!ok) return;
+    can.forEach(s=>{
+      const x = s.l, d = s.free, dd = dayDate(x.week, d) || {};
+      const p = String(x.gk).split("|"); p[5] = d;
+      x.gk = p.join("|"); x.day = d;
+      if(dd.g){ x.date = dd.g; x.datetxt = dd.gt; x.hijri = dd.ht; }
+      const g0 = Object.keys(D.pairs || {}).find(k=>(D.pairs[k] || []).indexOf(x.spec) >= 0
+                                                    && (D.sup || {})[k]);
+      if(g0) x.group = g0;
+      touchL(x);
+      logAct("نقلُ حصةٍ إلى يومها", lessonTitle(x) + " ← " + d, x);
+    });
+    save(); syncFlush();
+    uiDialog(TR("نُقلت ") + arn(can.length) + TR(" حصة."));
+    shell();
+  });
+}
+/* ⚠️ و`mk` دالّةٌ **محليّةٌ** في لوحة المستشار لا عامّة، فتُمرَّر إليها:
+   ناديتُها من خارج نطاقها فسقطت اللوحةُ كلُّها بـ«mk is not defined» —
+   كشفه حارسا الترجمة لأنّهما يرسمان كلَّ شاشة. */
+function maintCard(m, mk){
+  const st = strayOnes(), nn = namelessOnes();
+  const can = st.filter(s=>s.free).length, hard = st.length - can;
+  mk("صيانةُ الجدول", st.length || nn.length
+       ? "ما يحتاج تصحيحاً بعد إعادة التجميع" : "لا شيءَ يحتاج تصحيحاً", [
+    ["حصصٌ في غير يوم مجموعتها",
+     st.length ? (arn(st.length) + TR(" حصة — تُنقل منها ") + arn(can)
+                  + TR(" بلا تصادم، و") + arn(hard) + TR(" خانتُها محجوزةٌ فتحتاج قرارَ المدرسة"))
+               : "لا شيء — كلُّ حصةٍ في يوم مجموعتها",
+     can ? "انقلها إلى يومها" : "", ()=>fixStrays(), !!hard],
+    ["خلايا بلا اسم معلم",
+     nn.length ? (arn(nn.length) + TR(" خلية — فيها عملٌ ينقصه الاسم، ولا تدخل تقاريرَ الاكتمال"))
+               : "لا شيء — كلُّ خليةٍ باسم صاحبها",
+     (nn.length || hard) ? "اعرضها" : "",
+     ()=>{ PH = 1; setctx("tab","maint"); shell(); }, !!nn.length],
+  ]);
+}
+/* شاشةُ الصيانة: جدولان يُطبعان ويُرسَلان للمدرسة — لا نافذةٌ تُقرأ وتُنسى */
+function maintView(m, c){
+  const st = strayOnes(), nn = namelessOnes(), hard = st.filter(s=>!s.free);
+  const c1 = el("div","card"), h1 = el("h3");
+  h1.appendChild(el("span",null,"خلايا بلا اسم معلم"));
+  h1.appendChild(el("small",null,"فيها عملٌ ينقصه الاسم — ولا تدخل تقاريرَ الاكتمال"));
+  c1.appendChild(h1);
+  const p1 = el("div","pad");
+  tbl(p1, ["المدرسة","الأسبوع","اليوم","الحصة","التخصص","ما فيها"],
+      nn.map(x=>[x.school || x.stage || "—", x.week || "—", x.day || "—", x.period || "—",
+                 x.spec || "—",
+                 [x.klass, x.strategy, x.approach, x.topic].filter(realVal).join(" · ") || "—"]));
+  c1.appendChild(p1); m.appendChild(c1);
+
+  const c2 = el("div","card"), h2 = el("h3");
+  h2.appendChild(el("span",null,"حصصٌ في يومٍ خاطئٍ وخانتُها محجوزة"));
+  h2.appendChild(el("small",null,"الاختيارُ بينها وبين شاغلِ الخانة قرارُ المدرسة"));
+  c2.appendChild(h2);
+  const p2 = el("div","pad");
+  tbl(p2, ["المدرسة","الأسبوع","يومُها الآن","الحصة","التخصص","معلمُها","الخانةُ الصحيحةُ يشغلها"],
+      hard.map(s=>[s.l.school || s.l.stage || "—", s.l.week || "—", s.l.day || "—",
+                   s.l.period || "—", s.l.spec || "—", s.l.teacher || "—",
+                   s.busy.map(b=>b.day + ": " + (b.by || TR("بلا اسم"))).join(" · ") || "—"]));
+  c2.appendChild(p2); m.appendChild(c2);
 }
 
 /* ═════════ تخزينُ الخادم: كتلةٌ أو صفوف ═════════
@@ -5602,6 +5724,7 @@ function ph1(m){
         يفترقان، ومن لا بياناتِ روضةٍ عنده لا ورقةَ له. */
   if(hasKG()) tab("kg", "رياض الأطفال");
   if(isAdmin()) tab("log", "سجلّ العمليات");        /* ⛔ سجلُّ من فعل ماذا — للمستشار وحده */
+  if(isAdmin()) tab("maint", "صيانةُ الجدول");
   if(isDeputy()) tab("assign", "إسناد الزائرين");
   if(isRoving()) tab("visits", R === "peer" ? "زياراتي المسنَدة" : "خطة زياراتي");
   tab("school", R === "teacher" ? "من يزورنا"
@@ -5671,6 +5794,7 @@ function ph1(m){
     }
   }
   if(c.tab === "kg" && hasKG()) return kgGrid(m, c);
+  if(c.tab === "maint") return maintView(m, c);
   if(c.tab === "log") return logView(m, c);
   if(c.tab === "assign") return assignView(m, c);
   if(c.tab === "trash") return trashView(m, c);
@@ -7499,10 +7623,8 @@ function weekRepView(m, c){
         + TR("وإتمامُ البيانات مفتوحاً. والإقفالُ يُفتح بيدك متى شئت."),
         TR("أقفِل الأسبوع")).then(ok=>{
         if(!ok) return;
-        DB.prep[LOCKP + week] = {w: week, at: new Date().toISOString(),
-          by: ME.name, n: st.rows.length, full: st.full, mt: nowMs()};
-        logAct("إقفال أسبوع", week + " — " + arn(st.rows.length) + " حصة · مكتملة " + arn(st.full), null);
-        save(); shell();
+        weekLockDo(week, st.rows.length, st.full);
+        shell();
       });
     });
     ap.appendChild(lk);
@@ -7513,10 +7635,8 @@ function weekRepView(m, c){
       uiAsk(TR("فتحُ قفل ") + week + TR(" يُعيد التعديلَ على حصصه — وقد بُنيت عليه خطةُ ")
         + TR("تحرّك المقيّمين. أمتأكّد؟"), TR("افتح القفل")).then(ok=>{
         if(!ok) return;
-        delete DB.prep[LOCKP + week];
-        DB.__deleted = (DB.__deleted || []);
-        logAct("فتح قفل أسبوع", week, null);
-        save(); shell();
+        weekUnlockDo(week);
+        shell();
       });
     });
     ap.appendChild(ul);
