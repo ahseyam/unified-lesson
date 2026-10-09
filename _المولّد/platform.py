@@ -729,6 +729,11 @@ table.mx2 th{background:var(--navy);color:#fff;font-size:13.5px;padding:5px;bord
 table.mx2 td{border:1px solid var(--line);padding:5px 8px;font-size:13.5px}
 table.mx2 td.mid{text-align:center;font-weight:700;color:var(--navy2)}
 table.mx2 td.mid.dim{color:#c3cbd6;font-weight:400}
+/* خانةٌ خارجَ مجمعات المشرف: تُخفت ولا تُحذف — فالجدولُ يبقى مقروءاً كاملاً */
+table.mx2 td.mid.outcx{color:#9aa6b4;background:#f3f5f8;font-weight:400}
+/* ومن لا مشرفَ لتخصصه: نصُّه بلونِ التنبيه لا بالأسود */
+table.mx2 td.mid.nosup{color:#9c3b00;font-weight:700}
+table.mx2 tr.on td.cs{color:var(--teal2);font-weight:700}
 table.mx2 td.cs{background:#fafcfe;color:var(--teal2);font-weight:700;font-size:13px;white-space:nowrap}
 .wk{font-weight:700;color:var(--navy2);padding:9px 4px 4px;font-size:15px}
 .wk.on{color:var(--teal2)}
@@ -1332,6 +1337,16 @@ DATA["gapscore"] = GAP_SCORE
 # ⛔ **الضميرُ المتّصل لا يؤنِّثه `fem()`**: كُتب «فتظهر الحصةُ في حسابه» في
 #    الجافاسكربت فخرج كما هو في نسخة البنات (قِيس باللقطة ٩ أكتوبر ٢٠٢٦).
 #    فالنصّان يُكتبان هنا بجنسَيهما — وهي القاعدةُ المتَّبعةُ في نصوص الشارات.
+# ⛔ **ومن لا مشرفَ لتخصصه تحضر حصّتَه إدارةُ المدرسة** — ونصُّه بجنسَيه هنا
+#    لا في الجافاسكربت: «الوكيلُ التعليميُّ أو مديرُ المدرسة» لا يؤنِّثها fem().
+DATA["attendsup"] = g("مشرفُ المادة", "مشرفةُ المادة")
+DATA["attendschool"] = g("لا مشرفَ مختصّ — يحضرها الوكيلُ التعليميُّ أو مديرُ المدرسة",
+                         "لا مشرفةَ مختصّة — تحضرها الوكيلةُ التعليميةُ أو مديرةُ المدرسة")
+DATA["specdayhint"] = g(
+    "يقرأ المعلمُ سطرَ تخصصه فيعرف يومَ حصته في كل أسبوعٍ فيُعدّ لها. "
+    "والمجمعُ يتبع ما اخترتَه في الأعلى.",
+    "تقرأ المعلمةُ سطرَ تخصصها فتعرف يومَ حصتها في كل أسبوعٍ فتُعدّ لها. "
+    "والمجمعُ يتبع ما اخترتِه في الأعلى.")
 DATA["peerhintname"] = g(
     "لكل حصةٍ زائران — يُكتب اسمُ كلٍّ منهما كما يدخل به، فتظهر الحصةُ في حسابه",
     "لكل حصةٍ زائرتان — يُكتب اسمُ كلٍّ منهما كما تدخل به، فتظهر الحصةُ في حسابها")

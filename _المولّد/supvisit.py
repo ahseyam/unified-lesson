@@ -59,6 +59,18 @@ def G(gender, m, f):
     return m if gender == "m" else f
 
 
+def sechead(doc, txt, before=12, after=3):
+    """عنوانُ قسمٍ: **أحمرُ متوسَّط** — تعديلُ المستشار بيده على المطبوع
+       (٨ أكتوبر ٢٠٢٦، قِيس بمقابلة نسخته بمخرَج المولّد: لونٌ ومحاذاةٌ لا
+       غير). ونُقل إلى المولّد لئلّا يمحوَه توليدٌ تالٍ — ومطبوعٌ يُعدَّل
+       بيدٍ ولا يتبعه مولّدُه يعود إلى حاله عند أول تشغيل."""
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    p = doc.add_paragraph(); rtl_par(p); par_space(p, before, after)
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run(p, txt, size=14, bold=True, color=RED)
+    return p
+
+
 def glabel(g):
     """⛔ **مفاتيحُ المجموعات داخليةٌ لا تُعرض**: «رياضيات واجتماعيات» مفتاحٌ
        أعضاؤه (رياضيات، الفنية) — نُقلت الفنيةُ محلَّ الاجتماعيات بقرار ٧
@@ -151,8 +163,7 @@ def build(gender, out):
     # ── ① المجمعاتُ ومدارسُها وأوقاتُ حصصها ──
     # ⚠️ وهي ما يحتاجه الزائرُ بعد أن يعرف مجمعَه: أيُّ مدرسةٍ في أيِّ حصة،
     #    وفي أيِّ ساعةٍ يدخل. وتُقرأ من `BANDS` نفسِه الذي يبني الجدول.
-    p = doc.add_paragraph(); rtl_par(p); par_space(p, 10, 4)
-    run(p, "أولاً: المجمعاتُ ومدارسُها وأوقاتُ الحصص", size=14, bold=True, color=NAVY)
+    sechead(doc, "أولاً: المجمعاتُ ومدارسُها وأوقاتُ الحصص", 10, 4)
     pers = ["الحصة %d" % i for i in range(1, 7)]
     rows = [["المجمع"] + ["الحصة " + arn(pr.split()[-1]) for pr in pers]]
     for cx in SD.ROT6:
@@ -217,9 +228,7 @@ def build(gender, out):
     # ⛔ طلبُ المستشار: «جدولٌ للتخصصات للمعلمين حسب اليوم المخصص لهم لإعداد
     #    حصص». وهو قلبُ جدول الزيارات: المشرفُ يسأل «أين أكون؟» والمعلمُ
     #    يسأل «متى أُعدّ حصّتي؟» — والمصدرُ واحدٌ (`ROT6`).
-    p = doc.add_paragraph(); rtl_par(p); par_space(p, 14, 3)
-    run(p, "ثانياً: يومُ الحصة لكل تخصصٍ في مجمعه — للمعلمين",
-        size=14, bold=True, color=NAVY)
+    sechead(doc, "ثانياً: يومُ الحصة لكل تخصصٍ في مجمعه — للمعلمين", 14, 3)
     p = doc.add_paragraph(); rtl_par(p); par_space(p, 0, 6)
     run(p, G(gender, "يقرأ المعلمُ سطرَ تخصصه في جدول مجمعه، فيعرف يومَ حصته "
                      "في كل أسبوعٍ فيُعدّ لها.",
@@ -254,8 +263,7 @@ def build(gender, out):
     # ⛔ طلبُ المستشار ٨ أكتوبر ٢٠٢٦: «اكتب نصاً بجوار تخصص المواد التي ليس
     #    لها مشرفٌ مختصٌّ بأن يحضر حصصَها الوكيلُ التعليميُّ أو مديرُ المدرسة».
     #    وهو عينُ قاعدة الرصد في المنصة: ما لا مشرفَ له فمدرستُه تتولّاه.
-    p = doc.add_paragraph(); rtl_par(p); par_space(p, 14, 3)
-    run(p, "ثالثاً: من يحضر حصةَ كل تخصص", size=14, bold=True, color=NAVY)
+    sechead(doc, "ثالثاً: من يحضر حصةَ كل تخصص", 14, 3)
     rows = [["التخصص", G(gender, "المشرفُ المختصّ", "المشرفةُ المختصّة"),
              "من يحضر الحصة"]]
     nosup = 0
@@ -274,8 +282,7 @@ def build(gender, out):
     grid(doc, rows, [2.6, 7.4, 8.0], red=red)
 
     # ── ④ جدولُ المجموعات: لكل مجموعةٍ أسابيعُها وأيامُها ──
-    p = doc.add_paragraph(); rtl_par(p); par_space(p, 14, 4)
-    run(p, "رابعاً: المجمعُ المستهدَف لكل مجموعةِ تخصصات", size=14, bold=True, color=NAVY)
+    sechead(doc, "رابعاً: المجمعُ المستهدَف لكل مجموعةِ تخصصات", 14, 4)
     for g in SD.GROUPS:
         if g not in SD.SUP6:
             continue
@@ -291,9 +298,8 @@ def build(gender, out):
 
     # ── ② لكل مشرفٍ جدولُه، مقصوراً على مجمعاته ──
     doc.add_page_break()
-    p = doc.add_paragraph(); rtl_par(p); par_space(p, 0, 4)
-    run(p, "خامساً: " + G(gender, "جدولُ كلِّ مشرفٍ في نطاقه",
-                     "جدولُ كلِّ مشرفةٍ في نطاقها"), size=14, bold=True, color=NAVY)
+    sechead(doc, "خامساً: " + G(gender, "جدولُ كلِّ مشرفٍ في نطاقه",
+                                "جدولُ كلِّ مشرفةٍ في نطاقها"), 0, 4)
     p = doc.add_paragraph(); rtl_par(p); par_space(p, 0, 8)
     run(p, G(gender, "والخانةُ الرماديةُ مجمعٌ خارجَ نطاق المشرف — لا زيارةَ له فيه.",
                      "والخانةُ الرماديةُ مجمعٌ خارجَ نطاق المشرفة — لا زيارةَ لها فيه."),
@@ -338,8 +344,7 @@ def build(gender, out):
             grid(doc, rows, [4.0, 2.9, 2.9, 2.9, 2.9], off=set(off))
 
     # ── ③ فريقُ الهوية الوطنية: جدولُه ثابتٌ لا يدور ──
-    p = doc.add_paragraph(); rtl_par(p); par_space(p, 14, 3)
-    run(p, "سادساً: " + SD.NAT_GROUP, size=14, bold=True, color=NAVY)
+    sechead(doc, "سادساً: " + SD.NAT_GROUP, 14, 3)
     p = doc.add_paragraph(); rtl_par(p); par_space(p, 0, 4)
     run(p, "فريقُ ثلاثِ موادَّ في القطاع العالمي (" + "، ".join(SD.NAT_SPECS) +
            ") — وجدولُه ثابتٌ لا يدور بالأسابيع. " +

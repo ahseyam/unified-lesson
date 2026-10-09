@@ -5593,6 +5593,8 @@ function ph1(m){
               : (isSchoolBound() ? "من يزور مدرستنا" : "جدول المجمع"));
   /* جدولُ دوران المشرفين لا يعني إلا من يدور فيه */
   if(isSupervisor() || isAdmin()) tab("sup", "أين أزور — جدول المشرفين");
+  /* ⚠️ ولكلِّ دورٍ حاجتُه منها: المعلمُ يومَ تخصصه، والمدرسةُ من يحضر حصصَها */
+  tab("specday", "التخصصات — اليوم ومن يحضر");
   const pr = el("button","b ghost","طباعة"); pr.addEventListener("click", ()=>window.print());
   bar.appendChild(pr);
   if(isAdmin()){        /* ⛔ النسخةُ الاحتياطيةُ تُنزِّل بياناتِ المنظومة كلِّها */
@@ -5662,6 +5664,7 @@ function ph1(m){
   if(c.tab === "visits") return visitPlan(m, c);
   if(c.tab === "school") return rotSchool(m, c);
   if(c.tab === "sup") return rotSup(m, c);
+  if(c.tab === "specday") return specDay(m, c);
   grid(m, c, T);
   myList(m, c);
 }
@@ -6228,7 +6231,7 @@ function rotSchool(m, c){
       r.appendChild(el("td","cs", d));
       D.weeks.forEach(w=>{
         const v = groupOf(cx, w, d);
-        const td = el("td","mid", v || "—");
+        const td = el("td","mid", v ? gname(v) : "—");
         if(!v) td.className += " dim";
         r.appendChild(td);
       });
@@ -6249,6 +6252,7 @@ function rotSup(m, c){
   /* ⛔ «فريقك» تُعرف من **سجلّ الإشراف** لمن هو فيه: قد يحمل مادتين في
      مجموعتين، فيُعلَّم كلتاهما. ومن ليس في السجلّ يبقى على تخصص سياقه. */
   const _me = ME && ME.role === "supervisor" ? supByEmp(ME.emp) : null;
+  const mycx = (_me && (_me.complexes || []).length) ? _me.complexes : null;
   const mine = {};
   if(_me){
     Object.keys(D.pairs).forEach(k=>{
@@ -6260,8 +6264,12 @@ function rotSup(m, c){
   }
   D.specgroups.forEach(gp=>{
     /* ⚠️ الاسمُ يُترجَم قبل وصل اللاحقة — والوصلُ أولاً يُفوّت المفتاح */
+    /* ⛔ **المعروضُ اسمُ المجموعة لا مفتاحُها**: المفتاحُ «رياضيات واجتماعيات»
+       وأعضاؤه اليومَ (رياضيات + الفنية) بعد نقل الفنية محلَّ الاجتماعيات،
+       والمفاتيحُ باقيةٌ لأن ROT6/SUP6 مبنيّتان عليها. وكانت `gname()`
+       مكتوبةً **ولا يناديها أحد** — دالّةٌ ميتةٌ والشاشةُ تُضلّل. */
     const ttl = el("div","wk" + (mine[gp] ? " on" : ""),
-                   TR(gp) + (mine[gp] ? TR("  ← فريقك") : ""));
+                   gname(gp) + (mine[gp] ? TR("  ← فريقك") : ""));
     wrap.appendChild(ttl);
     const t = el("table","mx2"), hr = el("tr");
     hr.appendChild(el("th",null,"اليوم \\ الأسبوع"));
@@ -6279,6 +6287,10 @@ function rotSup(m, c){
         const v = ((D.sup[gp]||{})[w]||{})[d] || "";
         const td = el("td","mid", v || "—");
         if(!v) td.className += " dim";
+        /* ⛔ **وما خرج عن مجمعاته ليس زيارةً له**: من نطاقُه مجمعان كان
+           يرى أربعةً فيذهب حيث لا عملَ له. ويُخفت ولا يُحذف — فالجدولُ
+           يبقى مقروءاً كاملاً، والمعلَّمُ منه نطاقُه. (قرارُ المستشار) */
+        else if(mycx && mycx.indexOf(v) < 0){ td.className += " outcx"; td.title = TR("خارج مجمعاتك"); }
         r.appendChild(td);
       });
       t.appendChild(r);
@@ -6286,6 +6298,83 @@ function rotSup(m, c){
     wrap.appendChild(t);
   });
   card.appendChild(wrap); m.appendChild(card);
+}
+
+/* ═════════ التخصصات: يومُ الحصة ومن يحضرها ═════════
+   ⛔ طلبُ المستشار ٩ أكتوبر ٢٠٢٦: ما في المطبوع يكون في المنصة لكل مستخدم.
+      وهما قسمان من جدول زيارات الإشراف لم تكن لهما شاشة:
+      ① «يومُ الحصة لكل تخصصٍ في مجمعه» — المشرفُ يسأل «أين أكون؟» والمعلمُ
+         يسأل «متى أُعدّ حصّتي؟»، والمصدرُ واحد.
+      ② «من يحضر حصةَ كل تخصص» — وما لا مشرفَ له تحضره إدارةُ المدرسة.
+   ⚠️ والمصدرُ هو `D.rot` و`D.sups` أنفسُهما — لا جدولَ ثانٍ يفترق عن الأول. */
+function specDay(m, c){
+  const cx = c.complex, myspec = (ME && ME.spec) || gctx().spec;
+  /* ① يومُ الحصة لكل تخصص */
+  const card = el("div","card"), h = el("h3");
+  h.appendChild(el("span",null,"يومُ الحصة لكل تخصص"));
+  h.appendChild(el("small",null,"مجمع " + cx));
+  card.appendChild(h);
+  const note = el("div","pad note");
+  note.appendChild(el("div",null, D.specdayhint));
+  card.appendChild(note);
+  const wrap = el("div","gwrap"), t = el("table","mx2"), hr = el("tr");
+  hr.appendChild(el("th",null,"التخصص"));
+  D.weeks.forEach(w=>{
+    const th = el("th");
+    th.appendChild(el("b",null,w));
+    const cc = calOf(w); if(cc) th.appendChild(el("i",null, cc.range));
+    hr.appendChild(th);
+  });
+  t.appendChild(hr);
+  let seen = 0;
+  D.specs.forEach(sp=>{
+    const gp = Object.keys(D.pairs).find(k=>(D.pairs[k]||[]).indexOf(sp) >= 0
+                                            && (D.sup||{})[k]);
+    if(!gp) return;
+    seen++;
+    const r = el("tr");
+    const c0 = el("td","cs", sp);
+    if(sp === myspec){ r.className = "on"; c0.textContent = TR(sp) + TR("  ← تخصصك"); }
+    r.appendChild(c0);
+    D.weeks.forEach(w=>{
+      const day = D.days.find(d=>groupOf(cx, w, d) === gp) || "";
+      const td = el("td","mid", day || "—");
+      if(!day) td.className += " dim";
+      r.appendChild(td);
+    });
+    t.appendChild(r);
+  });
+  wrap.appendChild(t); card.appendChild(wrap); m.appendChild(card);
+  /* ⛔ وشاشةٌ بلا سطرٍ واحدٍ لا تُعرض خاويةً بلا سبب */
+  if(!seen) note.appendChild(el("div","warn", "لا تخصصَ له دورانٌ في هذا المجمع."));
+
+  /* ② من يحضر حصةَ كل تخصص */
+  const c2 = el("div","card"), h2 = el("h3");
+  h2.appendChild(el("span",null,"من يحضر حصةَ كل تخصص"));
+  h2.appendChild(el("small",null,"في مجمعك ومسارك"));
+  c2.appendChild(h2);
+  const w2 = el("div","gwrap"), t2 = el("table","mx2"), hr2 = el("tr");
+  ["التخصص", "المشرف المختص", "من يحضر الحصة"].forEach(x=>hr2.appendChild(el("th",null,x)));
+  t2.appendChild(hr2);
+  D.specs.forEach(sp=>{
+    const gp = Object.keys(D.pairs).find(k=>(D.pairs[k]||[]).indexOf(sp) >= 0
+                                            && (D.sup||{})[k]);
+    if(!gp) return;
+    /* ⚠️ والمشرفُ يُحسب **في هذا المجمع وهذا المسار** لا في المنظومة كلِّها:
+       مشرفٌ لمجمعين ليس مشرفاً لمن في الثالث. */
+    const who = (D.sups || []).filter(x=>
+      (x.allsubj || (x.subjects || []).indexOf(sp) >= 0)
+      && (x.complexes || []).indexOf(cx) >= 0
+      && (x.sectors || []).indexOf(c.sector) >= 0);
+    const r = el("tr");
+    r.appendChild(el("td","cs", sp));
+    r.appendChild(el("td","mid", who.length ? who.map(x=>x.name).join("، ") : "—"));
+    const td = el("td","mid", who.length ? D.attendsup : D.attendschool);
+    if(!who.length) td.className += " nosup";
+    r.appendChild(td);
+    t2.appendChild(r);
+  });
+  w2.appendChild(t2); c2.appendChild(w2); m.appendChild(c2);
 }
 
 /* ⚠️ والخانةُ تُعرف بمفتاحها في الصفحة — فالنقرةُ تأخذ صاحبَها إليها */

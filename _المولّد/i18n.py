@@ -811,6 +811,30 @@ EN.update({
     "بدايةٌ نظيفةٌ بعد التجربة": "A clean start after testing",
     "رقم غير صحيح.": "Invalid number.",
     "لا يطابق رقماً في الكشف": "No matching number in the roster",
+    # ⛔ شاشةُ «التخصصات — اليوم ومن يحضر» (٩ أكتوبر ٢٠٢٦): قسمان من مطبوع
+    #    جدول زيارات الإشراف صارا شاشةً في المنصة.
+    "التخصصات — اليوم ومن يحضر": "Subjects — day and who attends",
+    "يومُ الحصة لكل تخصص": "Each subject's lesson day",
+    "من يحضر حصةَ كل تخصص": "Who attends each subject's lesson",
+    "من يحضر الحصة": "Who attends",
+    "في مجمعك ومسارك": "In your complex and track",
+    "  ← تخصصك": "  ← your subject",
+    "خارج مجمعاتك": "Outside your complexes",
+    "لا تخصصَ له دورانٌ في هذا المجمع.": "No subject rotates in this complex.",
+    "مشرفُ المادة": "The subject supervisor",
+    "مشرفةُ المادة": "The subject supervisor",
+    "لا مشرفَ مختصّ — يحضرها الوكيلُ التعليميُّ أو مديرُ المدرسة":
+        "No specialist supervisor — the academic deputy or the principal attends",
+    "لا مشرفةَ مختصّة — تحضرها الوكيلةُ التعليميةُ أو مديرةُ المدرسة":
+        "No specialist supervisor — the academic deputy or the principal attends",
+    "يقرأ المعلمُ سطرَ تخصصه فيعرف يومَ حصته في كل أسبوعٍ فيُعدّ لها. "
+    "والمجمعُ يتبع ما اخترتَه في الأعلى.":
+        "Read your subject's row to find your lesson day each week and prepare "
+        "for it. The complex follows your choice above.",
+    "تقرأ المعلمةُ سطرَ تخصصها فتعرف يومَ حصتها في كل أسبوعٍ فتُعدّ لها. "
+    "والمجمعُ يتبع ما اخترتِه في الأعلى.":
+        "Read your subject's row to find your lesson day each week and prepare "
+        "for it. The complex follows your choice above.",
     # ⛔ إسنادُ الزائرين **بالاسم** حيث لا كشف (قرارُ المستشار ٨ أكتوبر ٢٠٢٦):
     #    قسمُ البنات بلا كشفٍ فكانت خانةُ «الرقم الوظيفي» لا تُملأ.
     "اسمُ المعلم الزائر": "Visiting teacher's name",
